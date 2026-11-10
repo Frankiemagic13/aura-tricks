@@ -167,6 +167,16 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Side – tap<select data-k="0.click"></select></div>
     <div class="r">Side – hold<select data-k="0.longpress"></select></div>
   </div>
+  <div class="lbl">When the phone locks</div>
+  <div class="grp">
+    <div class="r">Action<select id="lockSel">
+      <option value="none">Nothing</option>
+      <option value="reset">Reset the calculator</option>
+      <option value="url">Go to a web page</option>
+    </select></div>
+    <div class="r" id="lockUrlRow">Web page<input id="lockUrl" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="https://www.google.com"></div>
+  </div>
+  <div class="note">Also runs when the spectator leaves the app (home screen or app switcher). "Reset" clears the display, the force and the peek history. "Go to a web page" also removes the calculator, so the spectator sees that page when they come back.</div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / link page<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
   <div class="note">Open the link page on your own phone (c/p.html, in a Web Bluetooth browser such as Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
@@ -193,7 +203,8 @@ const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
   a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3),
   method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1',
-  sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10)};
+  sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10),
+  onLock:Q.get('lock')||'none',lockUrl:Q.get('lockurl')||'https://www.google.com'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -432,6 +443,19 @@ document.getElementById('bleVib').onchange=e=>{S.bleVib=e.target.checked;saveS()
 document.getElementById('bleAuto').checked=!!S.bleAuto;document.getElementById('bleVib').checked=!!S.bleVib;
 if(!AURA){bleStatus('Only in Aura');document.getElementById('bleNote').textContent='Bluetooth is only available when this page is open in Aura or AuraClip (and the site is in your Aura bookmarks). Online peeks still work.'}
 else if(S.bleAuto)setTimeout(bleConnect,500);
+
+/* ---------- when the phone locks (or the page goes to the background) ---------- */
+const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
+function syncLock(){lockSel.value=S.onLock;lockUrl.value=S.lockUrl;document.getElementById('lockUrlRow').style.display=S.onLock==='url'?'':'none'}
+lockSel.onchange=()=>{S.onLock=lockSel.value;saveS();syncLock()};
+lockUrl.onchange=()=>{let u=lockUrl.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;S.lockUrl=u||'https://www.google.com';saveS();syncLock()};
+syncLock();
+function onLock(){
+  if(document.body.classList.contains('open'))return;        // not while the secret menu is open
+  if(S.onLock==='reset'){reset();psHist.length=0;psLast='';render()}
+  else if(S.onLock==='url'){reset();psHist.length=0;location.replace(S.lockUrl||'https://www.google.com')}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')onLock()});
+addEventListener('pagehide',()=>{if(S.onLock==='url')onLock()});
 
 document.addEventListener('gesturestart',e=>e.preventDefault());
 drawSB();tick();
