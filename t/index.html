@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>Notes</title>
+<style>
+:root{
+  --page:#FFFFFF;--label:#000;--sec:rgba(60,60,67,.6);--tint:#E3A900;
+  --glass:rgba(255,255,255,.74);--glassb:rgba(255,255,255,.95);--shadow:0 4px 16px rgba(0,0,0,.09);
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root{
+  --page:#000;--label:#FFF;--sec:rgba(235,235,245,.6);--tint:#FFC90A;
+  --glass:rgba(40,40,42,.72);--glassb:rgba(255,255,255,.14);--shadow:0 4px 16px rgba(0,0,0,.4);
+}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--page);color:var(--label);overscroll-behavior:none;
+  font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-text-size-adjust:100%}
+body{position:fixed;inset:0;overflow:hidden}
+.nav{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 8px) 16px 10px;
+  display:flex;justify-content:space-between;align-items:center;background:linear-gradient(var(--page) 70%,transparent);pointer-events:none}
+.nav>*{pointer-events:auto}
+.right{display:flex;gap:10px}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(190%);backdrop-filter:blur(22px) saturate(190%);
+  border:.5px solid var(--glassb);box-shadow:var(--shadow);border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--label);
+  transition:transform .15s,opacity .2s}
+.glass:active{transform:scale(.94)}
+.btn{width:44px;height:44px}
+.pill{height:44px;padding:0 4px}
+.pill i{width:42px;height:44px;display:flex;align-items:center;justify-content:center}
+.done{background:var(--tint);border-color:transparent;color:#fff}
+.hidden{opacity:0;pointer-events:none;transform:scale(.8)}
+svg{display:block}
+#scroll{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  padding:calc(env(safe-area-inset-top) + 62px) 20px calc(env(safe-area-inset-bottom) + 120px)}
+#date{text-align:center;font-size:13px;color:var(--sec);padding:2px 0 14px;-webkit-user-select:none;user-select:none}
+#note{min-height:60vh;outline:none;font-size:17px;line-height:23px;white-space:pre-wrap;word-wrap:break-word;caret-color:var(--tint);
+  -webkit-user-select:text;user-select:text}
+#note::first-line{font-size:28px;line-height:34px;font-weight:700;letter-spacing:.3px}
+#note:empty::before{content:attr(data-ph);color:var(--sec);font-size:28px;line-height:34px;font-weight:700;pointer-events:none}
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:14px 16px calc(env(safe-area-inset-bottom) + 8px);
+  display:flex;justify-content:space-between;align-items:center;background:linear-gradient(transparent,var(--page) 45%);pointer-events:none}
+.bar>*{pointer-events:auto}
+.tint{color:var(--tint)}
+</style>
+</head>
+<body>
+<div class="nav">
+  <div class="glass btn" id="back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></div>
+  <div class="right">
+    <div class="glass pill"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></i></div>
+    <div class="glass btn done hidden" id="done"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+  </div>
+</div>
+<div id="scroll">
+  <div id="date"></div>
+  <div id="note" contenteditable="true" spellcheck="true" autocapitalize="sentences" data-ph="New Note"></div>
+</div>
+<div class="bar">
+  <div class="glass pill">
+    <i><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="7" r="2.3"/><path d="m4.4 7 .8.8 1.5-1.6"/><circle cx="5.5" cy="16.5" r="2.3"/><path d="M11 7h9M11 16.5h9"/></svg></i>
+    <i><svg width="26" height="22" viewBox="0 0 28 22" fill="currentColor"><text x="1" y="17" font-family="-apple-system,system-ui" font-size="17" font-weight="500">Aa</text></svg></i>
+    <i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11.2-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/></svg></i>
+    <i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.8 5.2 4 4M4 20l1-4.5L16.2 4.3a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></svg></i>
+  </div>
+  <div class="glass btn tint" id="compose"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
+</div>
+<script>
+/* ============ SETTINGS (URL options) ============
+   ?k=...      channel (default: same as the calculator and Peek Island)
+   ?nt=Peek    notification title
+   ?send=line  send only the line being typed (default: whole note)
+   ?ps=0       do not send anything
+   ================================================= */
+const Q=new URLSearchParams(location.search);
+const TOPIC=Q.get('k')||'fvt-c-k27x9m4q8w';
+const TITLE=Q.get('nt')||'Peek';
+const MODE=Q.get('send')==='line'?'line':'all';
+const SEND=Q.get('ps')!=='0';
+
+const note=document.getElementById('note'),done=document.getElementById('done');
+const d=new Date();
+document.getElementById('date').textContent=d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})+' at '+d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+/* ---------- send to Peek Island ---------- */
+let last='',t=null;
+function text(){
+  const lines=note.innerText.replace(/ /g,' ').split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!lines.length)return'';
+  return MODE==='line'?lines[lines.length-1]:lines.join(' | ');
+}
+function post(v){
+  if(!SEND||!v||v===last)return;last=v;
+  try{fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'?title='+encodeURIComponent(TITLE),{method:'POST',body:v,keepalive:true}).catch(()=>{})}catch(e){}
+}
+function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),700)}
+function now(){clearTimeout(t);post(text())}
+note.addEventListener('input',()=>{
+  // send right away at the end of a word or line, otherwise after a short pause
+  const v=note.innerText;const ch=v.slice(-1);
+  if(ch===' '||ch==='\n')now();else soon()});
+
+/* ---------- editing look ---------- */
+function editing(on){done.classList.toggle('hidden',!on)}
+note.addEventListener('focus',()=>editing(true));
+note.addEventListener('blur',()=>{editing(false);now()});
+done.addEventListener('click',()=>{now();note.blur();window.getSelection().removeAllRanges()});
+document.getElementById('scroll').addEventListener('click',e=>{if(e.target.id==='scroll'||e.target.id==='date'){note.focus();placeEnd()}});
+function placeEnd(){const r=document.createRange();r.selectNodeContents(note);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r)}
+// paste as plain text
+note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,s)});
+
+/* ---------- secret: hold the date for 1 s = clear the note ---------- */
+(function(){const el=document.getElementById('date');let tm=null;
+  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';},1000)},stop=()=>clearTimeout(tm);
+  el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
+  el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
+
+// back / compose start a new empty note (looks natural, keeps the page)
+document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
+document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';note.focus()});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+</script>
+</body>
+</html>
