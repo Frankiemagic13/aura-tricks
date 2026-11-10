@@ -230,7 +230,7 @@ function press(k){press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to the link page (c/p.html) ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(!S.ps||!t||t===psLast)return;psLast=t;
-  try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
+  try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC)+'?title='+encodeURIComponent(Q.get('nt')||'Peek'),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
 function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),350)}
 function psExpr(t){return t.map(x=>x==='−'?' - ':x==='×'?' x ':x==='÷'?' / ':x==='+'?' + ':x).join('').trim()}
