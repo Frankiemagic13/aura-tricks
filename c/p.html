@@ -79,7 +79,7 @@ function sendText(t){
 async function connect(all){
   if(!navigator.bluetooth){setB('No Web Bluetooth here','err');log('This browser has no Web Bluetooth. On iPhone, open this page in a Web Bluetooth browser such as Bluefy.');return}
   try{
-    dev=await navigator.bluetooth.requestDevice(all?{acceptAllDevices:true,optionalServices:[SVC,0xFFE2,0xFFFF]}:{filters:[{services:[SVC]},{namePrefix:'PeekSmith'},{namePrefix:'Peek'},{namePrefix:'PS'},{namePrefix:'SuperPeek'}],optionalServices:[SVC]});
+    dev=await navigator.bluetooth.requestDevice(all?{acceptAllDevices:true,optionalServices:[SVC,0xFFE2,0xFFFF]}:{filters:[{services:[SVC]},{namePrefix:'PeekSmith'},{namePrefix:'Peek'},{namePrefix:'PS'},{namePrefix:'SuperPeek'}],optionalServices:[SVC,0xFFE2,0xFFFF]});
     log('Selected: '+(dev.name||'(no name)'));
     setB('Connecting…');dev.addEventListener('gattserverdisconnected',onDisc);
     await link()}
@@ -92,6 +92,9 @@ async function link(){
     let list='';try{list=(await srv.getPrimaryServices()).map(x=>x.uuid.slice(4,8)).join(', ')}catch(_){}
     throw new Error('PeekSmith service FFE0 not found on this device'+(list?' (services: '+list+')':'')+'. Select the PeekSmith, not a different device.')}
   chr=await s.getCharacteristic(CHR);
+  /* the Electricks docs say: turn on notifications before you write commands */
+  try{await chr.startNotifications();chr.addEventListener('characteristicvaluechanged',ev=>{try{log('PeekSmith says: '+new TextDecoder().decode(ev.target.value).trim())}catch(_){}})}catch(e){log('Notify (main): '+e.message)}
+  try{const ds=await srv.getPrimaryService(0xFFFF);const dc=(await ds.getCharacteristics())[0];await dc.startNotifications()}catch(e){}
   setB(dev.name||'Connected','on');log('Connected to '+(dev.name||'PeekSmith'));writeCmd('~.\n')}
 async function onDisc(){chr=null;setB('Reconnecting…','err');log('Disconnected');
   for(let i=0;i<10&&dev;i++){try{await wait(1500);await link();return}catch(e){}}
