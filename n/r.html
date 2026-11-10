@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#000">
+<title>R</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#000;color:#fff;font-family:-apple-system,system-ui,sans-serif}
+main{padding:calc(env(safe-area-inset-top) + 24px) 20px 24px;display:flex;flex-direction:column;gap:14px;max-width:520px;margin:0 auto}
+h1{font-size:15px;font-weight:600;color:#8e8e93;letter-spacing:.5px;text-transform:uppercase}
+textarea{width:100%;min-height:110px;border-radius:16px;border:0;background:#1c1c1e;color:#fff;font:22px -apple-system,system-ui,sans-serif;padding:16px;resize:none;outline:none}
+.row{display:flex;gap:10px}
+button{flex:1;height:58px;border-radius:16px;border:0;font:600 19px -apple-system,system-ui,sans-serif;color:#000;background:#ffc90a}
+button.sec{flex:0 0 32%;background:#2c2c2e;color:#fff}
+button:active{opacity:.7}
+#st{font-size:15px;color:#8e8e93;min-height:20px}
+#st.ok{color:#30d158}#st.err{color:#ff453a}
+.quick{display:flex;flex-wrap:wrap;gap:8px}
+.quick span{background:#1c1c1e;border-radius:999px;padding:9px 14px;font-size:15px}
+small{color:#636366;font-size:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<main>
+  <h1>Prediction</h1>
+  <textarea id="v" placeholder="Type the prediction" autocapitalize="sentences" autocorrect="off"></textarea>
+  <div class="row"><button id="send">Send</button><button class="sec" id="clr">Clear</button></div>
+  <div id="st"></div>
+  <div class="quick" id="q"></div>
+  <small id="info"></small>
+</main>
+<script>
+const DEFAULT_TOPIC='fvt-n-7q3k9xw2mz5r'; // must match index.html
+const QUICK=['Ace of Spades','Queen of Hearts','7 of Diamonds','Paris','Pizza','42'];
+const TOPIC=new URLSearchParams(location.search).get('k')||DEFAULT_TOPIC;
+const v=document.getElementById('v'),st=document.getElementById('st');
+document.getElementById('info').textContent='Channel: '+TOPIC+'. The Notes page gets the last value sent in the past 20 minutes.';
+async function send(text,label){st.className='';st.textContent='Sending…';
+  try{const r=await fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC),{method:'POST',body:text});
+    if(!r.ok)throw new Error(r.status);st.className='ok';st.textContent=(label||'Sent')+' ✓  '+new Date().toLocaleTimeString()}
+  catch(e){st.className='err';st.textContent='Not sent ('+e.message+'). Check the connection.'}}
+document.getElementById('send').onclick=()=>{const t=v.value.trim();if(t)send(t)};
+document.getElementById('clr').onclick=()=>{v.value='';send('_clear_','Cleared')};
+const q=document.getElementById('q');QUICK.forEach(w=>{const s=document.createElement('span');s.textContent=w;s.onclick=()=>{v.value=w;send(w)};q.appendChild(s)});
+</script>
+</body>
+</html>
