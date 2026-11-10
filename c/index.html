@@ -10,49 +10,68 @@
 <meta name="robots" content="noindex">
 <title>Calculator</title>
 <style>
+/* All sizes use --u = 1 point of an iPhone 16 Pro (402 x 874 pt), scaled to the current phone.
+   On a short phone (iPhone SE) the height limits the scale, so all keys always fit. */
+:root{--u:min(calc(100vw / 402),calc(100dvh / 874));--u:min(calc(100vw / 402),calc(100vh / 874))}
+@supports (height:100dvh){:root{--u:min(calc(100vw / 402),calc(100dvh / 874))}}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-behavior:none;
-  font-family:-apple-system,system-ui,"SF Pro Display","Helvetica Neue",sans-serif;
+  font-family:-apple-system,system-ui,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
-#app{position:fixed;inset:0;display:flex;flex-direction:column;
-  padding:calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 22px)}
-.top{height:46px;display:flex;align-items:center}
-.glassbtn{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;
-  background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04) 55%),rgba(38,38,40,.75);
-  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
-  box-shadow:inset 0 .5px 0 rgba(255,255,255,.35),inset 0 0 0 .5px rgba(255,255,255,.1),0 2px 8px rgba(0,0,0,.4)}
-.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px 10px;min-height:0}
-#expr{text-align:right;color:rgba(235,235,245,.6);font-size:28px;height:36px;white-space:nowrap;overflow:hidden;letter-spacing:.2px}
-#main{text-align:right;font-weight:300;font-size:88px;line-height:1.04;white-space:nowrap;overflow:hidden;letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
+#app{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:calc(402 * var(--u));max-width:100vw;
+  display:flex;flex-direction:column;
+  padding:max(env(safe-area-inset-top),calc(20 * var(--u))) calc(16 * var(--u)) calc(env(safe-area-inset-bottom) + 28 * var(--u))}
+.top{height:calc(44 * var(--u));display:flex;align-items:center;justify-content:space-between;flex:none}
+.tb{width:calc(44 * var(--u));height:calc(44 * var(--u));border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#232323,#161616);
+  box-shadow:inset 0 0 0 calc(.6 * var(--u)) rgba(255,255,255,.09),inset 0 calc(.8 * var(--u)) calc(.6 * var(--u)) rgba(255,255,255,.08)}
+.tb svg{width:calc(26 * var(--u));height:calc(26 * var(--u))}
+.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;
+  padding:0 calc(3 * var(--u)) calc(18 * var(--u)) calc(4 * var(--u))}
+#expr{text-align:right;color:#8D8D92;font-weight:400;height:calc(40 * var(--u));line-height:calc(40 * var(--u));white-space:nowrap;overflow:hidden}
+#main{text-align:right;font-weight:500;line-height:1;white-space:nowrap;overflow:hidden;letter-spacing:calc(-.5 * var(--u));font-variant-numeric:tabular-nums}
 
-.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--g);--g:min(3.6vw,15px)}
-.k{position:relative;aspect-ratio:1;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;color:#fff;
-  font:400 min(10vw,41px)/1 -apple-system,system-ui,"SF Pro Display",sans-serif;
-  background:radial-gradient(120% 90% at 30% 12%,rgba(255,255,255,.13),rgba(255,255,255,0) 60%),linear-gradient(180deg,#363639,#2A2A2D);
-  box-shadow:inset 0 1px .5px rgba(255,255,255,.22),inset 0 -1px 1px rgba(0,0,0,.45),inset 0 0 0 .5px rgba(255,255,255,.07),0 1px 3px rgba(0,0,0,.5);
-  transition:transform .32s cubic-bezier(.3,1.6,.5,1),filter .3s,background .25s,color .25s}
-.k.f{background:radial-gradient(120% 90% at 30% 12%,rgba(255,255,255,.2),rgba(255,255,255,0) 60%),linear-gradient(180deg,#6B6B70,#55555A)}
-.k.o{font-size:min(11.2vw,46px);
-  background:radial-gradient(120% 90% at 30% 12%,rgba(255,255,255,.32),rgba(255,255,255,0) 60%),linear-gradient(180deg,#FFA51F,#FF9500 55%,#F28A00);
-  box-shadow:inset 0 1px .5px rgba(255,255,255,.45),inset 0 -1px 1px rgba(120,50,0,.35),0 1px 3px rgba(0,0,0,.5)}
-.k.o.sel{background:radial-gradient(120% 90% at 30% 12%,#fff,#F2F2F2 70%);color:#FF9500}
-.k.down{transition:transform .12s ease-out,filter .05s;transform:scale(1.07);filter:brightness(1.4)}
+.keys{display:grid;grid-template-columns:repeat(4,calc(86.5 * var(--u)));grid-auto-rows:calc(86.5 * var(--u));
+  column-gap:calc(7.83 * var(--u));row-gap:calc(8.7 * var(--u));flex:none}
+.k{position:relative;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;color:#fff;
+  font:500 calc(37 * var(--u))/1 -apple-system,system-ui,"SF Pro Display",sans-serif;
+  background:linear-gradient(180deg,#383838 0%,#333333 45%,#303030 100%);
+  box-shadow:inset 0 calc(1 * var(--u)) calc(.8 * var(--u)) rgba(255,255,255,.10),
+             inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.055),
+             inset 0 calc(-1 * var(--u)) calc(1 * var(--u)) rgba(0,0,0,.25);
+  transition:filter .35s ease-out,transform .35s cubic-bezier(.3,1.5,.5,1)}
+.k.f{background:linear-gradient(180deg,#6A6A6A 0%,#636363 45%,#5D5D5D 100%);
+  box-shadow:inset 0 calc(1 * var(--u)) calc(.8 * var(--u)) rgba(255,255,255,.16),
+             inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.07),
+             inset 0 calc(-1 * var(--u)) calc(1 * var(--u)) rgba(0,0,0,.2)}
+.k.o{background:linear-gradient(180deg,#F4A345 0%,#F09C3B 45%,#EC9634 100%);
+  box-shadow:inset 0 calc(1 * var(--u)) calc(.8 * var(--u)) rgba(255,255,255,.22),
+             inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.08),
+             inset 0 calc(-1 * var(--u)) calc(1 * var(--u)) rgba(120,60,0,.18)}
+.k.o.sel{background:linear-gradient(180deg,#FFFFFF,#F2F2F2);color:#F09C3B}
+.k.o.sel svg *{stroke:#F09C3B}.k.o.sel svg circle{fill:#F09C3B}
+.k.down{transition:filter .04s,transform .12s ease-out;filter:brightness(1.55);transform:scale(1.04)}
 .k.o.down{filter:brightness(1.18)}
-.k.txt{font-size:min(8.4vw,35px)}
 .k svg{display:block;pointer-events:none}
+.k .g29{width:calc(29 * var(--u));height:calc(29 * var(--u))}
+.k .g22{width:calc(22 * var(--u));height:calc(22 * var(--u))}
+.k .bk{width:calc(37 * var(--u));height:calc(31 * var(--u))}
+.k .pm{width:calc(36 * var(--u));height:calc(36 * var(--u))}
+.k .pct{width:calc(36 * var(--u));height:calc(36 * var(--u))}
+.k .dot{width:calc(6 * var(--u));height:calc(6 * var(--u));margin-top:calc(20 * var(--u))}
+.k.ac{font-size:calc(36 * var(--u));letter-spacing:calc(-.3 * var(--u))}
 
 /* secret settings sheet */
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;border-radius:28px 28px 0 0;
   padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
-  max-height:88%;overflow-y:auto;-webkit-user-select:none;user-select:none}
+  max-height:88%;overflow-y:auto;max-width:520px;margin:0 auto}
 .open #sheetBg{opacity:1;pointer-events:auto}.open #sheet{transform:none}
 .grab{width:36px;height:5px;border-radius:3px;background:#48484A;margin:0 auto 10px}
 .shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.shead b{font-size:17px;font-weight:600}
-.shead span{width:60px}
+.shead b{font-size:17px;font-weight:600}.shead span{width:60px}
 .done{color:#FF9F0A;font-size:17px;font-weight:600;background:none;border:0;width:60px;text-align:right;font-family:inherit}
-.lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 16px 6px;letter-spacing:.2px}
+.lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 16px 6px}
 .grp{background:#2C2C2E;border-radius:14px;overflow:hidden}
 .r{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 16px;font-size:17px;position:relative}
 .r+.r::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:rgba(84,84,88,.65)}
@@ -71,25 +90,27 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 </head>
 <body>
 <div id="app">
-  <div class="top"><div class="glassbtn">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/></svg>
-  </div></div>
+  <div class="top">
+    <div class="tb"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path d="M13 6.8V13H8.6"/></svg></div>
+    <div class="tb"><svg viewBox="0 0 26 26" fill="none"><rect x="5.6" y="2.4" width="14.8" height="21.2" rx="3.4" stroke="#fff" stroke-width="2.1"/><rect x="8.4" y="5.2" width="9.2" height="3.6" rx=".9" fill="#fff"/>
+      <g fill="#fff"><circle cx="9.3" cy="12.2" r="1.25"/><circle cx="13" cy="12.2" r="1.25"/><circle cx="16.7" cy="12.2" r="1.25"/><circle cx="9.3" cy="15.6" r="1.25"/><circle cx="13" cy="15.6" r="1.25"/><circle cx="16.7" cy="15.6" r="1.25"/><circle cx="9.3" cy="19" r="1.25"/><circle cx="13" cy="19" r="1.25"/><circle cx="16.7" cy="19" r="1.25"/></g></svg></div>
+  </div>
   <div class="disp"><div id="expr"></div><div id="main">0</div></div>
   <div class="keys" id="keys">
-    <button class="k f" data-k="clr" id="clr"></button>
-    <button class="k f" data-k="neg"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M9 14h10M14 9v10M21 31 30 9M23 26h9"/></svg></button>
-    <button class="k f" data-k="pct"><svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><circle cx="9.5" cy="9.5" r="4"/><circle cx="24.5" cy="24.5" r="4"/><path d="M26 6 8 28"/></svg></button>
-    <button class="k o" data-k="÷">÷</button>
+    <button class="k f" data-k="bk"><svg class="bk" viewBox="0 0 37 31" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M13 3.5h18a3.5 3.5 0 0 1 3.5 3.5v17a3.5 3.5 0 0 1-3.5 3.5H13L2.5 15.5z"/><path d="m17.5 10.5 10 10M27.5 10.5l-10 10"/></svg></button>
+    <button class="k f ac" data-k="clr">AC</button>
+    <button class="k f" data-k="pct"><svg class="pct" viewBox="0 0 36 36" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"><ellipse cx="8.5" cy="9" rx="4.6" ry="5.8"/><ellipse cx="27.5" cy="27" rx="4.6" ry="5.8"/><path d="M27 3.2 9 32.8"/></svg></button>
+    <button class="k o" data-k="÷"><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.3" stroke-linecap="round"><path d="M1.8 14.5h25.4"/><circle cx="14.5" cy="5.4" r="2.2" fill="#fff" stroke="none"/><circle cx="14.5" cy="23.6" r="2.2" fill="#fff" stroke="none"/></svg></button>
     <button class="k" data-k="7">7</button><button class="k" data-k="8">8</button><button class="k" data-k="9">9</button>
-    <button class="k o" data-k="×">×</button>
+    <button class="k o" data-k="×"><svg class="g22" viewBox="0 0 22 22" fill="none" stroke="#fff" stroke-width="3.3" stroke-linecap="round"><path d="M2 2l18 18M20 2 2 20"/></svg></button>
     <button class="k" data-k="4">4</button><button class="k" data-k="5">5</button><button class="k" data-k="6">6</button>
-    <button class="k o" data-k="−">−</button>
+    <button class="k o" data-k="−"><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.3" stroke-linecap="round"><path d="M1.8 14.5h25.4"/></svg></button>
     <button class="k" data-k="1">1</button><button class="k" data-k="2">2</button><button class="k" data-k="3">3</button>
-    <button class="k o" data-k="+">+</button>
-    <button class="k" data-k="mode"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M3.5 12h17M12 3.5v17"/><path d="M6.5 7.8h3M14.5 7.8h3M16 6.3v3M6.6 16.3l2.1 2.1M8.7 16.3l-2.1 2.1M14.5 15.7h3M14.5 17.9h3" stroke-linecap="round"/></svg></button>
+    <button class="k o" data-k="+"><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.3" stroke-linecap="round"><path d="M1.8 14.5h25.4M14.5 1.8v25.4"/></svg></button>
+    <button class="k" data-k="neg"><svg class="pm" viewBox="0 0 36 36" fill="none" stroke="#fff" stroke-width="2.9" stroke-linecap="round"><path d="M1.8 8.4h10.4M7 3.2v10.4M22.5 4.5 8.5 33M23.5 28.6h10.4"/></svg></button>
     <button class="k" data-k="0" id="zero">0</button>
-    <button class="k" data-k=".">.</button>
-    <button class="k o" data-k="=">=</button>
+    <button class="k" data-k="."><svg class="dot" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="#fff"/></svg></button>
+    <button class="k o" data-k="="><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.3" stroke-linecap="round"><path d="M2.2 9.6h24.6M2.2 19.4h24.6"/></svg></button>
   </div>
 </div>
 
@@ -97,9 +118,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <div id="sheet">
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
-  <div class="seg" id="mode">
-    <button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button>
-  </div>
+  <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
   <div id="customBox">
     <div class="lbl">Force result</div>
     <div class="grp"><div class="r">Number<input id="custom" inputmode="numeric" pattern="[0-9]*" placeholder="0"></div></div>
@@ -109,32 +128,25 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="lbl">Date &amp; time</div>
     <div class="grp">
       <div class="r">Format<select id="fmt">
-        <option value="odhm">MMDD hhmm (12 h)</option>
-        <option value="odHm">MMDD HHmm (24 h)</option>
-        <option value="dohm">DDMM hhmm (12 h)</option>
-        <option value="doHm">DDMM HHmm (24 h)</option>
-        <option value="hmod">hhmm MMDD (12 h)</option>
-        <option value="odY">MMDDYYYY</option>
-        <option value="hm">hhmm only</option>
+        <option value="odhm">MMDD hhmm (12 h)</option><option value="odHm">MMDD HHmm (24 h)</option>
+        <option value="dohm">DDMM hhmm (12 h)</option><option value="doHm">DDMM HHmm (24 h)</option>
+        <option value="hmod">hhmm MMDD (12 h)</option><option value="odY">MMDDYYYY</option><option value="hm">hhmm only</option>
       </select></div>
       <div class="r">Add minutes<div class="step"><button data-s="a" data-d="-1">−</button><em id="aV">1</em><button data-s="a" data-d="1">+</button></div></div>
     </div>
     <div class="preview" id="prev"></div>
   </div>
   <div class="lbl">Force</div>
-  <div class="grp">
-    <div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div>
-  </div>
+  <div class="grp"><div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div></div>
   <div class="note">The force starts when + is tapped after the last number. AC makes the force ready again.</div>
 </div>
 
 <script>
-/* ---------- settings: URL gives defaults, the secret menu changes them ---------- */
 const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
   a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3)};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
-if(Q.has('r'))S.mode='custom',S.custom=Q.get('r');
+if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
 
 const p2=v=>String(v).padStart(2,'0');
@@ -146,7 +158,6 @@ function dateTarget(){const d=new Date(Date.now()+S.a*60000);let s='';
   return Number(s)}
 function target(){return S.mode==='custom'?Number(S.custom):S.mode==='date'?dateTarget():NaN}
 
-/* ---------- calculator ---------- */
 let toks=[],cur='',result=null,shownExpr='',armed=true,force=null,fi=0,before=0;
 const OPS=['+','−','×','÷'],isOp=t=>OPS.includes(t);
 function evalToks(t){const a=t.map(x=>isOp(x)?x:parseFloat(x));if(a.length&&isOp(a.at(-1)))a.pop();
@@ -158,30 +169,27 @@ function fmtNum(s){if(s===''||s==null)return'';
   let[i,f]=s.split('.');i=(i||'0').replace(/\B(?=(\d{3})+(?!\d))/g,',');return(neg?'-':'')+i+(f!==undefined?'.'+f:'')}
 const exprStr=t=>t.map(x=>isOp(x)?x:fmtNum(x)).join('');
 
-const $m=document.getElementById('main'),$e=document.getElementById('expr'),$c=document.getElementById('clr');
-const BACK='<svg width="36" height="28" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 4h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H12L2.5 15z"/><path d="m17 10 10 10M27 10 17 20"/></svg>';
-function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=2;el.style.fontSize=s+'px'}}
+const $m=document.getElementById('main'),$e=document.getElementById('expr');
+function unit(){return parseFloat(getComputedStyle(document.getElementById('keys')).gridAutoRows)/86.5||1}
+function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=1;el.style.fontSize=s+'px'}}
 function render(){
   let main;
   if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
   else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
-  $m.textContent=main;fit($m,Math.min(innerWidth*.235,96),34);fit($e,28,16);
-  const blank=result===null&&!toks.length&&(cur===''||cur==='0');const ac=blank||result!==null;
-  $c.innerHTML=ac?'AC':BACK;$c.classList.toggle('txt',ac);
+  $m.textContent=main;const u=unit();fit($m,94*u,34*u);fit($e,30*u,16*u);
   document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k))}
 function computeForce(){const need=target()-before;
-  if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=Math.min(fi,force.length);if(fi)cur=force.slice(0,fi)}else{force=null}}
+  if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=Math.min(fi,force.length);if(fi)cur=force.slice(0,fi)}else force=null}
 function startForce(){before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
 function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0}
 
 function press(k){
-  if(k==='mode')return;
-  if(k==='clr'){const blank=result===null&&!toks.length&&(cur===''||cur==='0');
-    if(blank||result!==null)reset();
-    else if(force!==null&&cur!==''){fi=Math.max(0,fi-1);cur=force.slice(0,fi)}
+  if(k==='clr'){reset();return render()}
+  if(k==='bk'){
+    if(result!==null)return;
+    if(force!==null&&cur!==''){fi=Math.max(0,fi-1);cur=force.slice(0,fi)}
     else if(cur!=='')cur=cur.slice(0,-1);
-    else if(toks.length){const t=toks.pop();if(!isOp(t))cur=t.slice(0,-1);
-      if(force!==null&&isOp(t)){force=null;armed=true}}
+    else if(toks.length){const t=toks.pop();if(!isOp(t))cur=t.slice(0,-1);else if(force!==null){force=null;armed=true}}
     return render()}
   if(result!==null&&(/\d/.test(k)||k==='.'))reset();
   if(/^\d$/.test(k)){
@@ -194,7 +202,7 @@ function press(k){
     if(result!==null){const r=result;reset();cur=String(r/100)}else if(cur!=='')cur=String(parseFloat(cur)/100);return render()}
   if(isOp(k)){
     if(force!==null){cur=force;force=null}
-    if(result!==null){const r=result;reset();toks=[String(r)];armed=true}
+    if(result!==null){const r=result;reset();toks=[String(r)]}
     if(cur!==''){toks.push(cur);cur=''}
     if(!toks.length)toks.push('0');
     if(isOp(toks.at(-1)))toks[toks.length-1]=k;else toks.push(k);
@@ -207,7 +215,7 @@ function press(k){
     shownExpr=exprStr(toks);result=evalToks(toks);toks=[];return render()}
 }
 
-/* ---------- touch handling (0 key: tap = 0, hold = secret menu) ---------- */
+/* touch: 0 key tap = 0, hold 0.7 s = secret settings */
 const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
 function down(b){b.classList.add('down');
   if(b.dataset.k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700)}
@@ -217,22 +225,22 @@ function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove
 keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();down(b)},{passive:false});
 keys.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
 keys.addEventListener('touchcancel',up);
-keys.addEventListener('mousedown',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;const b=e.target.closest('.k');if(b)down(b)});
-addEventListener('mouseup',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;up()});
+let touchUsed=false;addEventListener('touchstart',()=>touchUsed=true,{passive:true,capture:true});
+keys.addEventListener('mousedown',e=>{if(touchUsed)return;const b=e.target.closest('.k');if(b)down(b)});
+addEventListener('mouseup',()=>{if(!touchUsed)up()});
 
-/* ---------- secret settings sheet ---------- */
-const $ = id=>document.getElementById(id);
+/* secret settings sheet */
+const $=id=>document.getElementById(id);
 function syncSheet(){
   document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.mode));
   $('customBox').classList.toggle('hide',S.mode!=='custom');$('dateBox').classList.toggle('hide',S.mode!=='date');
   $('custom').value=S.custom;$('fmt').value=S.fmt;$('aV').textContent=S.a;$('nV').textContent=S.n;
-  const t=dateTarget();$('prev').textContent='Result now: '+fmtNum(String(t))}
+  $('prev').textContent='Result now: '+fmtNum(String(dateTarget()))}
 function openSheet(){syncSheet();document.body.classList.add('open')}
 function closeSheet(){
-  const v=$('custom').value.replace(/\D/g,'');S.custom=v;
-  if(S.mode==='custom'&&!v)S.mode='date';
-  saveS();document.activeElement&&document.activeElement.blur();document.body.classList.remove('open');
-  if(force!==null||(!armed&&S.mode!=='off'&&cur===''&&toks.length&&toks.at(-1)==='+'))computeForce();
+  S.custom=$('custom').value.replace(/\D/g,'');if(S.mode==='custom'&&!S.custom)S.mode='date';
+  saveS();if(document.activeElement)document.activeElement.blur();document.body.classList.remove('open');
+  if(!armed&&(force!==null||(cur===''&&toks.length&&toks.at(-1)==='+')))computeForce();
   render()}
 $('done').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
 document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>{S.mode=b.dataset.v;syncSheet()});
