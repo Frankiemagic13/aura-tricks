@@ -168,7 +168,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Status<span id="bleSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
     <div class="r"><button class="done" id="bleBtn" style="width:auto;text-align:left">Connect PeekSmith</button><button class="done" id="bleTest" style="width:auto">Test</button></div>
-    <div class="r">Connect when the page opens<label><input type="checkbox" id="bleAuto" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Search automatically<label><input type="checkbox" id="bleAuto" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r">Vibrate on each peek<label><input type="checkbox" id="bleVib" style="width:auto;transform:scale(1.3)"></label></div>
   </div>
   <div class="note" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. The page must be open in Aura or AuraClip.</div>
@@ -218,7 +218,7 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3),
   method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1',
   sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10),
-  onLock:Q.get('lock')||'none',lockUrl:Q.get('lockurl')||'https://www.google.com'};
+  onLock:Q.get('lock')||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -404,9 +404,14 @@ let aps=null;const psHist=[];let psBack=0;
 function bleStatus(t){const el=document.getElementById('bleSt');if(el)el.textContent=t}
 function bleConnected(){return !!(aps&&aps.connected)}
 function bleBtnText(){const b=document.getElementById('bleBtn');if(b)b.textContent=bleConnected()?'Disconnect':'Connect PeekSmith'}
+let bleBusy=false,bleManualOff=false;
 async function bleConnect(){
   if(!AURA){bleStatus('Only in Aura');return}
-  if(bleConnected()){await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
+  if(bleConnected()){bleManualOff=true;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
+  bleManualOff=false;return bleSearch()}
+/* one search: used by the button and by the automatic search */
+async function bleSearch(){
+  if(bleBusy||bleConnected())return;bleBusy=true;
   aps=new AuraPeekSmith({lang:'en'});
   aps.on('status',({state,name,attempt})=>{
     if(state==='scanning')bleStatus('Searching…');
@@ -417,8 +422,8 @@ async function bleConnect(){
     bleBtnText()});
   aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText()});
   aps.on('button',({button,event})=>bleButton(button,event));
-  try{await aps.connect()}catch(e){bleStatus('Failed: '+e.message);aps=null}
-  bleBtnText()}
+  try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
+  bleBusy=false;bleBtnText()}
 function bleShow(t){if(!bleConnected())return;aps.text(String(t),{raw:true}).catch(()=>{});if(S.bleVib)aps.vibrate('.').catch(()=>{})}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
@@ -454,7 +459,11 @@ document.getElementById('bleAuto').onchange=e=>{S.bleAuto=e.target.checked;saveS
 document.getElementById('bleVib').onchange=e=>{S.bleVib=e.target.checked;saveS()};
 document.getElementById('bleAuto').checked=!!S.bleAuto;document.getElementById('bleVib').checked=!!S.bleVib;
 if(!AURA){bleStatus('Only in Aura');document.getElementById('bleNote').textContent='Bluetooth is only available when this page is open in Aura or AuraClip (and the site is in your Aura bookmarks). Online peeks still work.'}
-else if(S.bleAuto)setTimeout(bleConnect,500);
+else{
+  /* automatic search: start when the page opens, then try again every 6 s until connected */
+  const auto=()=>{if(S.bleAuto&&!bleManualOff&&!bleConnected()&&!bleBusy&&document.visibilityState==='visible')bleSearch()};
+  setTimeout(auto,400);setInterval(auto,6000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(auto,300)})}
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
