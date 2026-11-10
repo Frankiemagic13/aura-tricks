@@ -18,6 +18,8 @@ final class PeekModel: ObservableObject {
     /// Request to send to Inject. {id} = Inject ID, {text} = the text (URL-encoded).
     @Published var injectURL: String { didSet { UserDefaults.standard.set(injectURL, forKey: "inject.url") } }
     @Published var injectPOST: Bool { didSet { UserDefaults.standard.set(injectPOST, forKey: "inject.post") } }
+    /// Name of the POST field that carries the text (Inject: "value").
+    @Published var injectKey: String { didSet { UserDefaults.standard.set(injectKey, forKey: "inject.key") } }
     @Published private(set) var injectStatus = ""
 
     // PeekSmith button actions, key "button.event" (for example "1.click")
@@ -39,8 +41,10 @@ final class PeekModel: ObservableObject {
         keepAlive = d.object(forKey: "keepAlive") as? Bool ?? true
         popOpen = d.object(forKey: "popOpen") as? Bool ?? false
         injectID = d.string(forKey: "inject.id") ?? "13297"
-        injectURL = d.string(forKey: "inject.url") ?? ""
-        injectPOST = d.object(forKey: "inject.post") as? Bool ?? false
+        let savedURL = d.string(forKey: "inject.url") ?? ""
+        injectURL = savedURL.isEmpty ? Self.injectDefaultURL : savedURL
+        injectPOST = savedURL.isEmpty ? true : (d.object(forKey: "inject.post") as? Bool ?? true)
+        injectKey = d.string(forKey: "inject.key") ?? "value"
         var map = ButtonMap.defaults
         if let data = d.data(forKey: "buttons"),
            let saved = try? JSONDecoder().decode([String: PeekAction].self, from: data) {
@@ -100,6 +104,8 @@ final class PeekModel: ObservableObject {
 
     // MARK: Inject
 
+    static let injectDefaultURL = "https://11z.co/_w/{id}/selection"
+
     func sendToInject(_ text: String) {
         let template = injectURL.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !template.isEmpty else {
@@ -116,26 +122,47 @@ final class PeekModel: ObservableObject {
             peekSmith.send("Bad Inject URL")
             return
         }
-        var req = URLRequest(url: url, timeoutInterval: 10)
-        if injectPOST {
-            req.httpMethod = "POST"
-            req.httpBody = text.data(using: .utf8)
-        }
+        let key = injectKey.trimmingCharacters(in: .whitespaces).isEmpty ? "value" : injectKey.trimmingCharacters(in: .whitespaces)
         injectStatus = "Sending…"
         Task {
-            do {
-                let (_, resp) = try await URLSession.shared.data(for: req)
-                let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
-                if (200..<300).contains(code) {
-                    injectStatus = "Sent \"\(text)\" ✓"
-                    peekSmith.send("Inject: \(text)")
-                } else {
-                    injectStatus = "Inject answered \(code)"
-                    peekSmith.send("Inject error \(code)")
+            var code = 0
+            var failure: String?
+            // 1st try: form field (value=…). 2nd try, only if Inject refuses the form: JSON {"value": "…"}.
+            for json in (injectPOST ? [false, true] : [false]) {
+                var req = URLRequest(url: url, timeoutInterval: 10)
+                if injectPOST {
+                    req.httpMethod = "POST"
+                    if json {
+                        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                        req.httpBody = try? JSONSerialization.data(withJSONObject: [key: text])
+                    } else {
+                        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+                        var allowed = CharacterSet.alphanumerics
+                        allowed.insert(charactersIn: "-._~")
+                        let k = key.addingPercentEncoding(withAllowedCharacters: allowed) ?? key
+                        let v = text.addingPercentEncoding(withAllowedCharacters: allowed) ?? text
+                        req.httpBody = "\(k)=\(v)".data(using: .utf8)
+                    }
                 }
-            } catch {
-                injectStatus = "Not sent: \(error.localizedDescription)"
+                do {
+                    let (_, resp) = try await URLSession.shared.data(for: req)
+                    code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                    failure = nil
+                    if (200..<300).contains(code) { break }
+                } catch {
+                    failure = error.localizedDescription
+                    break
+                }
+            }
+            if let failure {
+                injectStatus = "Not sent: \(failure)"
                 peekSmith.send("Inject failed")
+            } else if (200..<300).contains(code) {
+                injectStatus = "Sent \"\(text)\" ✓"
+                peekSmith.send("Inject: \(text)")
+            } else {
+                injectStatus = "Inject answered \(code)"
+                peekSmith.send("Inject error \(code)")
             }
             addLog("Inject: \(injectStatus)")
         }

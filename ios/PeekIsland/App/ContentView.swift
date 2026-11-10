@@ -91,7 +91,17 @@ struct ContentView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .font(.footnote.monospaced())
-                    Toggle("Send text as POST body", isOn: $model.injectPOST)
+                    Toggle("Send text as POST field", isOn: $model.injectPOST)
+                    if model.injectPOST {
+                        TextField("Field name", text: $model.injectKey)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+                    }
+                    Button("Use Inject default address") {
+                        model.injectURL = PeekModel.injectDefaultURL
+                        model.injectPOST = true
+                        model.injectKey = "value"
+                    }
                     Button("Send test to Inject") { model.sendToInject("Test") }
                     if !model.injectStatus.isEmpty {
                         Text(model.injectStatus).font(.caption).foregroundStyle(.secondary)
@@ -99,7 +109,7 @@ struct ContentView: View {
                 } header: {
                     Text("Inject")
                 } footer: {
-                    Text("Put the Inject web address here. Use {id} for your Inject ID and {text} for the text, for example https://…/?id={id}&text={text}. With \"POST body\" on, the text is sent as the request body.")
+                    Text("Default: https://11z.co/_w/{id}/selection with the text in the POST field \"value\". {id} is your Inject ID. For a different address, use {text} where the text goes in the address, or turn on the POST field.")
                 }
 
                 Section {
