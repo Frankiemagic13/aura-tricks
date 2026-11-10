@@ -41,6 +41,10 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .key.zero{grid-column:2}
 .foot{width:100%;display:flex;justify-content:space-between;margin-top:auto;padding:0 calc(44 * var(--u))}
 .foot span{font-size:calc(17 * var(--u));font-weight:400;padding:calc(10 * var(--u)) calc(4 * var(--u))}
+#closed{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s;z-index:8}
+#closed.on{opacity:1;pointer-events:auto}
+#home{position:fixed;inset:0;background:#000 center/cover no-repeat;opacity:0;pointer-events:none;transition:opacity .4s;z-index:7}
+#home.on{opacity:1;pointer-events:auto}
 #app.unlock{transition:transform .45s cubic-bezier(.4,0,.2,1),opacity .45s;transform:translate(-50%,-40%);opacity:0}
 
 /* secret settings sheet (hold "Emergency" for 1 s) */
@@ -85,6 +89,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="foot"><span id="emergency">Emergency</span><span id="cancel">Cancel</span></div>
 </div>
 
+<div id="home"></div>
+<div id="closed"></div>
 <div id="sheetBg"></div>
 <div id="sheet">
   <div class="grab"></div>
@@ -92,16 +98,24 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Passcode</div>
   <div class="grp">
     <div class="r">Digits<select id="sLen"><option value="4">4</option><option value="6">6</option></select></div>
-    <div class="r">After the last digit<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="unlock">Unlock → web page</option></select></div>
+    <div class="r">After the last digit<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="unlock">Unlock → open a web page</option><option value="close">Unlock → close (black screen)</option><option value="home">Unlock → show home photo</option></select></div>
     <div class="r" id="rowUrl">Web page<input type="text" id="sUrl" placeholder="https://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
   </div>
-  <div class="snote">With "Wrong passcode" the spectator can try again; each try is a new peek.</div>
+  <div class="snote">"Wrong passcode": the spectator can try again (each try is a new peek). "Close": the screen goes black like a closed app; tap 3 times to come back. "Show home photo": shows a photo without blur, for example a screenshot of their home screen.</div>
+  <div class="lbl">When the phone locks</div>
+  <div class="grp">
+    <div class="r">Action<select id="sLock"><option value="none">Nothing</option><option value="reset">Reset the passcode screen</option><option value="close">Close (black screen)</option><option value="url">Open a web page</option></select></div>
+    <div class="r" id="rowLockUrl">Web page<input type="text" id="sLockUrl" placeholder="https://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
+  </div>
+  <div class="snote">Also runs when the spectator goes to the home screen or the app switcher.</div>
   <div class="lbl">Wallpaper</div>
   <div class="grp">
     <div class="r"><button class="sbtn" id="sPick">Choose photo…</button><button class="sbtn" id="sReset">Default</button></div>
     <div class="r">Blur<select id="sBlur"><option value="0">None</option><option value="14">Light</option><option value="28">iOS</option><option value="44">Strong</option></select></div>
   </div>
-  <div class="snote">Tip: use a screenshot of the spectator's lock screen. The photo stays on this phone only.</div>
+  <div class="grp" style="margin-top:8px"><div class="r">Home photo<span><button class="sbtn" id="sPickHome">Choose…</button> <button class="sbtn" id="sResetHome">Same as wallpaper</button></span></div></div>
+  <div class="snote">Tip: use a screenshot of the spectator's lock screen as the wallpaper, and of their home screen as the home photo. The photos stay on this phone only.</div>
+  <input type="file" id="fileHome" accept="image/*" hidden>
   <input type="file" id="file" accept="image/*" hidden>
   <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
   <div class="grp">
@@ -125,9 +139,10 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 const Q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',blur:28,auto:true,vib:true,online:true},store.get('lset',{}));
+const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',blur:28,auto:true,vib:true,online:true},store.get('lset',{}));
 if(Q.has('len'))P.len=+Q.get('len')===4?4:6;
-if(Q.has('after'))P.after=Q.get('after')==='unlock'?'unlock':'shake';
+if(Q.has('after'))P.after=['unlock','close','home'].includes(Q.get('after'))?Q.get('after'):'shake';
+if(Q.has('lock'))P.onLock=Q.get('lock');if(Q.has('lockurl'))P.lockUrl=Q.get('lockurl');
 if(Q.has('url'))P.url=Q.get('url');
 if(Q.get('ble')==='0')P.auto=false;
 if(Q.get('ps')==='0')P.online=false;
@@ -143,12 +158,17 @@ function applyBg(){
   bg.style.filter=P.blur>0?'blur('+P.blur+'px) saturate(1.5)':'saturate(1.2)'}
 applyBg();
 $('sPick').onclick=()=>$('file').click();
-$('file').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+function savePhoto(f,key,done){if(!f)return;
   const im=new Image();im.onload=()=>{const max=1200,k=Math.min(1,max/Math.max(im.width,im.height));
     const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
-    try{localStorage.setItem('lockbg',c.toDataURL('image/jpeg',.82))}catch(err){alert('The photo is too large to save.')}
-    URL.revokeObjectURL(im.src);applyBg()};im.src=URL.createObjectURL(f)};
+    try{localStorage.setItem(key,c.toDataURL('image/jpeg',.8))}catch(err){alert('The photo is too large to save.')}
+    URL.revokeObjectURL(im.src);done()};im.src=URL.createObjectURL(f)}
+$('file').onchange=e=>savePhoto(e.target.files&&e.target.files[0],'lockbg',applyBg);
 $('sReset').onclick=()=>{try{localStorage.removeItem('lockbg')}catch(e){}applyBg()};
+$('sPickHome').onclick=()=>$('fileHome').click();
+$('fileHome').onchange=e=>savePhoto(e.target.files&&e.target.files[0],'lockhome',()=>{});
+$('sResetHome').onclick=()=>{try{localStorage.removeItem('lockhome')}catch(e){}};
+function homeImage(){let i=null;try{i=localStorage.getItem('lockhome')||localStorage.getItem('lockbg')}catch(e){}return i||Q.get('bg')}
 
 /* ---------- passcode ---------- */
 let code='',locked=false,lastCode='';
@@ -162,10 +182,24 @@ function digit(k){
   if(code.length===P.len){locked=true;setTimeout(complete,180)}}
 function complete(){
   lastCode=code;peekDone(code);
-  if(P.after==='unlock'){$('app').classList.add('unlock');setTimeout(()=>location.replace(P.url||'https://www.google.com'),420);return}
+  if(P.after!=='shake'){finish(P.after,P.url);return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
   setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots()},560)}
+/* ---------- unlock / close actions ---------- */
+function finish(kind,url){
+  if(kind==='unlock'||kind==='url'){$('app').classList.add('unlock');setTimeout(()=>location.replace(url||'https://www.google.com'),420);return}
+  if(kind==='home'){const i=homeImage();const h=$('home');if(i){h.style.backgroundImage='url("'+i.replace(/"/g,'%22')+'")'}$('app').classList.add('unlock');h.classList.add('on');return}
+  if(kind==='close'){$('app').classList.add('unlock');$('closed').classList.add('on');try{window.close()}catch(e){}return}
+  if(kind==='reset'){resetScreen()}}
+function resetScreen(){code='';locked=false;$('app').classList.remove('unlock');$('closed').classList.remove('on');$('home').classList.remove('on');drawDots()}
+/* hidden way back from the black / home screen: tap 3 times quickly */
+(function(){let n=0,t=0;const back=e=>{const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;resetScreen()}};
+  $('closed').addEventListener('click',back);$('home').addEventListener('click',back)})();
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState!=='hidden'||document.body.classList.contains('open'))return;
+  if(P.onLock==='none')return;
+  finish(P.onLock==='url'?'url':P.onLock,P.lockUrl)});
 $('cancel').onclick=()=>{if(locked)return;if(code.length){code=code.slice(0,-1);drawDots();peekLive()}};
 
 /* key touch handling (instant highlight like iOS) */
@@ -218,10 +252,13 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 /* ---------- settings sheet ---------- */
 function syncSheet(){
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sUrl').value=P.url;$('rowUrl').style.display=P.after==='unlock'?'':'none';
+  $('sLock').value=P.onLock;$('sLockUrl').value=P.lockUrl;$('rowLockUrl').style.display=P.onLock==='url'?'':'none';
   $('sBlur').value=String(P.blur);$('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online}
 $('sLen').onchange=e=>{P.len=+e.target.value;saveP();code='';drawDots()};
 $('sAfter').onchange=e=>{P.after=e.target.value;saveP();syncSheet()};
 $('sUrl').onchange=e=>{let u=e.target.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;P.url=u;saveP()};
+$('sLock').onchange=e=>{P.onLock=e.target.value;saveP();syncSheet()};
+$('sLockUrl').onchange=e=>{let u=e.target.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;P.lockUrl=u||'https://www.google.com';saveP()};
 $('sBlur').onchange=e=>{P.blur=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
