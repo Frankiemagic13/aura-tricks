@@ -10,10 +10,10 @@
 <meta name="robots" content="noindex">
 <title>Calculator</title>
 <style>
-/* All sizes use --u = 1 point of an iPhone 16 Pro (402 x 874 pt), scaled to the current phone.
-   On a short phone (iPhone SE) the height limits the scale, so all keys always fit. */
-:root{--u:min(calc(100vw / 402),calc(100dvh / 874));--u:min(calc(100vw / 402),calc(100vh / 874))}
-@supports (height:100dvh){:root{--u:min(calc(100vw / 402),calc(100dvh / 874))}}
+/* All sizes use --u = 1 point of an iPhone 16 Pro (402 pt wide), scaled to the width of the current phone.
+   If the keys and top bar (about 560 pt) do not fit the height, the height limits the scale. */
+:root{--u:min(calc(100vw / 402),calc((100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 110px) / 560))}
+@supports (height:100dvh){:root{--u:min(calc(100vw / 402),calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 110px) / 560))}}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-behavior:none;
   font-family:-apple-system,system-ui,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
