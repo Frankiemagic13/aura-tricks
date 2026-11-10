@@ -91,7 +91,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <body>
 <div id="app">
   <div class="top">
-    <div class="tb"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path d="M13 6.8V13H8.6"/></svg></div>
+    <div class="tb"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path id="hand" d="M13 6.8V13H8.6"/></svg></div>
     <div class="tb"><svg viewBox="0 0 26 26" fill="none"><rect x="5.6" y="2.4" width="14.8" height="21.2" rx="3.4" stroke="#fff" stroke-width="2.1"/><rect x="8.4" y="5.2" width="9.2" height="3.6" rx=".9" fill="#fff"/>
       <g fill="#fff"><circle cx="9.3" cy="12.2" r="1.25"/><circle cx="13" cy="12.2" r="1.25"/><circle cx="16.7" cy="12.2" r="1.25"/><circle cx="9.3" cy="15.6" r="1.25"/><circle cx="13" cy="15.6" r="1.25"/><circle cx="16.7" cy="15.6" r="1.25"/><circle cx="9.3" cy="19" r="1.25"/><circle cx="13" cy="19" r="1.25"/><circle cx="16.7" cy="19" r="1.25"/></g></svg></div>
   </div>
@@ -136,15 +136,28 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     </div>
     <div class="preview" id="prev"></div>
   </div>
-  <div class="lbl">Force</div>
-  <div class="grp"><div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div></div>
-  <div class="note">The force starts when + is tapped after the last number. AC makes the force ready again.</div>
+  <div class="lbl">Method</div>
+  <div class="seg" id="method"><button data-v="add">4th number</button><button data-v="flip">Peek + face down</button></div>
+  <div id="addBox">
+    <div class="grp"><div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div></div>
+    <div class="note">The force starts when + is tapped after the last number. Each digit tapped shows the next digit of the necessary number. AC makes the force ready again.</div>
+  </div>
+  <div id="flipBox">
+    <div class="grp">
+      <div class="r">Motion sensor<button class="done" id="motion" style="width:auto">Enable</button></div>
+      <div class="r">Face down now<span id="fdNow" style="color:rgba(235,235,245,.6)">—</span></div>
+      <div class="r">Tap = when face up<label><input type="checkbox" id="autoEq" style="width:auto;transform:scale(1.3)"></label></div>
+    </div>
+    <div class="note">1. Add the numbers and tap =. 2. Peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. Turn the phone face down and tap the screen. Each tap enters the next digit. 4. Turn the phone face up and tap = (or let it tap = for you).</div>
+    <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
+  </div>
 </div>
 
 <script>
 const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
-  a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3)};
+  a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3),
+  method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -178,10 +191,13 @@ function render(){
   else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
   $m.textContent=main;const u=unit();fit($m,68*u,30*u);fit($e,30*u,16*u);
   document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k))}
-function computeForce(){const need=target()-before;
+let fOp='+';
+function computeForce(){let need=target()-before;if(fOp==='−')need=-need;
   if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=Math.min(fi,force.length);if(fi)cur=force.slice(0,fi)}else force=null}
-function startForce(){before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
-function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0}
+function startForce(){fOp=toks.at(-1);before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
+function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0;peek(0)}
+/* peek on the clock button: 1 = add (hand right), -1 = subtract (hand down), 0 = normal */
+function peek(v){document.getElementById('hand').setAttribute('d',v>0?'M13 6.8V13H17.4':v<0?'M13 6.8V19.2':'M13 6.8V13H8.6')}
 
 function press(k){
   if(k==='clr'){reset();return render()}
@@ -201,19 +217,40 @@ function press(k){
   if(k==='pct'){if(force!==null)return;
     if(result!==null){const r=result;reset();cur=String(r/100)}else if(cur!=='')cur=String(parseFloat(cur)/100);return render()}
   if(isOp(k)){
-    if(force!==null){cur=force;force=null}
+    if(force!==null){if(fi>0)cur=force;force=null}
     if(result!==null){const r=result;reset();toks=[String(r)]}
     if(cur!==''){toks.push(cur);cur=''}
     if(!toks.length)toks.push('0');
     if(isOp(toks.at(-1)))toks[toks.length-1]=k;else toks.push(k);
-    if(armed&&k==='+'&&toks.filter(t=>!isOp(t)).length===S.n){armed=false;startForce()}
+    if(S.method==='add'&&armed&&k==='+'&&toks.filter(t=>!isOp(t)).length===S.n){armed=false;startForce()}
+    else if(S.method==='flip'&&armed&&toks.length===2&&(k==='+'||k==='−')){armed=false;peek(0);startForce()}
+    else if(S.method==='flip'&&!armed&&toks.length===2&&(k==='+'||k==='−')){startForce()}
     return render()}
   if(k==='='){if(result!==null)return;
     if(force!==null){cur=force;force=null}
     if(cur!=='')toks.push(cur);cur='';if(!toks.length)return render();
     if(isOp(toks.at(-1)))toks.pop();
-    shownExpr=exprStr(toks);result=evalToks(toks);toks=[];return render()}
+    shownExpr=exprStr(toks);result=evalToks(toks);toks=[];
+    if(S.method==='flip'&&armed&&S.mode!=='off'){const d=target()-result;peek(d>0?1:d<0?-1:0)}
+    return render()}
 }
+
+/* ---------- face-down detection ---------- */
+let faceDown=false;
+function setFace(down){if(down===faceDown)return;faceDown=down;
+  const f=document.getElementById('fdNow');if(f)f.textContent=down?'Yes':'No';
+  if(!down&&S.autoEq&&force!==null&&fi===force.length&&fi>0)setTimeout(()=>press('='),250)}
+addEventListener('deviceorientation',e=>{if(e.beta==null)return;const b=Math.abs(e.beta);
+  if(!faceDown&&b>135)setFace(true);else if(faceDown&&b<110)setFace(false)});
+addEventListener('devicemotion',e=>{const g=e.accelerationIncludingGravity;if(!g||g.z==null)return;
+  /* iOS: z is about -9.8 face up and +9.8 face down */
+  if(!faceDown&&g.z>7)setFace(true);else if(faceDown&&g.z<4)setFace(false)});
+/* while face down, a tap anywhere enters the next forced digit; other taps do nothing */
+function blindTap(e){if(!faceDown||document.body.classList.contains('open'))return;
+  e.preventDefault();e.stopImmediatePropagation();
+  if(e.type!=='touchstart'&&e.type!=='mousedown')return;
+  if(force!==null&&fi<force.length){if(result!==null)return;fi++;cur=force.slice(0,fi);render()}}
+['touchstart','touchend','mousedown','mouseup','click'].forEach(t=>addEventListener(t,blindTap,{capture:true,passive:false}));
 
 /* touch: 0 key tap = 0, hold 0.7 s = secret settings */
 const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
@@ -235,7 +272,19 @@ function syncSheet(){
   document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.mode));
   $('customBox').classList.toggle('hide',S.mode!=='custom');$('dateBox').classList.toggle('hide',S.mode!=='date');
   $('custom').value=S.custom;$('fmt').value=S.fmt;$('aV').textContent=S.a;$('nV').textContent=S.n;
-  $('prev').textContent='Result now: '+fmtNum(String(dateTarget()))}
+  $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
+  document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
+  $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
+  $('autoEq').checked=!!S.autoEq;$('fdNow').textContent=faceDown?'Yes':'No'}
+document.querySelectorAll('#method button').forEach(b=>b.onclick=()=>{S.method=b.dataset.v;syncSheet()});
+$('autoEq').onchange=()=>{S.autoEq=$('autoEq').checked};
+$('motion').onclick=async()=>{const m=$('motion');
+  try{
+    let r='granted';
+    if(window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')r=await DeviceOrientationEvent.requestPermission();
+    if(r==='granted'&&window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==='function')r=await DeviceMotionEvent.requestPermission();
+    m.textContent=r==='granted'?'On':'Denied'}
+  catch(e){m.textContent='Not available'}};
 function openSheet(){syncSheet();document.body.classList.add('open')}
 function closeSheet(){
   S.custom=$('custom').value.replace(/\D/g,'');if(S.mode==='custom'&&!S.custom)S.mode='date';
