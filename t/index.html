@@ -57,11 +57,11 @@ svg{display:block}
 .dtxt{height:44px;padding:0 18px;font-size:17px;font-weight:600}
 #dbar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 8px);z-index:6;border-radius:28px;padding:10px 14px 8px;
   flex-direction:column;gap:8px;align-items:stretch}
-.tools{display:flex;justify-content:space-around;align-items:flex-end;height:64px}
+.tools{display:flex;justify-content:space-around;align-items:flex-end;height:64px;overflow:hidden;border-bottom:.5px solid rgba(127,127,127,.25);margin:0 -14px;padding:0 14px}
 .tool{width:34px;height:60px;display:flex;align-items:flex-end;justify-content:center;transition:transform .2s;transform:translateY(10px)}
 .tool.on{transform:translateY(0)}
 .tool svg{width:30px;height:60px}
-.colors{display:flex;justify-content:center;gap:16px;padding-bottom:2px}
+.colors{display:flex;justify-content:center;gap:18px;padding:4px 0 2px}
 .cdot{width:26px;height:26px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(127,127,127,.35) inset}
 .cdot.on{border-color:var(--tint);transform:scale(1.12)}
 .dis{opacity:.35;pointer-events:none}
@@ -312,7 +312,7 @@ function undoState(){$('undo').classList.toggle('dis',!strokes.length);$('redo')
 cv.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('drawing'))return;e.preventDefault();cv.setPointerCapture(e.pointerId);
   cur={tool,color,points:[[e.clientX,e.clientY]]};strokes.push(cur);redoStack=[];paint(cx,cur);undoState()});
 cv.addEventListener('pointermove',e=>{if(!cur)return;e.preventDefault();
-  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs)cur.points.push([ev.clientX,ev.clientY]);redraw()});
+  let evs=e.getCoalescedEvents?e.getCoalescedEvents():[];if(!evs.length)evs=[e];for(const ev of evs)cur.points.push([ev.clientX,ev.clientY]);redraw()});
 const endStroke=()=>{if(!cur)return;cur=null;redraw();undoState();drawToPS()};
 cv.addEventListener('pointerup',endStroke);cv.addEventListener('pointercancel',endStroke);
 $('undo').onclick=()=>{if(strokes.length){redoStack.push(strokes.pop());redraw();undoState();drawToPS()}};
