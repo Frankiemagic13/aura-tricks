@@ -150,8 +150,25 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Signal bars<div class="step"><button data-s="bars" data-d="-1">−</button><em id="barsV">2</em><button data-s="bars" data-d="1">+</button></div></div>
   </div>
   <div class="note">Use the fake status bar if AuraClip hides the real one. Turn it off if you see two status bars.</div>
-  <div class="lbl">PeekSmith</div>
-  <div class="grp"><div class="r">Send to PeekSmith<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
+  <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
+  <div class="grp">
+    <div class="r">Status<span id="bleSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
+    <div class="r"><button class="done" id="bleBtn" style="width:auto;text-align:left">Connect PeekSmith</button><button class="done" id="bleTest" style="width:auto">Test</button></div>
+    <div class="r">Connect when the page opens<label><input type="checkbox" id="bleAuto" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Vibrate on each peek<label><input type="checkbox" id="bleVib" style="width:auto;transform:scale(1.3)"></label></div>
+  </div>
+  <div class="note" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. The page must be open in Aura or AuraClip.</div>
+  <div class="lbl">PeekSmith buttons</div>
+  <div class="grp">
+    <div class="r">Left – tap<select data-k="1.click"></select></div>
+    <div class="r">Left – hold<select data-k="1.longpress"></select></div>
+    <div class="r">Right – tap<select data-k="2.click"></select></div>
+    <div class="r">Right – hold<select data-k="2.longpress"></select></div>
+    <div class="r">Side – tap<select data-k="0.click"></select></div>
+    <div class="r">Side – hold<select data-k="0.longpress"></select></div>
+  </div>
+  <div class="lbl">Online peeks</div>
+  <div class="grp"><div class="r">Send to Peek Island / link page<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
   <div class="note">Open the link page on your own phone (c/p.html, in a Web Bluetooth browser such as Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
   <div class="lbl">Method</div>
   <div class="seg" id="method"><button data-v="add">4th number</button><button data-v="flip">Peek + face down</button></div>
@@ -170,6 +187,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
 </div>
 
+<script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script>
 const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
@@ -229,12 +247,12 @@ function livePeek(){
 function press(k){press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to the link page (c/p.html) ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
-function psPost(t){if(!S.ps||!t||t===psLast)return;psLast=t;
+function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}if(!S.ps)return;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC)+'?title='+encodeURIComponent(Q.get('nt')||'Peek'),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
 function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),350)}
 function psExpr(t){return t.map(x=>x==='−'?' - ':x==='×'?' x ':x==='÷'?' / ':x==='+'?' + ':x).join('').trim()}
-function psAfter(k){if(!S.ps)return;
+function psAfter(k){
   if(k==='='){if(result!==null)psNow(lastExpr+' = '+fmtNum(result));return}
   if(force!==null&&fi>0)return;
   if(toks.length===0&&cur==='')return;
@@ -356,6 +374,64 @@ $('custom').oninput=()=>{S.custom=$('custom').value.replace(/\D/g,'')};
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{const k=b.dataset.s,d=+b.dataset.d;
   S[k]=k==='n'?Math.min(9,Math.max(1,S[k]+d)):k==='bat'?Math.min(100,Math.max(1,S[k]+d)):k==='bars'?Math.min(4,Math.max(0,S[k]+d)):Math.min(30,Math.max(0,S[k]+d));syncSheet();drawSB()});
 setInterval(()=>{if(document.body.classList.contains('open')&&S.mode==='date')$('prev').textContent='Result now: '+fmtNum(String(dateTarget()))},5000);
+
+/* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
+const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+let aps=null;const psHist=[];let psBack=0;
+function bleStatus(t){const el=document.getElementById('bleSt');if(el)el.textContent=t}
+function bleConnected(){return !!(aps&&aps.connected)}
+function bleBtnText(){const b=document.getElementById('bleBtn');if(b)b.textContent=bleConnected()?'Disconnect':'Connect PeekSmith'}
+async function bleConnect(){
+  if(!AURA){bleStatus('Only in Aura');return}
+  if(bleConnected()){await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
+  aps=new AuraPeekSmith({lang:'en'});
+  aps.on('status',({state,name,attempt})=>{
+    if(state==='scanning')bleStatus('Searching…');
+    if(state==='connecting')bleStatus('Connecting…');
+    if(state==='connected')bleStatus(name||'Connected');
+    if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
+    if(state==='disconnected')bleStatus('Not connected');
+    bleBtnText()});
+  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText()});
+  aps.on('button',({button,event})=>bleButton(button,event));
+  try{await aps.connect()}catch(e){bleStatus('Failed: '+e.message);aps=null}
+  bleBtnText()}
+function bleShow(t){if(!bleConnected())return;aps.text(String(t),{raw:true}).catch(()=>{});if(S.bleVib)aps.vibrate('.').catch(()=>{})}
+function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
+/* button actions */
+const BACT={none:'Nothing',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
+const BDEF={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'none','0.longpress':'none'};
+S.btns=Object.assign({},BDEF,S.btns||{});
+document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
+  for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=S.btns[s.dataset.k]||'none';s.onchange=()=>{S.btns[s.dataset.k]=s.value;saveS()}});
+function lastInputOf(full){
+  let t=(full||'').trim();const eq=t.lastIndexOf(' = ');if(eq>=0)return t.slice(eq+3).trim();
+  t=t.replace(/\s*\((\+|-)\)$/,'').replace(/\s+[+-]\s+\d+\s+taps$/,'');
+  const tok=t.split(' ');if(tok.some(x=>['+','-','x','/'].includes(x))){for(let i=tok.length-1;i>=0;i--)if(/\d/.test(tok[i]))return tok[i]}
+  return t}
+function shortOf(full){
+  const t=(full||'').trim();let m;
+  if((m=t.match(/([+-])\s+(\d+)\s+taps$/)))return m[1]+m[2];
+  if(/\(\+\)$/.test(t))return'+';if(/\(-\)$/.test(t))return'-';
+  const eq=t.lastIndexOf(' = ');if(eq>=0)return t.slice(eq+3);return t.split(' ').pop()}
+function bleButton(b,e){
+  if(e!=='click'&&e!=='longpress')return;
+  const a=S.btns[b+'.'+e]||'none';if(a==='none')return;
+  const last=psHist[psHist.length-1];if(a!=='previousPeek')psBack=0;
+  if(a==='clear'){aps.clear().catch(()=>{});return}
+  if(!last){bleShow('No peek yet');return}
+  if(a==='lastInput')bleShow(lastInputOf(last));
+  else if(a==='lastPeek')bleShow(last);
+  else if(a==='shortPeek')bleShow(shortOf(last));
+  else if(a==='previousPeek'){psBack=(psBack+1)%psHist.length;bleShow(psHist[psHist.length-1-psBack])}}
+document.getElementById('bleBtn').onclick=bleConnect;
+document.getElementById('bleTest').onclick=()=>{if(bleConnected())aps.text('Test 123',{raw:true}).catch(()=>{});else bleStatus(AURA?'Connect first':'Only in Aura')};
+document.getElementById('bleAuto').onchange=e=>{S.bleAuto=e.target.checked;saveS()};
+document.getElementById('bleVib').onchange=e=>{S.bleVib=e.target.checked;saveS()};
+document.getElementById('bleAuto').checked=!!S.bleAuto;document.getElementById('bleVib').checked=!!S.bleVib;
+if(!AURA){bleStatus('Only in Aura');document.getElementById('bleNote').textContent='Bluetooth is only available when this page is open in Aura or AuraClip (and the site is in your Aura bookmarks). Online peeks still work.'}
+else if(S.bleAuto)setTimeout(bleConnect,500);
 
 document.addEventListener('gesturestart',e=>e.preventDefault());
 drawSB();tick();
