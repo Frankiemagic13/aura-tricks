@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>Calculator</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-behavior:none;
+  font-family:-apple-system,system-ui,"SF Pro Display","Helvetica Neue",sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
+#app{position:fixed;inset:0;display:flex;flex-direction:column;
+  padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 26px)}
+.top{height:44px;display:flex;align-items:center}
+.hist{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#FF9F0A;
+  background:rgba(60,60,62,.55);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:.5px solid rgba(255,255,255,.12)}
+.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;padding:0 8px 6px;min-height:0}
+#expr{text-align:right;color:#8E8E93;font-size:28px;font-weight:400;height:36px;white-space:nowrap;overflow:hidden;letter-spacing:.2px}
+#main{text-align:right;font-weight:300;font-size:86px;line-height:1.05;white-space:nowrap;overflow:hidden;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--g);--g:min(3.8vw,16px)}
+.k{aspect-ratio:1;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;color:#fff;
+  font:400 min(10.2vw,42px)/1 -apple-system,system-ui,"SF Pro Display",sans-serif;background:#333336;transition:background .25s,color .25s}
+.k.f{background:#5C5C5F}
+.k.o{background:#FF9F0A;font-size:min(11.5vw,46px)}
+.k.o.sel{background:#fff;color:#FF9F0A}
+.k:active,.k.down{transition:none;filter:brightness(1.45)}
+.k.o:active,.k.o.down{filter:brightness(1.25)}
+.k.f.txt{font-size:min(8.6vw,36px)}
+.k svg{display:block}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top"><div class="hist" id="hist">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="4.5" cy="6" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.1" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/></svg>
+  </div></div>
+  <div class="disp"><div id="expr"></div><div id="main">0</div></div>
+  <div class="keys" id="keys">
+    <button class="k f" data-k="clr" id="clr"></button>
+    <button class="k f" data-k="neg"><svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M9 14h10M14 9v10M21 31 30 9M23 26h9"/></svg></button>
+    <button class="k f" data-k="pct"><svg width="34" height="34" viewBox="0 0 34 34" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><circle cx="9.5" cy="9.5" r="4"/><circle cx="24.5" cy="24.5" r="4"/><path d="M26 6 8 28"/></svg></button>
+    <button class="k o" data-k="÷">÷</button>
+    <button class="k" data-k="7">7</button><button class="k" data-k="8">8</button><button class="k" data-k="9">9</button>
+    <button class="k o" data-k="×">×</button>
+    <button class="k" data-k="4">4</button><button class="k" data-k="5">5</button><button class="k" data-k="6">6</button>
+    <button class="k o" data-k="−">−</button>
+    <button class="k" data-k="1">1</button><button class="k" data-k="2">2</button><button class="k" data-k="3">3</button>
+    <button class="k o" data-k="+">+</button>
+    <button class="k" data-k="mode"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M3.5 12h17M12 3.5v17" /><path d="M6.5 7.8h3M14.5 7.8h3M16 6.3v3M6.6 16.3l2.1 2.1M8.7 16.3l-2.1 2.1M14.5 15.7h3M14.5 17.9h3" stroke-linecap="round"/></svg></button>
+    <button class="k" data-k="0">0</button>
+    <button class="k" data-k=".">.</button>
+    <button class="k o" data-k="=">=</button>
+  </div>
+</div>
+<script>
+/* ===================== SETTINGS =====================
+   URL options (all optional):
+   ?n=3      how many numbers are added before the force starts
+   ?f=odhm   target format. o=month  d=day  h=hour(12h)  H=hour(24h)  m=minute  y=year(2 digits)  Y=year(4 digits)
+   ?a=1      minutes added to the clock (time for the reveal)
+   ====================================================== */
+const Q=new URLSearchParams(location.search);
+const N=Math.max(1,parseInt(Q.get('n')??'3',10)||3);
+const FMT=Q.get('f')||'odhm';
+const ADD=parseFloat(Q.get('a')??'1')||0;
+
+const p2=v=>String(v).padStart(2,'0');
+function target(){
+  const d=new Date(Date.now()+ADD*60000);let s='';
+  for(const c of FMT){
+    if(c==='o')s+=p2(d.getMonth()+1);else if(c==='d')s+=p2(d.getDate());
+    else if(c==='h')s+=p2(d.getHours()%12||12);else if(c==='H')s+=p2(d.getHours());
+    else if(c==='m')s+=p2(d.getMinutes());else if(c==='y')s+=p2(d.getFullYear()%100);
+    else if(c==='Y')s+=d.getFullYear()}
+  return Number(s)}
+
+/* ---------- calculator state ---------- */
+let toks=[],cur='',result=null,shownExpr='',armed=true,force=null,fi=0;
+const OPS=['+','−','×','÷'];
+const isOp=t=>OPS.includes(t);
+
+function evalToks(t){
+  // standard precedence: × ÷ first, then + −
+  const a=[];for(const x of t)a.push(isOp(x)?x:parseFloat(x));
+  if(a.length&&isOp(a[a.length-1]))a.pop();
+  const b=[];
+  for(let i=0;i<a.length;i++){
+    if(a[i]==='×'||a[i]==='÷'){const l=b.pop(),r=a[++i];b.push(a[i-1]==='×'?l*r:(r===0?NaN:l/r))}else b.push(a[i])}
+  let v=b[0]??0;for(let i=1;i<b.length;i+=2)v=b[i]==='+'?v+b[i+1]:v-b[i+1];
+  return v}
+
+function fmtNum(s){
+  if(s===''||s==null)return'';
+  if(typeof s==='number'){
+    if(!isFinite(s))return'Error';
+    let r=Math.abs(s)>=1e16?s.toExponential(6).replace('e+','e'):String(+s.toPrecision(12));
+    s=r}
+  if(/e/.test(s))return s;
+  const neg=s.startsWith('-');if(neg)s=s.slice(1);
+  let [i,f]=s.split('.');i=(i||'0').replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return(neg?'-':'')+i+(f!==undefined?'.'+f:'')}
+const exprStr=t=>t.map(x=>isOp(x)?x:fmtNum(x)).join('');
+
+const $m=document.getElementById('main'),$e=document.getElementById('expr'),$c=document.getElementById('clr');
+const BACK='<svg width="38" height="30" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 4h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H12L2.5 15z"/><path d="m17 10 10 10M27 10 17 20"/></svg>';
+function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=2;el.style.fontSize=s+'px'}}
+function render(){
+  let main;
+  if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
+  else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
+  $m.textContent=main;
+  const maxSize=Math.min(innerWidth*0.235,96);fit($m,maxSize,34);fit($e,28,16);
+  const blank=result===null&&toks.length===0&&(cur===''||cur==='0');
+  $c.innerHTML=blank||result!==null?'AC':BACK;$c.classList.toggle('txt',blank||result!==null);
+  document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length&&toks[toks.length-1]===b.dataset.k))}
+
+function startForce(){
+  // toks ends with '+'; value of everything before it
+  const before=evalToks(toks.slice(0,-1));const need=target()-before;
+  if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=0}}
+
+function press(k){
+  if(k==='mode')return;
+  if(k==='clr'){
+    const blank=result===null&&toks.length===0&&(cur===''||cur==='0');
+    if(blank||result!==null){toks=[];cur='';result=null;shownExpr='';armed=true;force=null}
+    else if(force!==null&&cur!==''){fi=Math.max(0,fi-1);cur=force.slice(0,fi)}
+    else if(cur!==''){cur=cur.slice(0,-1)}
+    else if(toks.length){const t=toks.pop();if(!isOp(t)){cur=t;cur=cur.slice(0,-1)}}
+    return render()}
+  if(result!==null&&(/\d/.test(k)||k==='.')){toks=[];cur='';result=null;shownExpr='';armed=true;force=null}
+  if(/^\d$/.test(k)){
+    if(force!==null){if(fi<force.length){fi++;cur=force.slice(0,fi)}return render()}
+    if(cur==='0')cur='';
+    if(cur.replace(/[-.]/g,'').length>=9)return;
+    cur+=k;return render()}
+  if(k==='.'){if(force!==null)return;if(!cur.includes('.'))cur=(cur===''?'0':cur)+'.';return render()}
+  if(k==='neg'){if(force!==null)return;
+    if(result!==null){toks=[];cur=String(-result);result=null;shownExpr=''}
+    else if(cur!=='')cur=cur.startsWith('-')?cur.slice(1):'-'+cur;else cur='-0';return render()}
+  if(k==='pct'){if(force!==null)return;
+    if(result!==null){toks=[];cur=String(result/100);result=null;shownExpr=''}
+    else if(cur!=='')cur=String(parseFloat(cur)/100);return render()}
+  if(isOp(k)){
+    if(force!==null){cur=force;force=null}
+    if(result!==null){toks=[String(result)];result=null;shownExpr=''}
+    if(cur!==''){toks.push(cur);cur=''}
+    if(!toks.length)toks.push('0');
+    if(isOp(toks[toks.length-1]))toks[toks.length-1]=k;else toks.push(k);
+    const nums=toks.filter(t=>!isOp(t)).length;
+    if(armed&&k==='+'&&nums===N){armed=false;startForce()}
+    return render()}
+  if(k==='='){
+    if(result!==null)return;
+    if(force!==null){cur=force;force=null}
+    if(cur!=='')toks.push(cur);cur='';
+    if(!toks.length)return render();
+    if(isOp(toks[toks.length-1]))toks.pop();
+    shownExpr=exprStr(toks);result=evalToks(toks);toks=[];
+    return render()}
+}
+
+const keys=document.getElementById('keys');
+keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();b.classList.add('down');press(b.dataset.k)},{passive:false});
+keys.addEventListener('touchend',()=>document.querySelectorAll('.down').forEach(b=>b.classList.remove('down')));
+keys.addEventListener('click',e=>{const b=e.target.closest('.k');if(b)press(b.dataset.k)});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+addEventListener('resize',render);
+render();
+</script>
+</body>
+</html>
