@@ -219,7 +219,9 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Sensor<span id="pxSt" style="color:rgba(235,235,245,.6)">—</span></div>
     <div class="r">Covered now<span id="pxNow" style="color:rgba(235,235,245,.6)">—</span></div>
+    <div class="r"><button class="done" id="pxStart" style="width:auto;text-align:left">Start sensor</button><span id="pxRes" style="color:rgba(235,235,245,.6)"></span></div>
   </div>
+  <div class="note" id="pxDbg" style="word-break:break-word"></div>
   <div class="note" id="pxNote">Cover the sensor at the top of the screen. "Covered now" must change to Yes. If the sensor shows "Not available", use "Phone face down" or "= is tapped".</div>
   <div class="lbl">Method</div>
   <div class="seg" id="method"><button data-v="add">4th number</button><button data-v="flip">Peek + face down</button></div>
@@ -543,22 +545,60 @@ let pxNear=false;
 function pxRead(d){
   if(d==null)return null;
   if(typeof d!=='object')return d===true||d===1||d==='near'||d==='covered';
-  for(const k of ['near','covered','isNear','proximity','state'])if(k in d)return pxRead(d[k]);
+  for(const k of ['near','covered','isNear','isCovered','proximity','proximityState','state','value','detected'])if(k in d)return pxRead(d[k]);
   return null}
 function pxChange(near){near=!!near;const n=$('pxNow');if(n)n.textContent=near?'Yes':'No';
   if(near===pxNear)return;pxNear=near;if(near)injTrigger('prox')}
+/* details for a test: what Aura.proximity has, and the events that come in */
+const pxLog=[];let pxBase='';
+const pxShort=v=>{let s;try{s=typeof v==='function'?'fn':JSON.stringify(v)}catch(e){s=String(v)}return String(s).slice(0,70)};
+function pxShowDbg(){$('pxDbg').textContent=pxBase+(pxLog.length?' Events: '+pxLog.slice(-6).join(' | '):'')}
+function pxLogIt(t){pxLog.push(t);if(pxLog.length>30)pxLog.shift();pxShowDbg()}
+function pxHandle(d,src){pxLogIt(src+' '+pxShort(d));const v=pxRead(d);if(v!==null)pxChange(v)}
+function pxKeys(o){const s=new Set();let p=o;
+  while(p&&p!==Object.prototype&&p!==Function.prototype){try{Object.getOwnPropertyNames(p).forEach(k=>s.add(k))}catch(e){}p=Object.getPrototypeOf(p)}
+  s.delete('constructor');return[...s]}
+async function pxStart(){
+  const A=window.Aura,P=A&&A.proximity;if(!P){$('pxRes').textContent='No Aura.proximity';return}
+  const cb=d=>pxHandle(d,'callback'),res=[];
+  for(const f of pxKeys(P)){
+    if(typeof P[f]!=='function'||!/^(start|enable|begin|watch|subscribe|monitor|request|activate|on$)/i.test(f))continue;
+    try{
+      let r;
+      if(f==='on'){for(const ev of ['change','changed','proximity','update','near','state'])try{P.on(ev,cb)}catch(e){}res.push('on');continue}
+      try{r=P[f](cb)}catch(e){r=P[f]({})}
+      if(r&&typeof r.then==='function')r=await r.then(x=>x,e=>'error '+((e&&e.message)||e));
+      res.push(f+'→'+pxShort(r));const v=pxRead(r);if(v!==null)pxChange(v)}
+    catch(e){res.push(f+' error '+e.message)}}
+  for(const f of pxKeys(P)){
+    if(typeof P[f]!=='function'||!/^(get|read|current|isNear|query|state)/i.test(f))continue;
+    try{let r=P[f]();if(r&&typeof r.then==='function')r=await r;res.push(f+'→'+pxShort(r));const v=pxRead(r);if(v!==null)pxChange(v)}catch(e){}}
+  $('pxRes').textContent=res.length?'Started':'No start function';
+  pxLogIt('start: '+(res.join(', ')||'none'))}
 function pxInit(){
   const A=window.Aura,found=[];
   if(A){
-    if(typeof A.on==='function')for(const ev of ['proximity','proximity.change','proximity.changed','sensor.proximity','sensors.proximity'])
-      try{A.on(ev,d=>{const v=pxRead(d);if(v!==null)pxChange(v)})}catch(e){}
-    for(const k of ['proximity','sensors']){const m=A[k];if(!m)continue;found.push('Aura.'+k);
-      for(const f of ['start','enable','startUpdates','startProximity','enableProximity'])
-        if(typeof m[f]==='function')try{const r=m[f]({});if(r&&r.catch)r.catch(()=>{})}catch(e){}}}
+    /* every event from Aura goes through Aura._emit: watch all of them */
+    if(typeof A._emit==='function'){const o=A._emit;
+      A._emit=function(n,d){try{const name=String(n);
+        if(/prox/i.test(name))pxHandle(d,name);else if(!/bluetooth/i.test(name))pxLogIt(name+' '+pxShort(d))}catch(e){}
+        return o.apply(this,arguments)}}
+    if(typeof A.on==='function')for(const ev of ['proximity','proximity.change','proximity.changed','proximity.update','proximityChange','sensor.proximity'])
+      try{A.on(ev,d=>pxHandle(d,ev))}catch(e){}
+    if(A.proximity){found.push('Aura.proximity');
+      const P=A.proximity;
+      /* if the module keeps the state in a property, read it often */
+      setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
+        try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
+    let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
+    pxBase='Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+      (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
+      '. Capabilities: '+caps+'.';
+    pxShowDbg();pxStart()}
   if('ProximitySensor' in window)try{const s=new ProximitySensor();s.onreading=()=>pxChange(s.near);s.start();found.push('ProximitySensor')}catch(e){}
   addEventListener('userproximity',e=>{pxChange(e.near)});
-  $('pxSt').textContent=found.length?found.join(', '):'Not available';
-  if(A)$('pxNote').textContent+=' Aura modules on this phone: '+(Object.keys(A).join(', ')||'none')+'.'}
+  $('pxSt').textContent=found.length?found.join(', '):'Not available'}
+$('pxStart').onclick=pxStart;
 pxInit();
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
