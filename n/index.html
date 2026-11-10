@@ -72,7 +72,9 @@ svg{display:block}
 .nrow .s em{font-style:normal;color:var(--label);opacity:.82;margin-right:7px}
 .bar{position:absolute;left:0;right:0;bottom:0;z-index:5;padding:0 16px calc(env(safe-area-inset-bottom) + 8px);
   display:flex;align-items:center;justify-content:space-between;min-height:calc(env(safe-area-inset-bottom) + 60px);pointer-events:none}
-.bar>*{pointer-events:auto}
+.bar::before{content:"";position:absolute;inset:-18px 0 0;background:linear-gradient(transparent,var(--bg) 62%);pointer-events:none}
+.note .bar::before{background:linear-gradient(transparent,var(--page) 62%)}
+.bar>*{pointer-events:auto;position:relative}
 .bar .count{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 20px);font-size:12px;color:var(--label);opacity:.85}
 .notebody{padding:6px 20px 0;-webkit-user-select:text;user-select:text}
 .ndate{text-align:center;font-size:13px;color:var(--sec);padding:2px 0 14px}
