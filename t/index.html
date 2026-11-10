@@ -109,7 +109,7 @@ svg{display:block}
     <div class="r">Side – hold<select data-k="0.longpress"></select></div>
   </div>
   <div class="lbl">Online peeks</div>
-  <div class="grp"><div class="r">Send to Peek Island / link page<input type="checkbox" id="sOnline"></div></div>
+  <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the date for 1 second to clear the note.</div>
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -142,12 +142,12 @@ function post(v){
   if(!P.online)return;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'?title='+encodeURIComponent(TITLE),{method:'POST',body:v,keepalive:true}).catch(()=>{})}catch(e){}
 }
-function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),700)}
+function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),1500)}
 function now(){clearTimeout(t);post(text())}
 note.addEventListener('input',()=>{
-  // send right away at the end of a word or line, otherwise after a short pause
+  // send right away at the end of a line, otherwise after a pause in typing (fewer online messages)
   const v=note.innerText;const ch=v.slice(-1);
-  if(ch===' '||ch==='\n')now();else soon()});
+  if(ch==='\n')now();else soon()});
 
 /* ---------- editing look ---------- */
 function editing(on){done.classList.toggle('hidden',!on)}

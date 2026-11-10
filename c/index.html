@@ -192,8 +192,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
   <div class="note">Also runs when the spectator leaves the app (home screen or app switcher). "Reset" clears the display, the force and the peek history. "Go to a web page" also removes the calculator, so the spectator sees that page when they come back.</div>
   <div class="lbl">Online peeks</div>
-  <div class="grp"><div class="r">Send to Peek Island / link page<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
-  <div class="note">Open the link page on your own phone (c/p.html, in a Web Bluetooth browser such as Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
+  <div class="grp"><div class="r">Send to Peek Island / PeekLink<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
+  <div class="note">Open PeekLink on your own phone (frankiemagic13.github.io/aura-tricks/peeklink/, in Aura or Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
   <div class="lbl">Method</div>
   <div class="seg" id="method"><button data-v="add">4th number</button><button data-v="flip">Peek + face down</button></div>
   <div class="grp"><div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div></div>
@@ -268,12 +268,12 @@ function livePeek(){
   const nums=toks.filter(t=>!isOp(t)).length;
   if(nums===S.n-1&&cur!==''&&cur!=='-'&&(!toks.length||isOp(toks.at(-1)))){const d=target()-evalToks(toks.concat([cur]));peek(d>0?1:d<0?-1:0)}else peek(0)}
 function press(k){press0(k);livePeek();try{psAfter(k)}catch(e){}}
-/* ---------- PeekSmith: send each number / total / result to the link page (c/p.html) ---------- */
+/* ---------- PeekSmith: send each number / total / result to Peek Island and PeekLink ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}if(!S.ps)return;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC)+'?title='+encodeURIComponent(Q.get('nt')||'Peek'),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
-function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),350)}
+function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),1000)}
 function psExpr(t){return t.map(x=>x==='−'?' - ':x==='×'?' x ':x==='÷'?' / ':x==='+'?' + ':x).join('').trim()}
 function psAfter(k){
   if(k==='='){if(result!==null)psNow(lastExpr+' = '+fmtNum(result));return}
