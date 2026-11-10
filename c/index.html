@@ -233,9 +233,9 @@ function psPost(t){if(!S.ps||!t||t===psLast)return;psLast=t;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
 function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),350)}
-function psExpr(t){return t.map(x=>x==='−'?'-':x==='×'?'x':x==='÷'?'/':x).join('')}
+function psExpr(t){return t.map(x=>x==='−'?' - ':x==='×'?' x ':x==='÷'?' / ':x==='+'?' + ':x).join('').trim()}
 function psAfter(k){if(!S.ps)return;
-  if(k==='='){if(result!==null)psNow(lastExpr+'='+fmtNum(result));return}
+  if(k==='='){if(result!==null)psNow(lastExpr+' = '+fmtNum(result));return}
   if(force!==null&&fi>0)return;
   if(toks.length===0&&cur==='')return;
   let t=psExpr(toks.concat(cur!==''?[cur]:[]));
