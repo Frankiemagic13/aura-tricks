@@ -96,7 +96,9 @@ svg{display:block}
     <div class="r">Status<span id="bleSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
     <div class="r"><button class="sbtn" id="bleBtn">Connect PeekSmith</button><button class="sbtn" id="bleTest">Test</button></div>
     <div class="r">Search automatically<input type="checkbox" id="sAuto"></div>
-    <div class="r">Vibrate on each peek<input type="checkbox" id="sVib"></div>
+    <div class="r">Live peek (each letter)<input type="checkbox" id="sLive"></div>
+    <div class="r">Words on PeekSmith<select id="sWords"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="0">Whole note</option></select></div>
+    <div class="r">Vibrate on each word<input type="checkbox" id="sVib"></div>
   </div>
   <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first.</div>
   <div class="lbl">PeekSmith buttons</div>
@@ -139,7 +141,7 @@ function text(){
 }
 /* PeekSmith (Bluetooth): each word at once.  Online (ntfy.sh, daily limit): after a pause or a new line. */
 let lastBle='';
-function ble(v){if(!v||v===lastBle)return;lastBle=v;try{bleSend(v)}catch(e){}}
+function ble(v){if(!v||v===lastBle)return;lastBle=v;try{bleSend(v)}catch(e){}}   // a finished word or line: goes into the peek history
 function post(v){
   ble(v);
   if(!v||v===last)return;last=v;
@@ -150,6 +152,7 @@ function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),1500)}
 function now(){clearTimeout(t);post(text())}
 note.addEventListener('input',()=>{
   const v=note.innerText;const ch=v.slice(-1);
+  try{bleLive()}catch(e){}
   if(ch===' ')ble(text());
   if(ch==='\n')now();else soon()});
 
@@ -165,17 +168,17 @@ note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||w
 
 /* ---------- secret: hold the date for 1 s = clear the note ---------- */
 (function(){const el=document.getElementById('date');let tm=null;
-  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';},1000)},stop=()=>clearTimeout(tm);
+  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';},1000)},stop=()=>clearTimeout(tm);
   el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
   el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
 
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
-document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';lastBle='';note.focus()});
+document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';lastBle='';bleOnScreen='';note.focus()});
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,btns:{}},store.get('tset',{}));
+const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,live:true,words:4,btns:{}},store.get('tset',{}));
 const BACT={none:'Nothing',lastWord:'Show last word',lastLine:'Show last line',full:'Show full note',previous:'Show previous peek',clear:'Clear PeekSmith'};
 P.btns=Object.assign({'1.click':'lastWord','1.longpress':'previous','2.click':'full','2.longpress':'clear','0.click':'none','0.longpress':'none'},P.btns);
 const saveP=()=>store.set('tset',P);
@@ -202,13 +205,24 @@ async function bleToggle(){
   if(!AURA){bleStatus('Only in Aura');return}
   if(bleOn()){bleOff=true;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
   bleOff=false;bleSearch()}
-function bleShow(t){if(!bleOn())return;aps.text(String(t),{raw:true}).catch(()=>{});if(P.vib)aps.vibrate('.').catch(()=>{})}
-function bleSend(t){hist.push(t);if(hist.length>50)hist.shift();back=0;bleShow(t)}
+/* PeekSmith screen text: the last N words of the note (all lines), N from the settings */
+function tail(full){
+  const words=(full||'').replace(/\s*\|\s*/g,' ').trim().split(/\s+/).filter(Boolean);
+  const n=+P.words;return n>0?words.slice(-n).join(' '):words.join(' ')}
+/* one write at a time: the newest text waits until the PeekSmith has the last one (no backlog) */
+let bleBusyW=false,blePending=null,bleOnScreen='';
+function bleWrite(t){
+  if(!bleOn())return;if(bleBusyW){blePending=t;return}
+  if(t===bleOnScreen)return;bleBusyW=true;bleOnScreen=t;
+  aps.text(t,{raw:true}).catch(()=>{}).finally(()=>{bleBusyW=false;if(blePending!==null){const n=blePending;blePending=null;bleWrite(n)}})}
+function bleLive(){if(!P.live)return;const t=tail(note.innerText.split('\n').map(s=>s.trim()).filter(Boolean).join(' | '));if(t)bleWrite(t)}
+function bleShow(t,isPeek){if(!bleOn())return;bleWrite(isPeek?tail(t):String(t));if(isPeek&&P.vib)aps.vibrate('.').catch(()=>{})}
+function bleSend(t){hist.push(t);if(hist.length>50)hist.shift();back=0;bleShow(t,true)}
 function bleButton(b,e){
   if(e!=='click'&&e!=='longpress')return;
   const a=P.btns[b+'.'+e]||'none';if(a==='none')return;
   const last=hist[hist.length-1];if(a!=='previous')back=0;
-  if(a==='clear'){aps.clear().catch(()=>{});return}
+  if(a==='clear'){aps.clear().catch(()=>{});bleOnScreen='';return}
   if(!last){bleShow('No peek yet');return}
   const lines=last.split(' | ');
   if(a==='lastWord')bleShow(lines[lines.length-1].split(' ').pop());
@@ -221,6 +235,9 @@ $('bleTest').onclick=()=>{if(bleOn())aps.text('Test 123',{raw:true}).catch(()=>{
 $('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
+$('sLive').checked=!!P.live;$('sWords').value=String(P.words);
+$('sLive').onchange=e=>{P.live=e.target.checked;saveP()};
+$('sWords').onchange=e=>{P.words=+e.target.value;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
   for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
