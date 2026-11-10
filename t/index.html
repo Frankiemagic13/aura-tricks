@@ -339,7 +339,7 @@ function renderPS(){
   const pad=12;x0-=pad;y0-=pad;x1+=pad;y1+=pad;
   const k=Math.min(PSW/(x1-x0),PSH/(y1-y0));
   const c=document.createElement('canvas');c.width=PSW;c.height=PSH;const g=c.getContext('2d');
-  const map={x:x0,y:y0,k,ox:(PSW-(x1-x0)*k)/2,oy:(PSH-(y1-y0)*k)/2,minW:2};
+  const map={x:x0,y:y0,k,ox:(PSW-(x1-x0)*k)/2,oy:(PSH-(y1-y0)*k)/2,minW:3};
   // white drawing on black, eraser removes
   const layer=document.createElement('canvas');layer.width=PSW;layer.height=PSH;const lg=layer.getContext('2d');
   for(const s of strokes){const t={...s,color:'#fff'};paint(lg,t,map)}
