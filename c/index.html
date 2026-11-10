@@ -194,6 +194,33 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
   <div class="note">Open PeekLink on your own phone (frankiemagic13.github.io/aura-tricks/peeklink/, in Aura or Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
+  <div class="lbl">Send to Inject</div>
+  <div class="grp">
+    <div class="r">Send to Inject<label><input type="checkbox" id="injOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Number to send<select id="injWhat">
+      <option value="force">Force result</option>
+      <option value="result">Final result (after =)</option>
+      <option value="last">Last number typed</option>
+      <option value="num">Number in position…</option>
+      <option value="custom">Custom number</option>
+    </select></div>
+    <div class="r" id="injNumRow">Position<div class="step"><button data-s="injN" data-d="-1">−</button><em id="injNV">1</em><button data-s="injN" data-d="1">+</button></div></div>
+    <div class="r" id="injCustRow">Custom number<input id="injCust" inputmode="numeric" pattern="[0-9]*" placeholder="0"></div>
+    <div class="r">Send when<select id="injWhen">
+      <option value="prox">Proximity sensor covered</option>
+      <option value="face">Phone face down</option>
+      <option value="eq">= is tapped</option>
+    </select></div>
+    <div class="r">Inject ID<input id="injId" inputmode="numeric" pattern="[0-9]*" placeholder="13297"></div>
+    <div class="r">Number now<span id="injNow" style="color:rgba(235,235,245,.6)">—</span></div>
+    <div class="r"><button class="done" id="injTest" style="width:auto;text-align:left">Send now</button><span id="injSt" style="color:rgba(235,235,245,.6)"></span></div>
+  </div>
+  <div class="lbl">Proximity sensor</div>
+  <div class="grp">
+    <div class="r">Sensor<span id="pxSt" style="color:rgba(235,235,245,.6)">—</span></div>
+    <div class="r">Covered now<span id="pxNow" style="color:rgba(235,235,245,.6)">—</span></div>
+  </div>
+  <div class="note" id="pxNote">Cover the sensor at the top of the screen. "Covered now" must change to Yes. If the sensor shows "Not available", use "Phone face down" or "= is tapped".</div>
   <div class="lbl">Method</div>
   <div class="seg" id="method"><button data-v="add">4th number</button><button data-v="flip">Peek + face down</button></div>
   <div class="grp"><div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div></div>
@@ -219,7 +246,9 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3),
   method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1',
   sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10),
-  onLock:Q.get('lock')||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com'};
+  onLock:Q.get('lock')||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com',
+  inj:Q.get('inj')==='1',injWhat:Q.get('iw')||'force',injN:Math.min(9,Math.max(1,parseInt(Q.get('ip')??'1',10)||1)),
+  injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,'')};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -255,12 +284,13 @@ function render(){
   $m.textContent=main;const u=unit();fit($m,94*u,34*u);fit($e,28*u,14*u);
   countPeek();
   document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k))}
-let fOp='+';
-function computeForce(){let need=target()-before;if(fOp==='−')need=-need;
+let fOp='+',forceTarget=null;
+function computeForce(){forceTarget=target();let need=forceTarget-before;if(fOp==='−')need=-need;
   if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=Math.min(fi,force.length);if(fi)cur=force.slice(0,fi)}else force=null}
 function startForce(){fOp=toks.at(-1);before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
 let flipReady=false,flipOn=false;
-function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0;flipReady=false;flipOn=false;peek(0)}
+let eqNums=[];
+function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0;flipReady=false;flipOn=false;eqNums=[];forceTarget=null;peek(0);try{injSent=''}catch(e){}}
 /* peek on the clock button: hand right = add, hand down = subtract */
 function peek(v){const el=document.getElementById('hand');if(el)el.setAttribute('d',v>0?'M13 6.8V13H17.4':v<0?'M13 6.8V19.2':'M13 6.8V13H8.6')}
 
@@ -328,14 +358,15 @@ function press0(k){
     if(force!==null){cur=force;force=null}
     if(cur!=='')toks.push(cur);cur='';if(!toks.length)return render();
     if(isOp(toks.at(-1)))toks.pop();
-    shownExpr=exprStr(toks);lastExpr=psExpr(toks);result=evalToks(toks);toks=[];
-    return render()}
+    shownExpr=exprStr(toks);lastExpr=psExpr(toks);eqNums=toks.filter(t=>!isOp(t));result=evalToks(toks);toks=[];
+    render();try{injOnEq()}catch(e){}return}
 }
 
 /* ---------- face-down detection ---------- */
 let faceDown=false;
 function setFace(down){if(down===faceDown)return;faceDown=down;
   const f=document.getElementById('fdNow');if(f)f.textContent=down?'Yes':'No';
+  if(down)try{injTrigger('face')}catch(e){}
   if(!down&&S.autoEq&&force!==null&&fi===force.length&&fi>0)setTimeout(()=>press('='),250)}
 addEventListener('deviceorientation',e=>{if(e.beta==null)return;const b=Math.abs(e.beta);
   if(!faceDown&&b>135)setFace(true);else if(faceDown&&b<110)setFace(false)});
@@ -372,7 +403,7 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No'}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync()}
 document.querySelectorAll('#method button').forEach(b=>b.onclick=()=>{S.method=b.dataset.v;syncSheet()});
 $('autoEq').onchange=()=>{S.autoEq=$('autoEq').checked};
 $('psOn').onchange=()=>{S.ps=$('psOn').checked};
@@ -396,7 +427,7 @@ document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>{S.mode=b.dat
 $('fmt').onchange=()=>{S.fmt=$('fmt').value;syncSheet()};
 $('custom').oninput=()=>{S.custom=$('custom').value.replace(/\D/g,'')};
 document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{const k=b.dataset.s,d=+b.dataset.d;
-  S[k]=k==='n'?Math.min(9,Math.max(1,S[k]+d)):k==='bat'?Math.min(100,Math.max(1,S[k]+d)):k==='bars'?Math.min(4,Math.max(0,S[k]+d)):Math.min(30,Math.max(0,S[k]+d));syncSheet();drawSB()});
+  S[k]=k==='n'||k==='injN'?Math.min(9,Math.max(1,S[k]+d)):k==='bat'?Math.min(100,Math.max(1,S[k]+d)):k==='bars'?Math.min(4,Math.max(0,S[k]+d)):Math.min(30,Math.max(0,S[k]+d));syncSheet();drawSB()});
 setInterval(()=>{if(document.body.classList.contains('open')&&S.mode==='date')$('prev').textContent='Result now: '+fmtNum(String(dateTarget()))},5000);
 
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
@@ -465,6 +496,70 @@ else{
   const auto=()=>{if(S.bleAuto&&!bleManualOff&&!bleConnected()&&!bleBusy&&document.visibilityState==='visible')bleSearch()};
   setTimeout(auto,400);setInterval(auto,6000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(auto,300)})}
+
+/* ---------- Send to Inject (proximity sensor, face down or =) ---------- */
+let injSent='',injLastT=0;
+function injNums(){return result!==null?eqNums:toks.filter(t=>!isOp(t)).concat(cur!==''&&cur!=='-'?[cur]:[])}
+function injValue(){
+  const w=S.injWhat,nums=injNums();let v='';
+  if(w==='force'){const t=forceTarget!==null?forceTarget:target();v=Number.isFinite(t)?String(t):''}
+  else if(w==='result'){v=result!==null&&isFinite(result)?String(+result.toPrecision(12)):''}
+  else if(w==='last')v=nums.length?String(nums.at(-1)):'';
+  else if(w==='num')v=String(nums[S.injN-1]??'');
+  else if(w==='custom')v=S.injCust||'';
+  return v}
+function injSync(){
+  $('injOn').checked=!!S.inj;$('injWhat').value=S.injWhat;$('injWhen').value=S.injWhen;
+  $('injId').value=S.injId;$('injCust').value=S.injCust;$('injNV').textContent=S.injN;
+  $('injNumRow').style.display=S.injWhat==='num'?'':'none';
+  $('injCustRow').style.display=S.injWhat==='custom'?'':'none';
+  const v=injValue();$('injNow').textContent=v?fmtNum(v):'—'}
+$('injOn').onchange=()=>{S.inj=$('injOn').checked;saveS()};
+$('injWhat').onchange=()=>{S.injWhat=$('injWhat').value;saveS();injSync()};
+$('injWhen').onchange=()=>{S.injWhen=$('injWhen').value;saveS()};
+$('injId').oninput=()=>{S.injId=$('injId').value.replace(/\D/g,'');saveS()};
+$('injCust').oninput=()=>{S.injCust=$('injCust').value.replace(/\D/g,'');saveS();injSync()};
+$('injTest').onclick=()=>injSend(true);
+function injTrigger(src){
+  if(!S.inj||S.injWhen!==src)return;
+  if(document.body.classList.contains('open'))return;
+  if(src==='face'&&S.method==='flip'&&result===null)return; // in "Peek + face down", face down types the digits
+  injSend(false)}
+function injOnEq(){injTrigger('eq')}
+async function injSend(manual){
+  const st=$('injSt'),v=injValue();
+  if(!v){if(manual)st.textContent='No number yet';return}
+  if(!manual&&v===injSent)return; // one time for each number; AC makes it ready again
+  injSent=v;injLastT=Date.now();
+  const id=(S.injId||'13297').replace(/\D/g,'')||'13297';
+  try{
+    await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',mode:'no-cors',keepalive:true,body:new URLSearchParams({value:v})});
+    st.textContent='Sent '+v;bleShow('Inject: '+v)}
+  catch(e){injSent='';st.textContent='Not sent (no internet?)';bleShow('Inject failed')}}
+
+/* proximity sensor: Safari has no proximity sensor for web pages, so this uses a sensor
+   from Aura (if Aura has one) or the web ProximitySensor (if the browser has one) */
+let pxNear=false;
+function pxRead(d){
+  if(d==null)return null;
+  if(typeof d!=='object')return d===true||d===1||d==='near'||d==='covered';
+  for(const k of ['near','covered','isNear','proximity','state'])if(k in d)return pxRead(d[k]);
+  return null}
+function pxChange(near){near=!!near;const n=$('pxNow');if(n)n.textContent=near?'Yes':'No';
+  if(near===pxNear)return;pxNear=near;if(near)injTrigger('prox')}
+function pxInit(){
+  const A=window.Aura,found=[];
+  if(A){
+    if(typeof A.on==='function')for(const ev of ['proximity','proximity.change','proximity.changed','sensor.proximity','sensors.proximity'])
+      try{A.on(ev,d=>{const v=pxRead(d);if(v!==null)pxChange(v)})}catch(e){}
+    for(const k of ['proximity','sensors']){const m=A[k];if(!m)continue;found.push('Aura.'+k);
+      for(const f of ['start','enable','startUpdates','startProximity','enableProximity'])
+        if(typeof m[f]==='function')try{const r=m[f]({});if(r&&r.catch)r.catch(()=>{})}catch(e){}}}
+  if('ProximitySensor' in window)try{const s=new ProximitySensor();s.onreading=()=>pxChange(s.near);s.start();found.push('ProximitySensor')}catch(e){}
+  addEventListener('userproximity',e=>{pxChange(e.near)});
+  $('pxSt').textContent=found.length?found.join(', '):'Not available';
+  if(A)$('pxNote').textContent+=' Aura modules on this phone: '+(Object.keys(A).join(', ')||'none')+'.'}
+pxInit();
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
