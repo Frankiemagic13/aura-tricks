@@ -20,34 +20,46 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
 #app{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:calc(402 * var(--u));max-width:100vw;
   display:flex;flex-direction:column;
-  padding:max(env(safe-area-inset-top),calc(20 * var(--u))) calc(15.5 * var(--u)) calc(env(safe-area-inset-bottom) + 50 * var(--u))}
-.top{height:calc(44 * var(--u));margin-top:calc(-4 * var(--u));display:flex;align-items:center;flex:none;padding-left:calc(2 * var(--u))}
-.top svg{width:calc(24 * var(--u));height:calc(18 * var(--u));display:block}
-.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;padding:0 0 calc(27 * var(--u)) 0}
-#expr{text-align:right;color:#98989D;font-weight:500;height:calc(36 * var(--u));line-height:calc(36 * var(--u));white-space:nowrap;overflow:hidden;
-  margin-bottom:calc(4 * var(--u));letter-spacing:calc(-.2 * var(--u))}
-#main{text-align:right;font-weight:500;line-height:1.08;white-space:nowrap;overflow:hidden;letter-spacing:calc(-1 * var(--u));margin-right:calc(-1 * var(--u))}
+  padding:max(env(safe-area-inset-top),calc(54 * var(--u))) calc(16 * var(--u)) calc(env(safe-area-inset-bottom) + 28 * var(--u))}
+.top{height:calc(44 * var(--u));display:flex;align-items:center;justify-content:space-between;flex:none}
+.tb{width:calc(44 * var(--u));height:calc(44 * var(--u));border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(180deg,#232323,#161616);
+  box-shadow:inset 0 0 0 calc(.6 * var(--u)) rgba(255,255,255,.09),inset 0 calc(.8 * var(--u)) calc(.6 * var(--u)) rgba(255,255,255,.08)}
+.tb svg{width:calc(26 * var(--u));height:calc(26 * var(--u))}
+.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;min-height:0;
+  padding:0 calc(3 * var(--u)) calc(18 * var(--u)) calc(4 * var(--u))}
+#expr{text-align:right;color:#8D8D92;font-weight:400;height:calc(40 * var(--u));line-height:calc(40 * var(--u));white-space:nowrap;overflow:hidden}
+#main{text-align:right;font-weight:500;line-height:1;white-space:nowrap;overflow:hidden;letter-spacing:calc(-.5 * var(--u));font-variant-numeric:tabular-nums}
 
-.keys{display:grid;grid-template-columns:repeat(4,calc(86 * var(--u)));grid-auto-rows:calc(86 * var(--u));
-  gap:calc(8.7 * var(--u));flex:none}
+.keys{display:grid;grid-template-columns:repeat(4,calc(86.5 * var(--u)));grid-auto-rows:calc(86.5 * var(--u));
+  column-gap:calc(7.83 * var(--u));row-gap:calc(8.7 * var(--u));flex:none}
 .k{position:relative;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;color:#fff;
-  font:400 calc(38 * var(--u))/1 -apple-system,system-ui,"SF Pro Display",sans-serif;background:#2A2A2C;transition:background .4s ease-out}
-.k.f{background:#5C5C5F}
-.k.o{background:#F1A33C}
-.k.o.sel{background:#FFFFFF;color:#F1A33C}
-.k.o.sel svg *{stroke:#F1A33C}.k.o.sel svg circle{fill:#F1A33C}
-.k.down{transition:none;background:#737375}
-.k.f.down{background:#D4D4D2}
-.k.o.down{background:#F8CB8E}
+  font:500 calc(37 * var(--u))/1 -apple-system,system-ui,"SF Pro Display",sans-serif;
+  background:linear-gradient(180deg,#383838 0%,#333333 45%,#303030 100%);
+  box-shadow:inset 0 calc(1 * var(--u)) calc(.8 * var(--u)) rgba(255,255,255,.10),
+             inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.055),
+             inset 0 calc(-1 * var(--u)) calc(1 * var(--u)) rgba(0,0,0,.25);
+  transition:filter .35s ease-out,transform .35s cubic-bezier(.3,1.5,.5,1)}
+.k.f{background:linear-gradient(180deg,#6A6A6A 0%,#636363 45%,#5D5D5D 100%);
+  box-shadow:inset 0 calc(1 * var(--u)) calc(.8 * var(--u)) rgba(255,255,255,.16),
+             inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.07),
+             inset 0 calc(-1 * var(--u)) calc(1 * var(--u)) rgba(0,0,0,.2)}
+.k.o{background:linear-gradient(180deg,#F4A345 0%,#F09C3B 45%,#EC9634 100%);
+  box-shadow:inset 0 calc(1 * var(--u)) calc(.8 * var(--u)) rgba(255,255,255,.22),
+             inset 0 0 0 calc(.7 * var(--u)) rgba(255,255,255,.08),
+             inset 0 calc(-1 * var(--u)) calc(1 * var(--u)) rgba(120,60,0,.18)}
+.k.o.sel{background:linear-gradient(180deg,#FFFFFF,#F2F2F2);color:#F09C3B}
+.k.o.sel svg *{stroke:#F09C3B}.k.o.sel svg circle{fill:#F09C3B}
+.k.down{transition:filter .04s,transform .12s ease-out;filter:brightness(1.55);transform:scale(1.04)}
+.k.o.down{filter:brightness(1.18)}
 .k svg{display:block;pointer-events:none}
-.k .g28{width:calc(28 * var(--u));height:calc(28 * var(--u))}
-.k .g22{width:calc(21 * var(--u));height:calc(21 * var(--u))}
-.k .bk{width:calc(34 * var(--u));height:calc(27 * var(--u))}
-.k .pm{width:calc(26 * var(--u));height:calc(26 * var(--u))}
-.k .pct{width:calc(26 * var(--u));height:calc(28 * var(--u))}
-.k .calc{width:calc(25 * var(--u));height:calc(38 * var(--u))}
-.k .dot{width:calc(5.5 * var(--u));height:calc(5.5 * var(--u));margin-top:calc(18 * var(--u))}
-.k.ac{font-size:calc(40 * var(--u));letter-spacing:calc(-.5 * var(--u))}
+.k .g29{width:calc(29 * var(--u));height:calc(29 * var(--u))}
+.k .g22{width:calc(22 * var(--u));height:calc(22 * var(--u))}
+.k .bk{width:calc(37 * var(--u));height:calc(31 * var(--u))}
+.k .pm{width:calc(36 * var(--u));height:calc(36 * var(--u))}
+.k .pct{width:calc(36 * var(--u));height:calc(36 * var(--u))}
+.k .dot{width:calc(6 * var(--u));height:calc(6 * var(--u));margin-top:calc(20 * var(--u))}
+.k.ac{font-size:calc(36 * var(--u));letter-spacing:calc(-.3 * var(--u))}
 
 /* fake iOS status bar (time on the left holds the tap-count peek) */
 .sb{position:fixed;left:0;right:0;z-index:5;top:calc(max(env(safe-area-inset-top),44px) - 40px);height:22px;pointer-events:none;color:#fff}
@@ -97,25 +109,27 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <text id="btxt" x="12.5" y="10.1" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10.5" font-weight="700" fill="#000">78</text></svg>
 </div></div>
 <div id="app">
-  <div class="top"><svg viewBox="0 0 24 18" fill="none"><g id="pdots" fill="#F1A33C"><circle id="d1" cx="1.6" cy="1.6" r="1.6"/><circle id="d2" cx="1.6" cy="9" r="1.6"/><circle id="d3" cx="1.6" cy="16.4" r="1.6"/></g>
-    <path d="M7 1.6h15.6M7 9h15.6M7 16.4h15.6" stroke="#F1A33C" stroke-width="2.3" stroke-linecap="round"/></svg></div>
+  <div class="top">
+    <div class="tb"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path id="hand" d="M13 6.8V13H8.6"/></svg></div>
+    <div class="tb"><svg viewBox="0 0 26 26" fill="none"><rect x="5.6" y="2.4" width="14.8" height="21.2" rx="3.4" stroke="#fff" stroke-width="2.1"/><rect x="8.4" y="5.2" width="9.2" height="3.6" rx=".9" fill="#fff"/>
+      <g fill="#fff"><circle cx="9.3" cy="12.2" r="1.25"/><circle cx="13" cy="12.2" r="1.25"/><circle cx="16.7" cy="12.2" r="1.25"/><circle cx="9.3" cy="15.6" r="1.25"/><circle cx="13" cy="15.6" r="1.25"/><circle cx="16.7" cy="15.6" r="1.25"/><circle cx="9.3" cy="19" r="1.25"/><circle cx="13" cy="19" r="1.25"/><circle cx="16.7" cy="19" r="1.25"/></g></svg></div>
+  </div>
   <div class="disp"><div id="expr"></div><div id="main">0</div></div>
   <div class="keys" id="keys">
-    <button class="k f ac" data-k="clr" id="clr">AC</button>
-    <button class="k f" data-k="neg"><svg class="pm" viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round"><path d="M1.5 5.6h7.2M5.1 2v7.2M16.3 2.4 6.6 24M17 20.6h7.6"/></svg></button>
-    <button class="k f" data-k="pct"><svg class="pct" viewBox="0 0 26 28" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><ellipse cx="6" cy="6.6" rx="3.6" ry="4.6"/><ellipse cx="20" cy="21.4" rx="3.6" ry="4.6"/><path d="M19.6 1.8 6.4 26.2"/></svg></button>
-    <button class="k o" data-k="÷"><svg class="g28" viewBox="0 0 28 28" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M1.6 14h24.8"/><circle cx="14" cy="5.6" r="2.2" fill="#fff" stroke="none"/><circle cx="14" cy="22.4" r="2.2" fill="#fff" stroke="none"/></svg></button>
+    <button class="k f" data-k="bk"><svg class="bk" viewBox="0 0 37 31" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M13 3.5h18a3.5 3.5 0 0 1 3.5 3.5v17a3.5 3.5 0 0 1-3.5 3.5H13L2.5 15.5z"/><path d="m17.5 10.5 10 10M27.5 10.5l-10 10"/></svg></button>
+    <button class="k f ac" data-k="clr">AC</button>
+    <button class="k f" data-k="pct"><svg class="pct" viewBox="0 0 36 36" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"><ellipse cx="8.5" cy="9" rx="4.6" ry="5.8"/><ellipse cx="27.5" cy="27" rx="4.6" ry="5.8"/><path d="M27 3.2 9 32.8"/></svg></button>
+    <button class="k o" data-k="÷"><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.8" stroke-linecap="round"><path d="M1.8 14.5h25.4"/><circle cx="14.5" cy="5.4" r="2.5" fill="#fff" stroke="none"/><circle cx="14.5" cy="23.6" r="2.5" fill="#fff" stroke="none"/></svg></button>
     <button class="k" data-k="7">7</button><button class="k" data-k="8">8</button><button class="k" data-k="9">9</button>
-    <button class="k o" data-k="×"><svg class="g22" viewBox="0 0 21 21" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M1.6 1.6l17.8 17.8M19.4 1.6 1.6 19.4"/></svg></button>
+    <button class="k o" data-k="×"><svg class="g22" viewBox="0 0 22 22" fill="none" stroke="#fff" stroke-width="3.8" stroke-linecap="round"><path d="M2 2l18 18M20 2 2 20"/></svg></button>
     <button class="k" data-k="4">4</button><button class="k" data-k="5">5</button><button class="k" data-k="6">6</button>
-    <button class="k o" data-k="−"><svg class="g28" viewBox="0 0 28 28" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M1.6 14h24.8"/></svg></button>
+    <button class="k o" data-k="−"><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.8" stroke-linecap="round"><path d="M1.8 14.5h25.4"/></svg></button>
     <button class="k" data-k="1">1</button><button class="k" data-k="2">2</button><button class="k" data-k="3">3</button>
-    <button class="k o" data-k="+"><svg class="g28" viewBox="0 0 28 28" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M1.6 14h24.8M14 1.6v24.8"/></svg></button>
-    <button class="k" data-k="mode"><svg class="calc" viewBox="0 0 25 38"><rect x="0" y="0" width="25" height="38" rx="4.8" fill="#fff"/><rect x="3.4" y="3.6" width="18.2" height="7.6" rx="1.6" fill="#2A2A2C"/>
-      <g id="cdots" fill="#2A2A2C"><circle cx="5.9" cy="16.6" r="2.15"/><circle cx="12.5" cy="16.6" r="2.15"/><circle cx="19.1" cy="16.6" r="2.15"/><circle cx="5.9" cy="23.2" r="2.15"/><circle cx="12.5" cy="23.2" r="2.15"/><circle cx="19.1" cy="23.2" r="2.15"/><circle cx="5.9" cy="29.8" r="2.15"/><circle cx="12.5" cy="29.8" r="2.15"/><circle cx="19.1" cy="29.8" r="2.15"/></g></svg></button>
+    <button class="k o" data-k="+"><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.8" stroke-linecap="round"><path d="M1.8 14.5h25.4M14.5 1.8v25.4"/></svg></button>
+    <button class="k" data-k="neg"><svg class="pm" viewBox="0 0 36 36" fill="none" stroke="#fff" stroke-width="2.9" stroke-linecap="round"><path d="M1.8 8.4h10.4M7 3.2v10.4M22.5 4.5 8.5 33M23.5 28.6h10.4"/></svg></button>
     <button class="k" data-k="0" id="zero">0</button>
     <button class="k" data-k="."><svg class="dot" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="#fff"/></svg></button>
-    <button class="k o" data-k="="><svg class="g28" viewBox="0 0 28 28" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M2.2 9.8h23.6M2.2 18.2h23.6"/></svg></button>
+    <button class="k o" data-k="="><svg class="g29" viewBox="0 0 29 29" fill="none" stroke="#fff" stroke-width="3.8" stroke-linecap="round"><path d="M2.2 9.6h24.6M2.2 19.4h24.6"/></svg></button>
   </div>
 </div>
 
@@ -192,7 +206,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
       <div class="r">Face down now<span id="fdNow" style="color:rgba(235,235,245,.6)">—</span></div>
       <div class="r">Tap = when face up<label><input type="checkbox" id="autoEq" style="width:auto;transform:scale(1.3)"></label></div>
     </div>
-    <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the orange list icon (top left): the top dot is gone = tap +, the bottom dot is gone = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
+    <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
 </div>
@@ -230,17 +244,15 @@ function fmtNum(s){if(s===''||s==null)return'';
 const exprStr=t=>t.map(x=>isOp(x)?x:fmtNum(x)).join('');
 
 const $m=document.getElementById('main'),$e=document.getElementById('expr');
-function unit(){return parseFloat(getComputedStyle(document.getElementById('keys')).gridAutoRows)/86||1}
+function unit(){return parseFloat(getComputedStyle(document.getElementById('keys')).gridAutoRows)/86.5||1}
 const BACK='<svg class="bk" viewBox="0 0 34 27" fill="none" stroke="#fff" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"><path d="M11.5 2.5h17.5a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H11.5L2 13.5z"/><path d="m15.8 8.8 9.4 9.4M25.2 8.8l-9.4 9.4"/></svg>';
 function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=1;el.style.fontSize=s+'px'}}
 function render(){
   let main;
   if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
   else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
-  $m.textContent=main;const u=unit();fit($m,72*u,30*u);fit($e,28*u,14*u);
-  const blank=result===null&&!toks.length&&(cur===''||cur==='0');const ac=blank||result!==null;const c=document.getElementById('clr');
-  if(c.dataset.ac!==String(ac)){c.dataset.ac=ac;c.innerHTML=ac?'AC':BACK;c.classList.toggle('ac',ac)}
-  countPeek()
+  $m.textContent=main;const u=unit();fit($m,94*u,34*u);fit($e,28*u,14*u);
+  countPeek();
   document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k))}
 let fOp='+';
 function computeForce(){let need=target()-before;if(fOp==='−')need=-need;
@@ -248,8 +260,8 @@ function computeForce(){let need=target()-before;if(fOp==='−')need=-need;
 function startForce(){fOp=toks.at(-1);before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
 let flipReady=false,flipOn=false;
 function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0;flipReady=false;flipOn=false;peek(0)}
-/* peek on the list icon: top dot gone = add, bottom dot gone = subtract */
-function peek(v){const d1=document.getElementById('d1'),d3=document.getElementById('d3');if(!d1)return;d1.style.opacity=v>0?0:1;d3.style.opacity=v<0?0:1}
+/* peek on the clock button: hand right = add, hand down = subtract */
+function peek(v){const el=document.getElementById('hand');if(el)el.setAttribute('d',v>0?'M13 6.8V13H17.4':v<0?'M13 6.8V19.2':'M13 6.8V13H8.6')}
 
 function livePeek(){
   if(S.method!=='flip'||!armed||S.mode==='off'||result!==null){if(armed)peek(0);return}
@@ -285,7 +297,7 @@ function drawSB(){const sb=document.getElementById('sb');sb.classList.toggle('hi
   else{wf.classList.add('hide');net.style.display='';net.innerHTML=S.net==='5GUC'?'5G<small><b>U</b><b>C</b></small>':S.net}}
 setInterval(tick,1000);
 function press0(k){
-  if(k==='clr'){if(document.getElementById('clr').dataset.ac!=='false'){reset();return render()}k='bk'}
+  if(k==='clr'){reset();return render()}
   if(k==='bk'){
     if(result!==null)return;
     if(force!==null&&cur!==''){fi=Math.max(0,fi-1);cur=force.slice(0,fi)}
