@@ -137,16 +137,20 @@ function text(){
   if(!lines.length)return'';
   return MODE==='line'?lines[lines.length-1]:lines.join(' | ');
 }
+/* PeekSmith (Bluetooth): each word at once.  Online (ntfy.sh, daily limit): after a pause or a new line. */
+let lastBle='';
+function ble(v){if(!v||v===lastBle)return;lastBle=v;try{bleSend(v)}catch(e){}}
 function post(v){
-  if(!v||v===last)return;last=v;try{bleSend(v)}catch(e){}
+  ble(v);
+  if(!v||v===last)return;last=v;
   if(!P.online)return;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'?title='+encodeURIComponent(TITLE),{method:'POST',body:v,keepalive:true}).catch(()=>{})}catch(e){}
 }
 function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),1500)}
 function now(){clearTimeout(t);post(text())}
 note.addEventListener('input',()=>{
-  // send right away at the end of a line, otherwise after a pause in typing (fewer online messages)
   const v=note.innerText;const ch=v.slice(-1);
+  if(ch===' ')ble(text());
   if(ch==='\n')now();else soon()});
 
 /* ---------- editing look ---------- */
@@ -161,13 +165,13 @@ note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||w
 
 /* ---------- secret: hold the date for 1 s = clear the note ---------- */
 (function(){const el=document.getElementById('date');let tm=null;
-  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';},1000)},stop=()=>clearTimeout(tm);
+  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';},1000)},stop=()=>clearTimeout(tm);
   el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
   el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
 
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
-document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';note.focus()});
+document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';lastBle='';note.focus()});
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
