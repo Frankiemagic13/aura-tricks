@@ -228,21 +228,20 @@ function livePeek(){
   if(nums===S.n-1&&cur!==''&&cur!=='-'&&(!toks.length||isOp(toks.at(-1)))){const d=target()-evalToks(toks.concat([cur]));peek(d>0?1:d<0?-1:0)}else peek(0)}
 function press(k){press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to the link page (c/p.html) ---------- */
-const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
+let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(!S.ps||!t||t===psLast)return;psLast=t;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
 function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),350)}
+function psExpr(t){return t.map(x=>x==='−'?'-':x==='×'?'x':x==='÷'?'/':x).join('')}
 function psAfter(k){if(!S.ps)return;
-  if(/^\d$/.test(k)||k==='.'||k==='bk'||k==='clr'||k==='neg'){
-    if(force!==null||cur===''||cur==='-')return;
-    let t=fmtNum(cur);
-    if(S.method==='flip'&&armed&&S.mode!=='off'&&toks.filter(x=>!isOp(x)).length===S.n-1){const d=target()-evalToks(toks.concat([cur]));t+=d>0?' (+)':d<0?' (-)':''}
-    psDeb(t)}
-  else if(isOp(k)){
-    if(force!==null&&fi===0)psNow((fOp==='−'?'-':'+')+' '+force.length+' taps');
-    else psNow(fmtNum(evalToks(toks))+' '+(k==='−'?'-':k==='×'?'x':k==='÷'?'/':'+'))}
-  else if(k==='='&&result!==null)psNow('= '+fmtNum(result))}
+  if(k==='='){if(result!==null)psNow(lastExpr+'='+fmtNum(result));return}
+  if(force!==null&&fi>0)return;
+  if(toks.length===0&&cur==='')return;
+  let t=psExpr(toks.concat(cur!==''?[cur]:[]));
+  if(S.method==='flip'&&armed&&S.mode!=='off'&&cur!==''&&toks.filter(x=>!isOp(x)).length===S.n-1){const d=target()-evalToks(toks.concat([cur]));t+=d>0?' (+)':d<0?' (-)':''}
+  if(force!==null&&fi===0)t+=' '+force.length+' taps';
+  if(isOp(k))psNow(t);else psDeb(t)}
 /* peek on the calculator key (bottom left): while the force is on, the number of dark dots = taps still needed */
 /* tap-count peek: while the force is on, the LAST DIGIT of the status bar time = taps still needed */
 function countPeek(){tick()}
@@ -287,7 +286,7 @@ function press0(k){
     if(force!==null){cur=force;force=null}
     if(cur!=='')toks.push(cur);cur='';if(!toks.length)return render();
     if(isOp(toks.at(-1)))toks.pop();
-    shownExpr=exprStr(toks);result=evalToks(toks);toks=[];
+    shownExpr=exprStr(toks);lastExpr=psExpr(toks);result=evalToks(toks);toks=[];
     return render()}
 }
 
