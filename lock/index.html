@@ -137,6 +137,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
+<script src="../relay.js"></script>
 <script>
 /* ============ URL options ============
    ?len=4|6  digits        ?after=shake|unlock   ?url=…  page for unlock
@@ -233,7 +234,7 @@ function psWrite(t){
 function peekLive(){psWrite(code?code.split('').join(' '):(lastCode||' '))}
 function peekDone(c){
   psWrite(c);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{});
-  if(P.online){try{fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'?title='+encodeURIComponent(Q.get('nt')||'Peek'),{method:'POST',body:'Code '+c,keepalive:true}).catch(()=>{})}catch(e){}}}
+  if(P.online){try{PeekRelay.send(TOPIC,'Code '+c,Q.get('nt')||'Peek')}catch(e){}}}
 async function bleSearch(){
   if(!AURA||bleBusy||bleOn())return;bleBusy=true;
   aps=new AuraPeekSmith({lang:'en'});

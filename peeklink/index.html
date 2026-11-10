@@ -57,6 +57,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <small id="info"></small>
 </main>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
+<script src="../relay.js"></script>
 <script>
 const DEFAULT_TOPIC='fvt-c-k27x9m4q8w';   // must match the calculator
 const TOPIC=new URLSearchParams(location.search).get('k')||DEFAULT_TOPIC;
@@ -187,14 +188,8 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(location.hre
 $('test').onclick=()=>show('Test 123');
 
 /* ---------- channel from the calculator ---------- */
-let lastId='';
-function listen(){
-  setN('Connecting…');
-  const es=new EventSource('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'/sse');
-  es.onopen=()=>setN('Listening','on');
-  es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event&&m.event!=='message')return;if(m.id===lastId)return;lastId=m.id;sendText(m.message)}catch(_){}};
-  es.onerror=()=>{setN('Reconnecting…','err');if(es.readyState===2){setTimeout(listen,2000)}}}
-listen();
+setN('Connecting…');
+PeekRelay.listen(TOPIC,t=>sendText(t),s=>setN(s,s==='Listening'?'on':'err'));
 
 /* keep the screen on so the page keeps running */
 let lock=null;async function keepOn(){if(!$('wake').checked||!('wakeLock' in navigator))return;try{lock=await navigator.wakeLock.request('screen')}catch(e){}}

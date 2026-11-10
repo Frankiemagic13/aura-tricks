@@ -32,6 +32,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <div class="quick" id="q"></div>
   <small id="info"></small>
 </main>
+<script src="../relay.js"></script>
 <script>
 const DEFAULT_TOPIC='fvt-n-7q3k9xw2mz5r'; // must match index.html
 const QUICK=['Ace of Spades','Queen of Hearts','7 of Diamonds','Paris','Pizza','42'];
@@ -39,8 +40,8 @@ const TOPIC=new URLSearchParams(location.search).get('k')||DEFAULT_TOPIC;
 const v=document.getElementById('v'),st=document.getElementById('st');
 document.getElementById('info').textContent='Channel: '+TOPIC+'. The Notes page gets the last value sent in the past 20 minutes.';
 async function send(text,label){st.className='';st.textContent='Sending…';
-  try{const r=await fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC),{method:'POST',body:text});
-    if(!r.ok)throw new Error(r.status);st.className='ok';st.textContent=(label||'Sent')+' ✓  '+new Date().toLocaleTimeString()}
+  try{const ok=await PeekRelay.send(TOPIC,text,'Remote');
+    if(!ok)throw new Error('offline');st.className='ok';st.textContent=(label||'Sent')+' ✓  '+new Date().toLocaleTimeString()}
   catch(e){st.className='err';st.textContent='Not sent ('+e.message+'). Check the connection.'}}
 document.getElementById('send').onclick=()=>{const t=v.value.trim();if(t)send(t)};
 document.getElementById('clr').onclick=()=>{v.value='';send('_clear_','Cleared')};

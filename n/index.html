@@ -91,6 +91,7 @@ svg{display:block}
 <body>
 <div id="app"></div>
 <input id="hin" type="text" autocomplete="off" autocorrect="off" autocapitalize="words" spellcheck="false" enterkeyhint="done">
+<script src="../relay.js"></script>
 <script>
 /* ================== SETTINGS (edit these) ================== */
 const DEFAULT_TOPIC = 'fvt-n-7q3k9xw2mz5r';   // must match r.html
@@ -250,11 +251,7 @@ function secret(el){let t0=0,moved=false;
 
 /* remote input (r.html) */
 (function(){if(Q.get('remote')==='0'||!window.EventSource)return;
-  function go(){try{const es=new EventSource('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'/sse?since=20m');
-    es.onmessage=e=>{try{const m=JSON.parse(e.data);if(m.event&&m.event!=='message')return;if(typeof m.message!=='string')return;
-      setPred(m.message==='_clear_'?'':m.message)}catch(_){}};
-    es.onerror=()=>{if(es.readyState===2){setTimeout(go,3000)}}}catch(_){}}
-  go()})();
+  try{PeekRelay.listen(TOPIC,m=>setPred(m==='_clear_'?'':m),null,20*60*1000)}catch(_){}})();
 
 /* start */
 const start=Q.get('start')||'list';

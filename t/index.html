@@ -151,6 +151,7 @@ svg{display:block}
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the date for 1 second to clear the note.</div>
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
+<script src="../relay.js"></script>
 <script>
 /* ============ SETTINGS (URL options) ============
    ?k=...      channel (default: same as the calculator and Peek Island)
@@ -175,22 +176,21 @@ function text(){
   if(!lines.length)return'';
   return MODE==='line'?lines[lines.length-1]:lines.join(' | ');
 }
-/* PeekSmith (Bluetooth): each word at once.  Online (ntfy.sh, daily limit): after a pause or a new line. */
+/* PeekSmith (Bluetooth): each word at once.  Online (Firebase, ntfy.sh backup): after a pause or a new line. */
 let lastBle='';
 function ble(v){if(!v||v===lastBle)return;lastBle=v;try{bleSend(v)}catch(e){}}   // a finished word or line: goes into the peek history
 function post(v){
   ble(v);
   if(!v||v===last)return;last=v;
   if(!P.online)return;
-  try{fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'?title='+encodeURIComponent(TITLE),{method:'POST',body:v,keepalive:true}).catch(()=>{})}catch(e){}
+  try{PeekRelay.send(TOPIC,v,TITLE)}catch(e){}
 }
-function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),1500)}
+function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),800)}
 function now(){clearTimeout(t);post(text())}
 note.addEventListener('input',()=>{
   const v=note.innerText;const ch=v.slice(-1);
   try{bleLive()}catch(e){}
-  if(ch===' ')ble(text());
-  if(ch==='\n')now();else soon()});
+  if(ch===' '||ch==='\n')now();else soon()});
 
 /* ---------- editing look ---------- */
 function editing(on){done.classList.toggle('hidden',!on)}
