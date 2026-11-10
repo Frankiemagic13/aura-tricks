@@ -48,7 +48,9 @@ small{color:#636366;font-size:12px;line-height:1.5}
 const DEFAULT_TOPIC='fvt-c-k27x9m4q8w';   // must match the calculator
 const TOPIC=new URLSearchParams(location.search).get('k')||DEFAULT_TOPIC;
 const $=id=>document.getElementById(id);
-const SVC=0xFFE0,CHR=0xFFE1;
+const U=s=>'0000'+s+'-0000-1000-8000-00805f9b34fb';
+const SVC=U('ffe0'),CHR=U('ffe1'),SVC_DBG=U('ffff');
+let stage='';
 let chr=null,dev=null,queue=Promise.resolve();
 const st={get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 $('pre').value=st.get('pre','$');$('vib').checked=st.get('vib','0')==='1';
@@ -79,22 +81,24 @@ function sendText(t){
 async function connect(all){
   if(!navigator.bluetooth){setB('No Web Bluetooth here','err');log('This browser has no Web Bluetooth. On iPhone, open this page in a Web Bluetooth browser such as Bluefy.');return}
   try{
-    dev=await navigator.bluetooth.requestDevice(all?{acceptAllDevices:true,optionalServices:[SVC,0xFFE2,0xFFFF]}:{filters:[{services:[SVC]},{namePrefix:'PeekSmith'},{namePrefix:'Peek'},{namePrefix:'PS'},{namePrefix:'SuperPeek'}],optionalServices:[SVC,0xFFE2,0xFFFF]});
+    stage='device list';
+    dev=await navigator.bluetooth.requestDevice(all?{acceptAllDevices:true,optionalServices:[SVC,SVC_DBG]}:{filters:[{namePrefix:'PeekSmith'}],optionalServices:[SVC,SVC_DBG]});
     log('Selected: '+(dev.name||'(no name)'));
     setB('Connecting…');dev.addEventListener('gattserverdisconnected',onDisc);
     await link()}
   catch(e){setB('Not connected','err');
-    const m=String(e&&e.message||e);
+    const m=(e&&(e.message||e.name))?((e.name?e.name+': ':'')+(e.message||'')):(typeof e==='object'?JSON.stringify(e):String(e));
+    log('Failed at: '+stage);
     log('Connect failed: '+m+(/cancel/i.test(m)?' (the device list was closed)':/user gesture/i.test(m)?' (tap the button again)':/GATT|connect/i.test(m)?' (is the PeekSmith app still connected? Close it, turn the PeekSmith off and on, and try again)':''))}}
 async function link(){
-  log('Opening connection…');const srv=await dev.gatt.connect();
+  stage='connect';log('Opening connection…');const srv=await dev.gatt.connect();stage='find service';
   let s;try{s=await srv.getPrimaryService(SVC)}catch(e){
     let list='';try{list=(await srv.getPrimaryServices()).map(x=>x.uuid.slice(4,8)).join(', ')}catch(_){}
     throw new Error('PeekSmith service FFE0 not found on this device'+(list?' (services: '+list+')':'')+'. Select the PeekSmith, not a different device.')}
-  chr=await s.getCharacteristic(CHR);
+  stage='find characteristic';chr=await s.getCharacteristic(CHR);stage='notifications';
   /* the Electricks docs say: turn on notifications before you write commands */
   try{await chr.startNotifications();chr.addEventListener('characteristicvaluechanged',ev=>{try{log('PeekSmith says: '+new TextDecoder().decode(ev.target.value).trim())}catch(_){}})}catch(e){log('Notify (main): '+e.message)}
-  try{const ds=await srv.getPrimaryService(0xFFFF);const dc=(await ds.getCharacteristics())[0];await dc.startNotifications()}catch(e){}
+  try{const ds=await srv.getPrimaryService(SVC_DBG);const dc=(await ds.getCharacteristics())[0];await dc.startNotifications()}catch(e){}
   setB(dev.name||'Connected','on');log('Connected to '+(dev.name||'PeekSmith'));writeCmd('~.\n')}
 async function onDisc(){chr=null;setB('Reconnecting…','err');log('Disconnected');
   for(let i=0;i<10&&dev;i++){try{await wait(1500);await link();return}catch(e){}}
