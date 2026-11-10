@@ -197,29 +197,77 @@ final class PeekModel: ObservableObject {
         let message: String?
     }
 
-    private func listenLoop() async {
-        let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 120          // ntfy sends a keepalive every 45 s
-        config.timeoutIntervalForResource = 60 * 60 * 24
-        let session = URLSession(configuration: config)
-        let safeTopic = topic.trimmingCharacters(in: .whitespacesAndNewlines)
-            .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? topic
+    /// Firebase Realtime Database value written by the pages: {m, title, t, id}
+    private struct FBPeek: Decodable {
+        let m: String?
+        let t: Double?
+        let id: String?
+    }
 
+    private struct FBEvent: Decodable {
+        let path: String
+        let data: FBPeek?
+    }
+
+    private static let firebase = "https://peek-island-default-rtdb.firebaseio.com/peeks/"
+    private var recent: [String: Date] = [:]
+    private var lastFirebaseID = ""
+
+    /// Both channels can bring the same peek (Firebase is main, ntfy.sh is the backup): show it once.
+    private func deliver(_ text: String) async {
+        let now = Date()
+        recent = recent.filter { now.timeIntervalSince($0.value) < 5 }
+        guard recent[text] == nil else { return }
+        recent[text] = now
+        await show(text)
+    }
+
+    private func listenLoop() async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.firebaseLoop() }
+            group.addTask { await self.ntfyLoop() }
+        }
+    }
+
+    private func makeSession() -> URLSession {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 120          // both services send a keepalive within 60 s
+        config.timeoutIntervalForResource = 60 * 60 * 24
+        return URLSession(configuration: config)
+    }
+
+    private var safeTopic: String {
+        topic.trimmingCharacters(in: .whitespacesAndNewlines)
+            .addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? topic
+    }
+
+    /// Main channel: Firebase streaming (server-sent events), no daily message limit.
+    private func firebaseLoop() async {
+        let session = makeSession()
         while !Task.isCancelled {
-            guard let url = URL(string: "https://ntfy.sh/\(safeTopic)/json") else {
-                status = "Bad channel name"
-                return
-            }
+            guard let url = URL(string: Self.firebase + safeTopic + ".json") else { status = "Bad channel name"; return }
+            var req = URLRequest(url: url)
+            req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
             do {
                 status = "Connecting…"
-                let (bytes, _) = try await session.bytes(from: url)
+                let (bytes, _) = try await session.bytes(for: req)
                 status = "Listening"
+                var event = "", first = true
                 for try await line in bytes.lines {
                     if Task.isCancelled { break }
-                    guard let data = line.data(using: .utf8),
-                          let m = try? JSONDecoder().decode(NtfyMessage.self, from: data) else { continue }
-                    if m.event == "message", let text = m.message {
-                        await show(text)
+                    if line.hasPrefix("event:") {
+                        event = line.dropFirst(6).trimmingCharacters(in: .whitespaces)
+                    } else if line.hasPrefix("data:"), event == "put" {
+                        let json = line.dropFirst(5).trimmingCharacters(in: .whitespaces)
+                        guard let d = json.data(using: .utf8),
+                              let e = try? JSONDecoder().decode(FBEvent.self, from: d),
+                              e.path == "/", let p = e.data, let id = p.id, let text = p.m else { first = false; continue }
+                        let wasFirst = first
+                        first = false
+                        if id == lastFirebaseID { continue }
+                        lastFirebaseID = id
+                        if wasFirst { continue }        // value that was already stored before we connected
+                        await deliver(text)
                     }
                 }
             } catch {
@@ -227,6 +275,28 @@ final class PeekModel: ObservableObject {
                 status = "Reconnecting…"
             }
             try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+    }
+
+    /// Backup channel: ntfy.sh (used by the pages only when Firebase cannot be reached).
+    private func ntfyLoop() async {
+        let session = makeSession()
+        while !Task.isCancelled {
+            guard let url = URL(string: "https://ntfy.sh/\(safeTopic)/json") else { return }
+            do {
+                let (bytes, _) = try await session.bytes(from: url)
+                for try await line in bytes.lines {
+                    if Task.isCancelled { break }
+                    guard let data = line.data(using: .utf8),
+                          let m = try? JSONDecoder().decode(NtfyMessage.self, from: data) else { continue }
+                    if m.event == "message", let text = m.message {
+                        await deliver(text)
+                    }
+                }
+            } catch {
+                if Task.isCancelled { break }
+            }
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
         }
     }
 
