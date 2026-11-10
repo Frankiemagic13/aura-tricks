@@ -15,29 +15,64 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   font-family:-apple-system,system-ui,"SF Pro Display","Helvetica Neue",sans-serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
 #app{position:fixed;inset:0;display:flex;flex-direction:column;
-  padding:calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 26px)}
-.top{height:44px;display:flex;align-items:center}
-.hist{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#FF9F0A;
-  background:rgba(60,60,62,.55);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:.5px solid rgba(255,255,255,.12)}
-.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:stretch;padding:0 8px 6px;min-height:0}
-#expr{text-align:right;color:#8E8E93;font-size:28px;font-weight:400;height:36px;white-space:nowrap;overflow:hidden;letter-spacing:.2px}
-#main{text-align:right;font-weight:300;font-size:86px;line-height:1.05;white-space:nowrap;overflow:hidden;letter-spacing:-1px;font-variant-numeric:tabular-nums}
-.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--g);--g:min(3.8vw,16px)}
-.k{aspect-ratio:1;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;color:#fff;
-  font:400 min(10.2vw,42px)/1 -apple-system,system-ui,"SF Pro Display",sans-serif;background:#333336;transition:background .25s,color .25s}
-.k.f{background:#5C5C5F}
-.k.o{background:#FF9F0A;font-size:min(11.5vw,46px)}
-.k.o.sel{background:#fff;color:#FF9F0A}
-.k:active,.k.down{transition:none;filter:brightness(1.45)}
-.k.o:active,.k.o.down{filter:brightness(1.25)}
-.k.f.txt{font-size:min(8.6vw,36px)}
-.k svg{display:block}
+  padding:calc(env(safe-area-inset-top) + 6px) 16px calc(env(safe-area-inset-bottom) + 22px)}
+.top{height:46px;display:flex;align-items:center}
+.glassbtn{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;
+  background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(255,255,255,.04) 55%),rgba(38,38,40,.75);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);backdrop-filter:blur(20px) saturate(180%);
+  box-shadow:inset 0 .5px 0 rgba(255,255,255,.35),inset 0 0 0 .5px rgba(255,255,255,.1),0 2px 8px rgba(0,0,0,.4)}
+.disp{flex:1;display:flex;flex-direction:column;justify-content:flex-end;padding:0 10px 10px;min-height:0}
+#expr{text-align:right;color:rgba(235,235,245,.6);font-size:28px;height:36px;white-space:nowrap;overflow:hidden;letter-spacing:.2px}
+#main{text-align:right;font-weight:300;font-size:88px;line-height:1.04;white-space:nowrap;overflow:hidden;letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
+
+.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--g);--g:min(3.6vw,15px)}
+.k{position:relative;aspect-ratio:1;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;color:#fff;
+  font:400 min(10vw,41px)/1 -apple-system,system-ui,"SF Pro Display",sans-serif;
+  background:radial-gradient(120% 90% at 30% 12%,rgba(255,255,255,.13),rgba(255,255,255,0) 60%),linear-gradient(180deg,#363639,#2A2A2D);
+  box-shadow:inset 0 1px .5px rgba(255,255,255,.22),inset 0 -1px 1px rgba(0,0,0,.45),inset 0 0 0 .5px rgba(255,255,255,.07),0 1px 3px rgba(0,0,0,.5);
+  transition:transform .32s cubic-bezier(.3,1.6,.5,1),filter .3s,background .25s,color .25s}
+.k.f{background:radial-gradient(120% 90% at 30% 12%,rgba(255,255,255,.2),rgba(255,255,255,0) 60%),linear-gradient(180deg,#6B6B70,#55555A)}
+.k.o{font-size:min(11.2vw,46px);
+  background:radial-gradient(120% 90% at 30% 12%,rgba(255,255,255,.32),rgba(255,255,255,0) 60%),linear-gradient(180deg,#FFA51F,#FF9500 55%,#F28A00);
+  box-shadow:inset 0 1px .5px rgba(255,255,255,.45),inset 0 -1px 1px rgba(120,50,0,.35),0 1px 3px rgba(0,0,0,.5)}
+.k.o.sel{background:radial-gradient(120% 90% at 30% 12%,#fff,#F2F2F2 70%);color:#FF9500}
+.k.down{transition:transform .12s ease-out,filter .05s;transform:scale(1.07);filter:brightness(1.4)}
+.k.o.down{filter:brightness(1.18)}
+.k.txt{font-size:min(8.4vw,35px)}
+.k svg{display:block;pointer-events:none}
+
+/* secret settings sheet */
+#sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;border-radius:28px 28px 0 0;
+  padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
+  max-height:88%;overflow-y:auto;-webkit-user-select:none;user-select:none}
+.open #sheetBg{opacity:1;pointer-events:auto}.open #sheet{transform:none}
+.grab{width:36px;height:5px;border-radius:3px;background:#48484A;margin:0 auto 10px}
+.shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.shead b{font-size:17px;font-weight:600}
+.shead span{width:60px}
+.done{color:#FF9F0A;font-size:17px;font-weight:600;background:none;border:0;width:60px;text-align:right;font-family:inherit}
+.lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 16px 6px;letter-spacing:.2px}
+.grp{background:#2C2C2E;border-radius:14px;overflow:hidden}
+.r{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 16px;font-size:17px;position:relative}
+.r+.r::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:rgba(84,84,88,.65)}
+.seg{display:flex;background:rgba(118,118,128,.24);border-radius:10px;padding:2px;margin:8px 0}
+.seg button{flex:1;border:0;background:none;color:#fff;font:500 14px -apple-system,system-ui;height:32px;border-radius:8px}
+.seg button.on{background:#636366;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.r input{background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;width:60%;-webkit-user-select:text;user-select:text}
+.r select{background:none;border:0;color:rgba(235,235,245,.6);font:17px -apple-system,system-ui;text-align:right;outline:none;-webkit-appearance:none;appearance:none}
+.step{display:flex;align-items:center;gap:12px}
+.step button{width:34px;height:30px;border:0;border-radius:8px;background:rgba(118,118,128,.24);color:#fff;font-size:20px;line-height:1}
+.step em{font-style:normal;min-width:22px;text-align:center}
+.note{font-size:13px;color:rgba(235,235,245,.6);margin:8px 16px 0;line-height:1.35}
+.preview{font-size:13px;color:#FF9F0A;margin:8px 16px 0}
+.hide{display:none!important}
 </style>
 </head>
 <body>
 <div id="app">
-  <div class="top"><div class="hist" id="hist">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="4.5" cy="6" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.1" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/></svg>
+  <div class="top"><div class="glassbtn">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="4.5" cy="6" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/></svg>
   </div></div>
   <div class="disp"><div id="expr"></div><div id="main">0</div></div>
   <div class="keys" id="keys">
@@ -51,124 +86,162 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <button class="k o" data-k="−">−</button>
     <button class="k" data-k="1">1</button><button class="k" data-k="2">2</button><button class="k" data-k="3">3</button>
     <button class="k o" data-k="+">+</button>
-    <button class="k" data-k="mode"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M3.5 12h17M12 3.5v17" /><path d="M6.5 7.8h3M14.5 7.8h3M16 6.3v3M6.6 16.3l2.1 2.1M8.7 16.3l-2.1 2.1M14.5 15.7h3M14.5 17.9h3" stroke-linecap="round"/></svg></button>
-    <button class="k" data-k="0">0</button>
+    <button class="k" data-k="mode"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="3.5"/><path d="M3.5 12h17M12 3.5v17"/><path d="M6.5 7.8h3M14.5 7.8h3M16 6.3v3M6.6 16.3l2.1 2.1M8.7 16.3l-2.1 2.1M14.5 15.7h3M14.5 17.9h3" stroke-linecap="round"/></svg></button>
+    <button class="k" data-k="0" id="zero">0</button>
     <button class="k" data-k=".">.</button>
     <button class="k o" data-k="=">=</button>
   </div>
 </div>
+
+<div id="sheetBg"></div>
+<div id="sheet">
+  <div class="grab"></div>
+  <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
+  <div class="seg" id="mode">
+    <button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button>
+  </div>
+  <div id="customBox">
+    <div class="lbl">Force result</div>
+    <div class="grp"><div class="r">Number<input id="custom" inputmode="numeric" pattern="[0-9]*" placeholder="0"></div></div>
+    <div class="note">The total of the numbers before the force must be smaller than this number.</div>
+  </div>
+  <div id="dateBox">
+    <div class="lbl">Date &amp; time</div>
+    <div class="grp">
+      <div class="r">Format<select id="fmt">
+        <option value="odhm">MMDD hhmm (12 h)</option>
+        <option value="odHm">MMDD HHmm (24 h)</option>
+        <option value="dohm">DDMM hhmm (12 h)</option>
+        <option value="doHm">DDMM HHmm (24 h)</option>
+        <option value="hmod">hhmm MMDD (12 h)</option>
+        <option value="odY">MMDDYYYY</option>
+        <option value="hm">hhmm only</option>
+      </select></div>
+      <div class="r">Add minutes<div class="step"><button data-s="a" data-d="-1">−</button><em id="aV">1</em><button data-s="a" data-d="1">+</button></div></div>
+    </div>
+    <div class="preview" id="prev"></div>
+  </div>
+  <div class="lbl">Force</div>
+  <div class="grp">
+    <div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div>
+  </div>
+  <div class="note">The force starts when + is tapped after the last number. AC makes the force ready again.</div>
+</div>
+
 <script>
-/* ===================== SETTINGS =====================
-   URL options (all optional):
-   ?n=3      how many numbers are added before the force starts
-   ?f=odhm   target format. o=month  d=day  h=hour(12h)  H=hour(24h)  m=minute  y=year(2 digits)  Y=year(4 digits)
-   ?a=1      minutes added to the clock (time for the reveal)
-   ====================================================== */
+/* ---------- settings: URL gives defaults, the secret menu changes them ---------- */
 const Q=new URLSearchParams(location.search);
-const N=Math.max(1,parseInt(Q.get('n')??'3',10)||3);
-const FMT=Q.get('f')||'odhm';
-const ADD=parseFloat(Q.get('a')??'1')||0;
+const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
+  a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3)};
+try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
+if(Q.has('r'))S.mode='custom',S.custom=Q.get('r');
+function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
 
 const p2=v=>String(v).padStart(2,'0');
-function target(){
-  const d=new Date(Date.now()+ADD*60000);let s='';
-  for(const c of FMT){
+function dateTarget(){const d=new Date(Date.now()+S.a*60000);let s='';
+  for(const c of S.fmt){
     if(c==='o')s+=p2(d.getMonth()+1);else if(c==='d')s+=p2(d.getDate());
     else if(c==='h')s+=p2(d.getHours()%12||12);else if(c==='H')s+=p2(d.getHours());
-    else if(c==='m')s+=p2(d.getMinutes());else if(c==='y')s+=p2(d.getFullYear()%100);
-    else if(c==='Y')s+=d.getFullYear()}
+    else if(c==='m')s+=p2(d.getMinutes());else if(c==='y')s+=p2(d.getFullYear()%100);else if(c==='Y')s+=d.getFullYear()}
   return Number(s)}
+function target(){return S.mode==='custom'?Number(S.custom):S.mode==='date'?dateTarget():NaN}
 
-/* ---------- calculator state ---------- */
-let toks=[],cur='',result=null,shownExpr='',armed=true,force=null,fi=0;
-const OPS=['+','−','×','÷'];
-const isOp=t=>OPS.includes(t);
-
-function evalToks(t){
-  // standard precedence: × ÷ first, then + −
-  const a=[];for(const x of t)a.push(isOp(x)?x:parseFloat(x));
-  if(a.length&&isOp(a[a.length-1]))a.pop();
-  const b=[];
-  for(let i=0;i<a.length;i++){
-    if(a[i]==='×'||a[i]==='÷'){const l=b.pop(),r=a[++i];b.push(a[i-1]==='×'?l*r:(r===0?NaN:l/r))}else b.push(a[i])}
-  let v=b[0]??0;for(let i=1;i<b.length;i+=2)v=b[i]==='+'?v+b[i+1]:v-b[i+1];
-  return v}
-
-function fmtNum(s){
-  if(s===''||s==null)return'';
-  if(typeof s==='number'){
-    if(!isFinite(s))return'Error';
-    let r=Math.abs(s)>=1e16?s.toExponential(6).replace('e+','e'):String(+s.toPrecision(12));
-    s=r}
-  if(/e/.test(s))return s;
-  const neg=s.startsWith('-');if(neg)s=s.slice(1);
-  let [i,f]=s.split('.');i=(i||'0').replace(/\B(?=(\d{3})+(?!\d))/g,',');
-  return(neg?'-':'')+i+(f!==undefined?'.'+f:'')}
+/* ---------- calculator ---------- */
+let toks=[],cur='',result=null,shownExpr='',armed=true,force=null,fi=0,before=0;
+const OPS=['+','−','×','÷'],isOp=t=>OPS.includes(t);
+function evalToks(t){const a=t.map(x=>isOp(x)?x:parseFloat(x));if(a.length&&isOp(a.at(-1)))a.pop();
+  const b=[];for(let i=0;i<a.length;i++){if(a[i]==='×'||a[i]==='÷'){const l=b.pop(),op=a[i],r=a[++i];b.push(op==='×'?l*r:(r===0?NaN:l/r))}else b.push(a[i])}
+  let v=b[0]??0;for(let i=1;i<b.length;i+=2)v=b[i]==='+'?v+b[i+1]:v-b[i+1];return v}
+function fmtNum(s){if(s===''||s==null)return'';
+  if(typeof s==='number'){if(!isFinite(s))return'Error';s=Math.abs(s)>=1e16?s.toExponential(6).replace('e+','e'):String(+s.toPrecision(12))}
+  if(/e/.test(s))return s;const neg=s.startsWith('-');if(neg)s=s.slice(1);
+  let[i,f]=s.split('.');i=(i||'0').replace(/\B(?=(\d{3})+(?!\d))/g,',');return(neg?'-':'')+i+(f!==undefined?'.'+f:'')}
 const exprStr=t=>t.map(x=>isOp(x)?x:fmtNum(x)).join('');
 
 const $m=document.getElementById('main'),$e=document.getElementById('expr'),$c=document.getElementById('clr');
-const BACK='<svg width="38" height="30" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 4h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H12L2.5 15z"/><path d="m17 10 10 10M27 10 17 20"/></svg>';
+const BACK='<svg width="36" height="28" viewBox="0 0 38 30" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 4h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H12L2.5 15z"/><path d="m17 10 10 10M27 10 17 20"/></svg>';
 function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=2;el.style.fontSize=s+'px'}}
 function render(){
   let main;
   if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
   else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
-  $m.textContent=main;
-  const maxSize=Math.min(innerWidth*0.235,96);fit($m,maxSize,34);fit($e,28,16);
-  const blank=result===null&&toks.length===0&&(cur===''||cur==='0');
-  $c.innerHTML=blank||result!==null?'AC':BACK;$c.classList.toggle('txt',blank||result!==null);
-  document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length&&toks[toks.length-1]===b.dataset.k))}
-
-function startForce(){
-  // toks ends with '+'; value of everything before it
-  const before=evalToks(toks.slice(0,-1));const need=target()-before;
-  if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=0}}
+  $m.textContent=main;fit($m,Math.min(innerWidth*.235,96),34);fit($e,28,16);
+  const blank=result===null&&!toks.length&&(cur===''||cur==='0');const ac=blank||result!==null;
+  $c.innerHTML=ac?'AC':BACK;$c.classList.toggle('txt',ac);
+  document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k))}
+function computeForce(){const need=target()-before;
+  if(Number.isFinite(need)&&need>0&&Number.isInteger(need)){force=String(need);fi=Math.min(fi,force.length);if(fi)cur=force.slice(0,fi)}else{force=null}}
+function startForce(){before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
+function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0}
 
 function press(k){
   if(k==='mode')return;
-  if(k==='clr'){
-    const blank=result===null&&toks.length===0&&(cur===''||cur==='0');
-    if(blank||result!==null){toks=[];cur='';result=null;shownExpr='';armed=true;force=null}
+  if(k==='clr'){const blank=result===null&&!toks.length&&(cur===''||cur==='0');
+    if(blank||result!==null)reset();
     else if(force!==null&&cur!==''){fi=Math.max(0,fi-1);cur=force.slice(0,fi)}
-    else if(cur!==''){cur=cur.slice(0,-1)}
-    else if(toks.length){const t=toks.pop();if(!isOp(t)){cur=t;cur=cur.slice(0,-1)}}
+    else if(cur!=='')cur=cur.slice(0,-1);
+    else if(toks.length){const t=toks.pop();if(!isOp(t))cur=t.slice(0,-1);
+      if(force!==null&&isOp(t)){force=null;armed=true}}
     return render()}
-  if(result!==null&&(/\d/.test(k)||k==='.')){toks=[];cur='';result=null;shownExpr='';armed=true;force=null}
+  if(result!==null&&(/\d/.test(k)||k==='.'))reset();
   if(/^\d$/.test(k)){
     if(force!==null){if(fi<force.length){fi++;cur=force.slice(0,fi)}return render()}
-    if(cur==='0')cur='';
-    if(cur.replace(/[-.]/g,'').length>=9)return;
-    cur+=k;return render()}
-  if(k==='.'){if(force!==null)return;if(!cur.includes('.'))cur=(cur===''?'0':cur)+'.';return render()}
+    if(cur==='0')cur='';if(cur==='-0')cur='-';if(cur.replace(/[-.]/g,'').length>=9)return;cur+=k;return render()}
+  if(k==='.'){if(force!==null)return;if(!cur.includes('.'))cur=(cur===''||cur==='-'?cur+'0':cur)+'.';return render()}
   if(k==='neg'){if(force!==null)return;
-    if(result!==null){toks=[];cur=String(-result);result=null;shownExpr=''}
-    else if(cur!=='')cur=cur.startsWith('-')?cur.slice(1):'-'+cur;else cur='-0';return render()}
+    if(result!==null){const r=result;reset();cur=String(-r)}else if(cur!=='')cur=cur.startsWith('-')?cur.slice(1):'-'+cur;else cur='-0';return render()}
   if(k==='pct'){if(force!==null)return;
-    if(result!==null){toks=[];cur=String(result/100);result=null;shownExpr=''}
-    else if(cur!=='')cur=String(parseFloat(cur)/100);return render()}
+    if(result!==null){const r=result;reset();cur=String(r/100)}else if(cur!=='')cur=String(parseFloat(cur)/100);return render()}
   if(isOp(k)){
     if(force!==null){cur=force;force=null}
-    if(result!==null){toks=[String(result)];result=null;shownExpr=''}
+    if(result!==null){const r=result;reset();toks=[String(r)];armed=true}
     if(cur!==''){toks.push(cur);cur=''}
     if(!toks.length)toks.push('0');
-    if(isOp(toks[toks.length-1]))toks[toks.length-1]=k;else toks.push(k);
-    const nums=toks.filter(t=>!isOp(t)).length;
-    if(armed&&k==='+'&&nums===N){armed=false;startForce()}
+    if(isOp(toks.at(-1)))toks[toks.length-1]=k;else toks.push(k);
+    if(armed&&k==='+'&&toks.filter(t=>!isOp(t)).length===S.n){armed=false;startForce()}
     return render()}
-  if(k==='='){
-    if(result!==null)return;
+  if(k==='='){if(result!==null)return;
     if(force!==null){cur=force;force=null}
-    if(cur!=='')toks.push(cur);cur='';
-    if(!toks.length)return render();
-    if(isOp(toks[toks.length-1]))toks.pop();
-    shownExpr=exprStr(toks);result=evalToks(toks);toks=[];
-    return render()}
+    if(cur!=='')toks.push(cur);cur='';if(!toks.length)return render();
+    if(isOp(toks.at(-1)))toks.pop();
+    shownExpr=exprStr(toks);result=evalToks(toks);toks=[];return render()}
 }
 
-const keys=document.getElementById('keys');
-keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();b.classList.add('down');press(b.dataset.k)},{passive:false});
-keys.addEventListener('touchend',()=>document.querySelectorAll('.down').forEach(b=>b.classList.remove('down')));
-keys.addEventListener('click',e=>{const b=e.target.closest('.k');if(b)press(b.dataset.k)});
+/* ---------- touch handling (0 key: tap = 0, hold = secret menu) ---------- */
+const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
+function down(b){b.classList.add('down');
+  if(b.dataset.k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700)}
+  else press(b.dataset.k)}
+function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove('down'));
+  if(zeroDown){zeroDown=false;clearTimeout(holdT);if(!held)press('0')}}
+keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();down(b)},{passive:false});
+keys.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
+keys.addEventListener('touchcancel',up);
+keys.addEventListener('mousedown',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;const b=e.target.closest('.k');if(b)down(b)});
+addEventListener('mouseup',e=>{if(e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;up()});
+
+/* ---------- secret settings sheet ---------- */
+const $ = id=>document.getElementById(id);
+function syncSheet(){
+  document.querySelectorAll('#mode button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.mode));
+  $('customBox').classList.toggle('hide',S.mode!=='custom');$('dateBox').classList.toggle('hide',S.mode!=='date');
+  $('custom').value=S.custom;$('fmt').value=S.fmt;$('aV').textContent=S.a;$('nV').textContent=S.n;
+  const t=dateTarget();$('prev').textContent='Result now: '+fmtNum(String(t))}
+function openSheet(){syncSheet();document.body.classList.add('open')}
+function closeSheet(){
+  const v=$('custom').value.replace(/\D/g,'');S.custom=v;
+  if(S.mode==='custom'&&!v)S.mode='date';
+  saveS();document.activeElement&&document.activeElement.blur();document.body.classList.remove('open');
+  if(force!==null||(!armed&&S.mode!=='off'&&cur===''&&toks.length&&toks.at(-1)==='+'))computeForce();
+  render()}
+$('done').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
+document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>{S.mode=b.dataset.v;syncSheet()});
+$('fmt').onchange=()=>{S.fmt=$('fmt').value;syncSheet()};
+$('custom').oninput=()=>{S.custom=$('custom').value.replace(/\D/g,'')};
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{const k=b.dataset.s,d=+b.dataset.d;
+  S[k]=k==='n'?Math.min(9,Math.max(1,S[k]+d)):Math.min(30,Math.max(0,S[k]+d));syncSheet()});
+setInterval(()=>{if(document.body.classList.contains('open')&&S.mode==='date')$('prev').textContent='Result now: '+fmtNum(String(dateTarget()))},5000);
+
 document.addEventListener('gesturestart',e=>e.preventDefault());
 addEventListener('resize',render);
 render();
