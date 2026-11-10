@@ -5,103 +5,86 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
 <meta name="format-detection" content="telephone=no">
 <meta name="robots" content="noindex">
 <title>Apps</title>
 <style>
-:root{color-scheme:light dark}
+:root{color-scheme:dark}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden;overscroll-behavior:none;
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#000;color:#fff;
   font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-body{position:fixed;inset:0;color:#fff;
-  background:
-    radial-gradient(120% 80% at 15% 10%,#5b7cfa 0%,transparent 55%),
-    radial-gradient(110% 90% at 90% 30%,#c06bf2 0%,transparent 55%),
-    radial-gradient(130% 90% at 50% 110%,#ff8a5c 0%,transparent 60%),
-    #2a2d5c}
-@media (prefers-color-scheme:dark){body{filter:brightness(.72)}}
-.grid{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 64px);
-  display:grid;grid-template-columns:repeat(4,1fr);row-gap:28px;padding:0 22px}
-.app{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
-.icon{width:62px;height:62px;border-radius:15px;position:relative;overflow:hidden;
-  box-shadow:0 2px 8px rgba(0,0,0,.25);transition:transform .12s ease}
-.app:active .icon,.app.down .icon{transform:scale(.9);filter:brightness(.85)}
-.label{font-size:12px;letter-spacing:-.1px;text-shadow:0 1px 3px rgba(0,0,0,.35)}
+body{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px)}
+.app{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
+  border-radius:28px;background:#111113;cursor:pointer;
+  transition:transform .12s ease,background .12s ease}
+.app:active,.app.down{transform:scale(.97);background:#1c1c1f}
+.icon{width:84px;height:84px;border-radius:20px;position:relative;overflow:hidden}
+.label{font-size:20px;font-weight:600;letter-spacing:-.3px;color:#f2f2f7}
 /* Notes icon */
 .notes{background:#fff}
 .notes::before{content:"";position:absolute;left:0;right:0;top:0;height:22%;
   background:linear-gradient(#ffd84a,#f5c400)}
-.notes i{position:absolute;left:12%;right:12%;height:1.5px;background:#d9d9de}
-.notes i:nth-child(1){top:42%}.notes i:nth-child(2){top:60%}.notes i:nth-child(3){top:78%}
-.notes::after{content:"";position:absolute;left:0;right:0;top:22%;height:2px;
-  background-image:radial-gradient(circle,#c8c8cc 40%,transparent 45%);background-size:6px 2px}
+.notes i{position:absolute;left:13%;right:13%;height:2px;background:#d9d9de}
+.notes i:nth-child(1){top:44%}.notes i:nth-child(2){top:62%}.notes i:nth-child(3){top:80%}
 /* Calculator icon */
-.calc{background:#1c1c1e;display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding:9px}
-.calc b{border-radius:50%;background:#505055;position:relative}
+.calc{background:#1c1c1e;display:grid;grid-template-columns:repeat(2,1fr);gap:7px;padding:12px;
+  box-shadow:inset 0 0 0 1px #2c2c2e}
+.calc b{border-radius:50%;background:#505055;display:grid;place-items:center;
+  font:600 19px/1 -apple-system,system-ui;color:#fff}
 .calc b.o{background:#ff9f0a}
-.calc b::after{position:absolute;inset:0;display:grid;place-items:center;
-  font:600 15px/1 -apple-system,system-ui;color:#fff}
-.calc b:nth-child(1)::after{content:"−"}.calc b:nth-child(2)::after{content:"+"}
-.calc b:nth-child(3)::after{content:"×"}.calc b:nth-child(4)::after{content:"="}
-/* Launch zoom */
-.zoom{position:fixed;z-index:9;border-radius:15px;pointer-events:none;
-  transition:all .32s cubic-bezier(.2,.8,.2,1)}
-.dock{position:absolute;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);
-  height:88px;border-radius:30px;background:rgba(255,255,255,.22);
-  -webkit-backdrop-filter:blur(24px) saturate(1.6);backdrop-filter:blur(24px) saturate(1.6)}
+/* Launch fade */
+.fade{position:fixed;inset:0;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.fade.on{opacity:1}
 </style>
 </head>
 <body>
-<div class="grid">
-  <div class="app" data-go="notes" id="nApp">
-    <div class="icon notes"><i></i><i></i><i></i></div>
-    <div class="label">Notes</div>
-  </div>
-  <div class="app" data-go="calc">
-    <div class="icon calc"><b></b><b></b><b></b><b class="o"></b></div>
-    <div class="label">Calculator</div>
-  </div>
+<div class="app" data-go="notes" id="nApp">
+  <div class="icon notes"><i></i><i></i><i></i></div>
+  <div class="label">Notes</div>
 </div>
-<div class="dock"></div>
+<div class="app" data-go="calc">
+  <div class="icon calc"><b>−</b><b>+</b><b>×</b><b class="o">=</b></div>
+  <div class="label">Calculator</div>
+</div>
+<div class="fade" id="fade"></div>
 <script>
 const BASE='https://frankiemagic13.github.io/aura-tricks/';
 const URLS={notes:BASE+'t/',calc:BASE+'c/',pred:BASE+'n/'};
 const q=new URLSearchParams(location.search);
-// Pass on all extra URL settings (for example ?ps=0) to the trick page
+// Pass on extra URL settings (for example ?ps=0) to the trick page
 function target(key){
   const u=new URL(URLS[key]);
   q.forEach((v,k)=>{if(k!=='go')u.searchParams.set(k,v)});
   return u.href;
 }
-function launch(key,el){
+let busy=false;
+function launch(key){
+  if(busy)return;busy=true;
   if(navigator.vibrate)navigator.vibrate(8);
-  const icon=el&&el.querySelector('.icon');
-  if(icon){
-    const r=icon.getBoundingClientRect(),z=document.createElement('div');
-    z.className='zoom';
-    z.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${key==='calc'?'#000':'#fff'}`;
-    document.body.appendChild(z);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{
-      z.style.left='0';z.style.top='0';z.style.width='100vw';z.style.height='100vh';z.style.borderRadius='0';
-    }));
-  }
-  setTimeout(()=>location.replace(target(key)),280);
+  const f=document.getElementById('fade');
+  f.style.background=key==='calc'?'#000':'#fff';
+  f.classList.add('on');
+  setTimeout(()=>location.replace(target(key)),180);
 }
 // Direct open: ?go=notes, ?go=calc or ?go=pred
 const go=q.get('go');
-if(go&&URLS[go]){location.replace(target(go))}
+if(go&&URLS[go])location.replace(target(go));
 // Tap = open. Hold Notes for 1 s = Notes prediction.
 document.querySelectorAll('.app').forEach(el=>{
   let t=null,held=false;
   el.addEventListener('touchstart',()=>{held=false;el.classList.add('down');
-    if(el.id==='nApp')t=setTimeout(()=>{held=true;el.classList.remove('down');launch('pred',el)},1000);
+    if(el.id==='nApp')t=setTimeout(()=>{held=true;el.classList.remove('down');launch('pred')},1000);
   },{passive:true});
   const end=()=>{clearTimeout(t);el.classList.remove('down')};
-  el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go,el)});
+  el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go)});
   el.addEventListener('touchcancel',end);
-  el.addEventListener('click',()=>{if(!held)launch(el.dataset.go,el)}); // desktop test
+  el.addEventListener('click',()=>{if(!held)launch(el.dataset.go)}); // desktop test
 });
+// Back from a trick (page cache): show the chooser again
+addEventListener('pageshow',()=>{busy=false;document.getElementById('fade').classList.remove('on')});
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
