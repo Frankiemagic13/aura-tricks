@@ -108,6 +108,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r" id="rowLockUrl">Web page<input type="text" id="sLockUrl" placeholder="https://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
   </div>
   <div class="snote">Also runs when the spectator goes to the home screen or the app switcher.</div>
+  <div class="lbl">Back to the passcode screen</div>
+  <div class="grp">
+    <div class="r">PeekSmith side button (tap)<input type="checkbox" id="sSide"></div>
+    <div class="r">When the spectator comes back to the page<input type="checkbox" id="sReturn"></div>
+  </div>
+  <div class="snote">Also: tap the black screen or the home photo 3 times quickly. (The volume buttons cannot be used: iOS does not send them to web pages.)</div>
   <div class="lbl">Wallpaper</div>
   <div class="grp">
     <div class="r"><button class="sbtn" id="sPick">Choose photo…</button><button class="sbtn" id="sReset">Default</button></div>
@@ -139,7 +145,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 const Q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',blur:28,auto:true,vib:true,online:true},store.get('lset',{}));
+const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',sideBack:true,returnBack:true,blur:28,auto:true,vib:true,online:true},store.get('lset',{}));
 if(Q.has('len'))P.len=+Q.get('len')===4?4:6;
 if(Q.has('after'))P.after=['unlock','close','home'].includes(Q.get('after'))?Q.get('after'):'shake';
 if(Q.has('lock'))P.onLock=Q.get('lock');if(Q.has('lockurl'))P.lockUrl=Q.get('lockurl');
@@ -197,7 +203,8 @@ function resetScreen(){code='';locked=false;$('app').classList.remove('unlock');
 (function(){let n=0,t=0;const back=e=>{const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;resetScreen()}};
   $('closed').addEventListener('click',back);$('home').addEventListener('click',back)})();
 document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState!=='hidden'||document.body.classList.contains('open'))return;
+  if(document.visibilityState==='visible'){if(P.returnBack&&!document.body.classList.contains('open'))resetScreen();return}
+  if(document.body.classList.contains('open'))return;
   if(P.onLock==='none')return;
   finish(P.onLock==='url'?'url':P.onLock,P.lockUrl)});
 $('cancel').onclick=()=>{if(locked)return;if(code.length){code=code.slice(0,-1);drawDots();peekLive()}};
@@ -237,7 +244,8 @@ async function bleSearch(){
   aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});onScreen='';bleBtnText()});
   aps.on('button',({button,event})=>{ // left tap: show the last code again, right hold: clear
     if(event==='click'&&button===1&&lastCode){onScreen='';psWrite(lastCode)}
-    if(event==='longpress'&&button===2){aps.clear().catch(()=>{});onScreen=''}});
+    if(event==='longpress'&&button===2){aps.clear().catch(()=>{});onScreen=''}
+    if(event==='click'&&button===0&&P.sideBack){resetScreen();aps.vibrate('.').catch(()=>{})}});
   try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
   bleBusy=false;bleBtnText()}
 async function bleToggle(){
@@ -252,11 +260,13 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 /* ---------- settings sheet ---------- */
 function syncSheet(){
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sUrl').value=P.url;$('rowUrl').style.display=P.after==='unlock'?'':'none';
-  $('sLock').value=P.onLock;$('sLockUrl').value=P.lockUrl;$('rowLockUrl').style.display=P.onLock==='url'?'':'none';
+  $('sSide').checked=P.sideBack;$('sReturn').checked=P.returnBack;$('sLock').value=P.onLock;$('sLockUrl').value=P.lockUrl;$('rowLockUrl').style.display=P.onLock==='url'?'':'none';
   $('sBlur').value=String(P.blur);$('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online}
 $('sLen').onchange=e=>{P.len=+e.target.value;saveP();code='';drawDots()};
 $('sAfter').onchange=e=>{P.after=e.target.value;saveP();syncSheet()};
 $('sUrl').onchange=e=>{let u=e.target.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;P.url=u;saveP()};
+$('sSide').onchange=e=>{P.sideBack=e.target.checked;saveP()};
+$('sReturn').onchange=e=>{P.returnBack=e.target.checked;saveP()};
 $('sLock').onchange=e=>{P.onLock=e.target.value;saveP();syncSheet()};
 $('sLockUrl').onchange=e=>{let u=e.target.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;P.lockUrl=u||'https://www.google.com';saveP()};
 $('sBlur').onchange=e=>{P.blur=+e.target.value;saveP();applyBg()};
