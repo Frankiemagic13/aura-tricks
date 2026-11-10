@@ -27,11 +27,12 @@ small{color:#636366;font-size:12px;line-height:1.5}
 <body>
 <main>
   <h1>PeekSmith link</h1>
+  <div class="card" id="auraBox" style="display:none;background:#12251a"><b style="font-size:16px">Aura Bluetooth ✓</b><small style="color:#9fe0b0">This page runs in Aura and connects to the PeekSmith through Aura. Bluefy is not needed.</small></div>
   <div class="card">
     <div class="row"><span><i class="dot" id="bd"></i>PeekSmith</span><span id="bs">Not connected</span></div>
     <div class="row"><span><i class="dot" id="nd"></i>Calculator channel</span><span id="ns">Starting…</span></div>
   </div>
-  <div class="card" id="nobt" style="display:none;background:#3a1212"><b style="font-size:17px">This browser has no Bluetooth access.</b><small style="color:#ffb4ab">Safari and Chrome on iPhone cannot connect to Bluetooth devices. Copy this page address and open it in the Bluefy app (App Store: "Bluefy – Web BLE Browser").</small><button class="sec" id="copy">Copy page address</button></div>
+  <div class="card" id="nobt" style="display:none;background:#3a1212"><b style="font-size:17px">This browser has no Bluetooth access.</b><small style="color:#ffb4ab">Safari and Chrome on iPhone cannot connect to Bluetooth devices. Copy this page address and open it in the Aura app (with this site in your Aura bookmarks), or in the Bluefy app.</small><button class="sec" id="copy">Copy page address</button></div>
   <button id="conn">Connect PeekSmith</button>
   <button class="sec" id="connAll">Connect (show all devices)</button>
   <button class="sec" id="test">Send test</button>
@@ -39,11 +40,23 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <div class="card">
     <div class="row">Text prefix<select id="pre"><option value="$">$ (iOS)</option><option value="#">#</option></select></div>
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
+    <div class="row">Card recognition (AH → A♥)<input type="checkbox" id="cards"></div>
     <div class="row">Keep screen on<input type="checkbox" id="wake" checked></div>
+  </div>
+  <div class="card" id="btnCard">
+    <small>PeekSmith buttons</small>
+    <div class="row">Left – tap<select data-k="1.click"></select></div>
+    <div class="row">Left – hold<select data-k="1.longpress"></select></div>
+    <div class="row">Right – tap<select data-k="2.click"></select></div>
+    <div class="row">Right – hold<select data-k="2.longpress"></select></div>
+    <div class="row">Side – tap<select data-k="0.click"></select></div>
+    <div class="row">Side – hold<select data-k="0.longpress"></select></div>
+    <small id="lastBtn"></small>
   </div>
   <div class="card"><small>Log</small><div id="log"></div></div>
   <small id="info"></small>
 </main>
+<script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script>
 const DEFAULT_TOPIC='fvt-c-k27x9m4q8w';   // must match the calculator
 const TOPIC=new URLSearchParams(location.search).get('k')||DEFAULT_TOPIC;
@@ -55,7 +68,7 @@ let chr=null,dev=null,queue=Promise.resolve();
 const st={get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 $('pre').value=st.get('pre','$');$('vib').checked=st.get('vib','0')==='1';
 $('pre').onchange=()=>st.set('pre',$('pre').value);$('vib').onchange=()=>st.set('vib',$('vib').checked?'1':'0');
-$('info').textContent='Channel: '+TOPIC+'. This page needs a browser with Web Bluetooth (for example Bluefy on iPhone). Disconnect the PeekSmith app first: the PeekSmith accepts one connection at a time.';
+$('info').textContent='Channel: '+TOPIC+'. Open this page in Aura (add frankiemagic13.github.io to your Aura bookmarks), or in a Web Bluetooth browser such as Bluefy. Disconnect the PeekSmith app first: the PeekSmith accepts one connection at a time.';
 function log(s){const l=$('log');l.textContent=(new Date().toLocaleTimeString()+'  '+s+'\n'+l.textContent).slice(0,4000)}
 function setB(t,c){$('bs').textContent=t;$('bd').className='dot '+(c||'')}
 function setN(t,c){$('ns').textContent=t;$('nd').className='dot '+(c||'')}
@@ -72,12 +85,74 @@ function writeCmd(cmd){
       await wait(30)}
     await wait(200)});
   return queue}
-function sendText(t){
+/* ---------- Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
+const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+let aps=null;
+async function connectAura(){
+  if(aps&&aps.connected)return;
+  aps=new AuraPeekSmith({lang:'en'});
+  aps.on('status',({state,name,attempt})=>{
+    if(state==='scanning')setB('Searching…');
+    if(state==='connecting')setB('Connecting…');
+    if(state==='connected')setB(name||'Connected','on');
+    if(state==='reconnecting')setB('Reconnecting… ('+attempt+')','err');
+    if(state==='disconnected')setB('Not connected','err')});
+  aps.on('connect',({name})=>{log('Connected to '+name+' (Aura)');aps.vibrate('.').catch(()=>{})});
+  aps.on('disconnect',()=>log('Disconnected'));
+  aps.on('button',({button,event})=>onButton(button,event));
+  try{await aps.connect()}catch(e){setB('Not connected','err');log('Connect failed: '+e.message);aps=null}}
+const psReady=()=>AURA?!!(aps&&aps.connected):!!chr;
+
+/* show text on the PeekSmith (no history) */
+function show(t){
   $('last').textContent=t;
-  if(!chr){log('Not sent (PeekSmith not connected): '+t);return}
-  writeCmd($('pre').value+t+'\n');
-  if($('vib').checked)writeCmd('~.\n');
+  if(!psReady()){log('Not sent (PeekSmith not connected): '+t);return}
+  if(AURA){aps.text(t,{raw:!$('cards').checked}).catch(e=>log(e.message));if($('vib').checked)aps.vibrate('.').catch(()=>{})}
+  else{writeCmd(($('cards').checked?$('pre').value:"'")+t.replace(/\n/g,'\r')+'\n');if($('vib').checked)writeCmd('~.\n')}
   log('Sent: '+t)}
+function clearPS(){
+  $('last').textContent='—';
+  if(!psReady())return;
+  if(AURA)aps.clear().catch(()=>{});else writeCmd('$\n')}
+
+/* peeks from the channel: keep a history for the buttons */
+const history=[];let back=0;
+function sendText(t){history.push(t);if(history.length>50)history.shift();back=0;show(t)}
+
+/* ---------- PeekSmith buttons ---------- */
+const ACTIONS={none:'Nothing',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
+const DEFAULTS={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'none','0.longpress':'none'};
+let map={...DEFAULTS};try{Object.assign(map,JSON.parse(st.get('btns','{}')))}catch(e){}
+document.querySelectorAll('select[data-k]').forEach(s=>{
+  for(const [v,n] of Object.entries(ACTIONS)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=map[s.dataset.k]||'none';
+  s.onchange=()=>{map[s.dataset.k]=s.value;st.set('btns',JSON.stringify(map))}});
+function lastInput(full){
+  let t=(full||'').trim();
+  const eq=t.lastIndexOf(' = ');if(eq>=0)return t.slice(eq+3).trim();
+  t=t.replace(/\s*\((\+|-)\)$/,'').replace(/\s+[+-]\s+\d+\s+taps$/,'');
+  const tok=t.split(' ');
+  if(tok.some(x=>['+','-','x','/'].includes(x))){for(let i=tok.length-1;i>=0;i--)if(/\d/.test(tok[i]))return tok[i]}
+  return t}
+function shortPeek(full){
+  const t=(full||'').trim();let m;
+  if((m=t.match(/([+-])\s+(\d+)\s+taps$/)))return m[1]+m[2];
+  if(/\(\+\)$/.test(t))return'+';if(/\(-\)$/.test(t))return'-';
+  const eq=t.lastIndexOf(' = ');if(eq>=0)return t.slice(eq+3);
+  return t.split(' ').pop()}
+function onButton(b,e){
+  if(e!=='click'&&e!=='longpress')return;
+  const names={0:'Side',1:'Left',2:'Right'};
+  $('lastBtn').textContent='Last button: '+names[b]+' '+(e==='click'?'tap':'hold');
+  const a=map[b+'.'+e]||'none';if(a==='none')return;
+  const last=history[history.length-1];
+  if(a!=='previousPeek')back=0;
+  if(!last&&a!=='clear'){show('No peek yet');return}
+  if(a==='lastInput')show(lastInput(last));
+  else if(a==='lastPeek')show(last);
+  else if(a==='shortPeek')show(shortPeek(last));
+  else if(a==='previousPeek'){back=(back+1)%history.length;show(history[history.length-1-back])}
+  else if(a==='clear')clearPS()}
 async function connect(all){
   if(!navigator.bluetooth){setB('No Web Bluetooth here','err');log('This browser has no Web Bluetooth. On iPhone, open this page in a Web Bluetooth browser such as Bluefy.');return}
   try{
@@ -97,16 +172,19 @@ async function link(){
     throw new Error('PeekSmith service FFE0 not found on this device'+(list?' (services: '+list+')':'')+'. Select the PeekSmith, not a different device.')}
   stage='find characteristic';chr=await s.getCharacteristic(CHR);stage='notifications';
   /* the Electricks docs say: turn on notifications before you write commands */
-  try{await chr.startNotifications();chr.addEventListener('characteristicvaluechanged',ev=>{try{log('PeekSmith says: '+new TextDecoder().decode(ev.target.value).trim())}catch(_){}})}catch(e){log('Notify (main): '+e.message)}
+  try{await chr.startNotifications();let rx='';chr.addEventListener('characteristicvaluechanged',ev=>{try{rx+=new TextDecoder().decode(ev.target.value);let i;
+      while((i=rx.indexOf('\n'))>=0){const line=rx.slice(0,i).trim();rx=rx.slice(i+1);const m=line.match(/^isb(\d),(\w+)/);if(m)onButton(+m[1],m[2]);else if(line)log('PeekSmith says: '+line)}
+      if(rx.length>200)rx=''}catch(_){}})}catch(e){log('Notify (main): '+e.message)}
   try{const ds=await srv.getPrimaryService(SVC_DBG);const dc=(await ds.getCharacteristics())[0];await dc.startNotifications()}catch(e){}
   setB(dev.name||'Connected','on');log('Connected to '+(dev.name||'PeekSmith'));writeCmd('~.\n')}
 async function onDisc(){chr=null;setB('Reconnecting…','err');log('Disconnected');
   for(let i=0;i<10&&dev;i++){try{await wait(1500);await link();return}catch(e){}}
   setB('Not connected','err')}
-$('conn').onclick=()=>connect(false);$('connAll').onclick=()=>connect(true);
-if(!navigator.bluetooth){$('nobt').style.display='';setB('No Bluetooth in this browser','err')}
+$('conn').onclick=()=>AURA?connectAura():connect(false);$('connAll').onclick=()=>connect(true);
+if(AURA){$('auraBox').style.display='';$('connAll').style.display='none';$('pre').closest('.row').style.display='none';setB('Ready – tap Connect')}
+else if(!navigator.bluetooth){$('nobt').style.display='';setB('No Bluetooth in this browser','err')}
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('copy').textContent='Copied'}catch(e){$('copy').textContent=location.href}};
-$('test').onclick=()=>sendText('Test 123');
+$('test').onclick=()=>show('Test 123');
 
 /* ---------- channel from the calculator ---------- */
 let lastId='';
