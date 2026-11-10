@@ -34,6 +34,19 @@ With a free Apple ID, the app stops working after 7 days. Then connect the iPhon
 - **Keep running in background** (on by default) plays silence so that iOS does not stop the app. Your music still plays.
 - **Open the Island on each peek** expands the Dynamic Island for a moment on each new peek (it can make a sound).
 
+## PeekSmith
+
+Peek Island sends each peek to your PeekSmith over Bluetooth. You do not need Bluefy or the link page.
+
+1. Turn the PeekSmith on.
+2. In Peek Island, tap **Connect PeekSmith**. Allow Bluetooth when iOS asks.
+3. Tap **Send test to PeekSmith**. You must see "Test 123". If not, set **Text prefix** to `#`.
+
+- It also works when the PeekSmith app is connected: iOS shares the Bluetooth connection.
+- The app remembers the PeekSmith and reconnects automatically after **Start**.
+- **Short peek only:** sends `+8`, `+` or the result, not the full sum.
+- **Vibrate on each peek:** the PeekSmith vibrates on each new peek.
+
 ## What the Dynamic Island shows
 
 | Calculator sends | Compact Island (right side) |

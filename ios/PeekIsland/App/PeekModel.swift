@@ -13,6 +13,7 @@ final class PeekModel: ObservableObject {
     @Published private(set) var status = "Stopped"
     @Published private(set) var log: [String] = []
 
+    let peekSmith = PeekSmithLink()
     private var activity: Activity<PeekAttributes>?
     private var listenTask: Task<Void, Never>?
     private let silence = SilentAudio()
@@ -116,7 +117,9 @@ final class PeekModel: ObservableObject {
 
     private func show(_ text: String) async {
         addLog(text)
-        let state = PeekAttributes.ContentState(full: text, short: PeekText.short(from: text), updated: .now)
+        let short = PeekText.short(from: text)
+        peekSmith.send(peekSmith.shortOnly ? short : text)
+        let state = PeekAttributes.ContentState(full: text, short: short, updated: .now)
         let content = ActivityContent(state: state, staleDate: nil)
         if popOpen {
             // Opens the Dynamic Island for a moment (and lights the lock screen)

@@ -8,6 +8,7 @@ struct PeekIslandApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(model)
+                .environmentObject(model.peekSmith)
         }
     }
 }

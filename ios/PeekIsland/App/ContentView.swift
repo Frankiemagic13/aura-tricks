@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var model: PeekModel
+    @EnvironmentObject private var ps: PeekSmithLink
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,41 @@ struct ContentView: View {
                     .font(.headline)
                     Button("Send test peek") { model.test() }
                         .disabled(!model.running)
+                }
+
+                Section {
+                    Toggle("Send peeks to PeekSmith", isOn: $ps.enabled)
+                    HStack {
+                        Circle()
+                            .fill(ps.connected ? .green : .gray)
+                            .frame(width: 10, height: 10)
+                        VStack(alignment: .leading) {
+                            Text(ps.connected ? ps.deviceName : "PeekSmith")
+                            Text(ps.status).font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if ps.connected {
+                        Button("Send test to PeekSmith") { ps.test() }
+                        Button("Disconnect", role: .destructive) { ps.disconnect() }
+                    } else {
+                        Button("Connect PeekSmith") { ps.connect() }
+                            .disabled(!ps.enabled)
+                    }
+                    Toggle("Short peek only", isOn: $ps.shortOnly)
+                    Toggle("Vibrate on each peek", isOn: $ps.vibrate)
+                    Picker("Text prefix", selection: $ps.prefix) {
+                        Text("$").tag("$")
+                        Text("#").tag("#")
+                    }
+                    if !ps.lastReply.isEmpty {
+                        Text("PeekSmith says: \(ps.lastReply)").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Button("Forget this PeekSmith") { ps.forget() }
+                        .font(.footnote)
+                } header: {
+                    Text("PeekSmith")
+                } footer: {
+                    Text("Turn the PeekSmith on, then tap Connect. It also works when the PeekSmith app is connected. \"Short peek only\" sends +8, + or the result, instead of the full sum. If the test shows nothing, change the text prefix to #.")
                 }
 
                 Section {
