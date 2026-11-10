@@ -47,13 +47,30 @@ svg{display:block}
   display:flex;justify-content:space-between;align-items:center;background:linear-gradient(transparent,var(--page) 45%);pointer-events:none}
 .bar>*{pointer-events:auto}
 .tint{color:var(--tint)}
+/* secret settings sheet (hold the share button) */
+#sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
+  padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
+  max-height:88%;overflow-y:auto;max-width:520px;margin:0 auto;-webkit-user-select:none;user-select:none}
+.open #sheetBg{opacity:1;pointer-events:auto}.open #sheet{transform:none}
+.grab{width:36px;height:5px;border-radius:3px;background:#48484A;margin:0 auto 10px}
+.shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.shead b{font-size:17px;font-weight:600}.shead span{width:60px}
+.sbtn{color:#FF9F0A;font-size:17px;font-weight:600;background:none;border:0;font-family:inherit}
+.lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 16px 6px}
+.grp{background:#2C2C2E;border-radius:14px;overflow:hidden}
+.r{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 16px;font-size:17px;position:relative}
+.r+.r::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:rgba(84,84,88,.65)}
+.r select{background:none;border:0;color:rgba(235,235,245,.6);font:17px -apple-system,system-ui;text-align:right;outline:none;-webkit-appearance:none;appearance:none}
+.r input[type=checkbox]{width:20px;height:20px;accent-color:#FF9F0A}
+.snote{font-size:13px;color:rgba(235,235,245,.6);margin:8px 16px 0;line-height:1.35}
 </style>
 </head>
 <body>
 <div class="nav">
   <div class="glass btn" id="back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></div>
   <div class="right">
-    <div class="glass pill"><i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></i></div>
+    <div class="glass pill"><i id="share"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></i></div>
     <div class="glass btn done hidden" id="done"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
   </div>
 </div>
@@ -70,6 +87,32 @@ svg{display:block}
   </div>
   <div class="glass btn tint" id="compose"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
 </div>
+<div id="sheetBg"></div>
+<div id="sheet">
+  <div class="grab"></div>
+  <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
+  <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
+  <div class="grp">
+    <div class="r">Status<span id="bleSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
+    <div class="r"><button class="sbtn" id="bleBtn">Connect PeekSmith</button><button class="sbtn" id="bleTest">Test</button></div>
+    <div class="r">Search automatically<input type="checkbox" id="sAuto"></div>
+    <div class="r">Vibrate on each peek<input type="checkbox" id="sVib"></div>
+  </div>
+  <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first.</div>
+  <div class="lbl">PeekSmith buttons</div>
+  <div class="grp">
+    <div class="r">Left – tap<select data-k="1.click"></select></div>
+    <div class="r">Left – hold<select data-k="1.longpress"></select></div>
+    <div class="r">Right – tap<select data-k="2.click"></select></div>
+    <div class="r">Right – hold<select data-k="2.longpress"></select></div>
+    <div class="r">Side – tap<select data-k="0.click"></select></div>
+    <div class="r">Side – hold<select data-k="0.longpress"></select></div>
+  </div>
+  <div class="lbl">Online peeks</div>
+  <div class="grp"><div class="r">Send to Peek Island / link page<input type="checkbox" id="sOnline"></div></div>
+  <div class="snote">Hold the share button for 1 second to open this menu. Hold the date for 1 second to clear the note.</div>
+</div>
+<script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script>
 /* ============ SETTINGS (URL options) ============
    ?k=...      channel (default: same as the calculator and Peek Island)
@@ -95,7 +138,8 @@ function text(){
   return MODE==='line'?lines[lines.length-1]:lines.join(' | ');
 }
 function post(v){
-  if(!SEND||!v||v===last)return;last=v;
+  if(!v||v===last)return;last=v;try{bleSend(v)}catch(e){}
+  if(!P.online)return;
   try{fetch('https://ntfy.sh/'+encodeURIComponent(TOPIC)+'?title='+encodeURIComponent(TITLE),{method:'POST',body:v,keepalive:true}).catch(()=>{})}catch(e){}
 }
 function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),700)}
@@ -124,6 +168,70 @@ note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||w
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
 document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';note.focus()});
+/* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
+const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,btns:{}},store.get('tset',{}));
+const BACT={none:'Nothing',lastWord:'Show last word',lastLine:'Show last line',full:'Show full note',previous:'Show previous peek',clear:'Clear PeekSmith'};
+P.btns=Object.assign({'1.click':'lastWord','1.longpress':'previous','2.click':'full','2.longpress':'clear','0.click':'none','0.longpress':'none'},P.btns);
+const saveP=()=>store.set('tset',P);
+let aps=null,bleBusy=false,bleOff=false;const hist=[];let back=0;
+const $=id=>document.getElementById(id);
+function bleStatus(t){$('bleSt').textContent=t}
+const bleOn=()=>!!(aps&&aps.connected);
+function bleBtnText(){$('bleBtn').textContent=bleOn()?'Disconnect':'Connect PeekSmith'}
+async function bleSearch(){
+  if(!AURA||bleBusy||bleOn())return;bleBusy=true;
+  aps=new AuraPeekSmith({lang:'en'});
+  aps.on('status',({state,name,attempt})=>{
+    if(state==='scanning')bleStatus('Searching…');
+    if(state==='connecting')bleStatus('Connecting…');
+    if(state==='connected')bleStatus(name||'Connected');
+    if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
+    if(state==='disconnected')bleStatus('Not connected');
+    bleBtnText()});
+  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText()});
+  aps.on('button',({button,event})=>bleButton(button,event));
+  try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
+  bleBusy=false;bleBtnText()}
+async function bleToggle(){
+  if(!AURA){bleStatus('Only in Aura');return}
+  if(bleOn()){bleOff=true;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
+  bleOff=false;bleSearch()}
+function bleShow(t){if(!bleOn())return;aps.text(String(t),{raw:true}).catch(()=>{});if(P.vib)aps.vibrate('.').catch(()=>{})}
+function bleSend(t){hist.push(t);if(hist.length>50)hist.shift();back=0;bleShow(t)}
+function bleButton(b,e){
+  if(e!=='click'&&e!=='longpress')return;
+  const a=P.btns[b+'.'+e]||'none';if(a==='none')return;
+  const last=hist[hist.length-1];if(a!=='previous')back=0;
+  if(a==='clear'){aps.clear().catch(()=>{});return}
+  if(!last){bleShow('No peek yet');return}
+  const lines=last.split(' | ');
+  if(a==='lastWord')bleShow(lines[lines.length-1].split(' ').pop());
+  else if(a==='lastLine')bleShow(lines[lines.length-1]);
+  else if(a==='full')bleShow(last);
+  else if(a==='previous'){back=(back+1)%hist.length;bleShow(hist[hist.length-1-back])}}
+/* settings sheet: hold the share button for 1 s */
+$('bleBtn').onclick=bleToggle;
+$('bleTest').onclick=()=>{if(bleOn())aps.text('Test 123',{raw:true}).catch(()=>{});else bleStatus(AURA?'Connect first':'Only in Aura')};
+$('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
+$('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
+$('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
+$('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
+document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
+  for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=P.btns[s.dataset.k]||'none';s.onchange=()=>{P.btns[s.dataset.k]=s.value;saveP()}});
+const openSheet=()=>{note.blur();document.body.classList.add('open')},closeSheet=()=>document.body.classList.remove('open');
+$('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
+(function(){const el=$('share');let tm=null;
+  const go=()=>{tm=setTimeout(openSheet,1000)},stop=()=>clearTimeout(tm);
+  el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
+  el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
+if(!AURA){bleStatus('Only in Aura');$('bleNote').textContent='Bluetooth only works when this page is open in Aura or AuraClip (with the site in your Aura bookmarks). Online peeks still work.'}
+else{
+  const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibilityState==='visible')bleSearch()};
+  setTimeout(auto,400);setInterval(auto,6000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(auto,300)})}
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
