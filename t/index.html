@@ -47,6 +47,24 @@ svg{display:block}
   display:flex;justify-content:space-between;align-items:center;background:linear-gradient(transparent,var(--page) 45%);pointer-events:none}
 .bar>*{pointer-events:auto}
 .tint{color:var(--tint)}
+/* markup / drawing mode */
+#draw{position:fixed;inset:0;z-index:3;pointer-events:none;touch-action:none}
+.drawing #draw{pointer-events:auto}
+.drawing .nav,.drawing .bar{display:none}
+#dnav,#dbar{display:none}
+.drawing #dnav{display:flex}.drawing #dbar{display:flex}
+#dnav{position:fixed;left:0;right:0;top:0;z-index:6;padding:calc(env(safe-area-inset-top) + 8px) 16px 10px;justify-content:space-between;align-items:center}
+.dtxt{height:44px;padding:0 18px;font-size:17px;font-weight:600}
+#dbar{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 8px);z-index:6;border-radius:28px;padding:10px 14px 8px;
+  flex-direction:column;gap:8px;align-items:stretch}
+.tools{display:flex;justify-content:space-around;align-items:flex-end;height:64px}
+.tool{width:34px;height:60px;display:flex;align-items:flex-end;justify-content:center;transition:transform .2s;transform:translateY(10px)}
+.tool.on{transform:translateY(0)}
+.tool svg{width:30px;height:60px}
+.colors{display:flex;justify-content:center;gap:16px;padding-bottom:2px}
+.cdot{width:26px;height:26px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(127,127,127,.35) inset}
+.cdot.on{border-color:var(--tint);transform:scale(1.12)}
+.dis{opacity:.35;pointer-events:none}
 /* secret settings sheet (hold the share button) */
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
@@ -83,9 +101,25 @@ svg{display:block}
     <i><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="7" r="2.3"/><path d="m4.4 7 .8.8 1.5-1.6"/><circle cx="5.5" cy="16.5" r="2.3"/><path d="M11 7h9M11 16.5h9"/></svg></i>
     <i><svg width="26" height="22" viewBox="0 0 28 22" fill="currentColor"><text x="1" y="17" font-family="-apple-system,system-ui" font-size="17" font-weight="500">Aa</text></svg></i>
     <i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11.2-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/></svg></i>
-    <i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.8 5.2 4 4M4 20l1-4.5L16.2 4.3a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></svg></i>
+    <i id="penBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.8 5.2 4 4M4 20l1-4.5L16.2 4.3a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></svg></i>
   </div>
   <div class="glass btn tint" id="compose"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
+</div>
+<canvas id="draw"></canvas>
+<div id="dnav">
+  <div class="glass pill"><i id="undo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg></i><i id="redo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg></i></div>
+  <div class="glass dtxt done" id="drawDone">Done</div>
+</div>
+<div id="dbar" class="glass">
+  <div class="tools">
+    <div class="tool on" data-tool="pen"><svg viewBox="0 0 30 60"><path d="M9 60V22l6-16 6 16v38z" fill="#f2f2f2" stroke="#999" stroke-width=".8"/><path d="M11.2 16h7.6L15 6z" fill="currentColor" class="tip"/><rect x="9" y="30" width="12" height="5" fill="currentColor" class="band"/></svg></div>
+    <div class="tool" data-tool="marker"><svg viewBox="0 0 30 60"><path d="M7 60V24h16v36z" fill="#f2f2f2" stroke="#999" stroke-width=".8"/><path d="M9 24l2-12h8l2 12z" fill="#dcdcdc" stroke="#999" stroke-width=".8"/><path d="M11 12h8l-1-5h-6z" fill="currentColor" class="tip"/><rect x="7" y="32" width="16" height="5" fill="currentColor" class="band"/></svg></div>
+    <div class="tool" data-tool="pencil"><svg viewBox="0 0 30 60"><path d="M9 60V20l6-14 6 14v40z" fill="#f2f2f2" stroke="#999" stroke-width=".8"/><path d="M9 20h12l-6-14z" fill="#e8cfa8"/><path d="M12.6 11.6h4.8L15 6z" fill="currentColor" class="tip"/></svg></div>
+    <div class="tool" data-tool="eraser"><svg viewBox="0 0 30 60"><path d="M8 60V18a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v42z" fill="#f2f2f2" stroke="#999" stroke-width=".8"/><path d="M8 26h14" stroke="#bbb" stroke-width="1.4"/></svg></div>
+  </div>
+  <div class="colors">
+    <div class="cdot on" data-c="ink"></div><div class="cdot" data-c="#0A84FF" style="background:#0A84FF"></div><div class="cdot" data-c="#30D158" style="background:#30D158"></div><div class="cdot" data-c="#FFD60A" style="background:#FFD60A"></div><div class="cdot" data-c="#FF453A" style="background:#FF453A"></div>
+  </div>
 </div>
 <div id="sheetBg"></div>
 <div id="sheet">
@@ -99,6 +133,7 @@ svg{display:block}
     <div class="r">Live peek (each letter)<input type="checkbox" id="sLive"></div>
     <div class="r">Words on PeekSmith<select id="sWords"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="0">Whole note</option></select></div>
     <div class="r">Vibrate on each word<input type="checkbox" id="sVib"></div>
+    <div class="r">Send drawings to PeekSmith<input type="checkbox" id="sDraw"></div>
   </div>
   <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first.</div>
   <div class="lbl">PeekSmith buttons</div>
@@ -168,17 +203,17 @@ note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||w
 
 /* ---------- secret: hold the date for 1 s = clear the note ---------- */
 (function(){const el=document.getElementById('date');let tm=null;
-  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';},1000)},stop=()=>clearTimeout(tm);
+  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';try{clearDrawing()}catch(e){}},1000)},stop=()=>clearTimeout(tm);
   el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
   el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
 
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
-document.getElementById('compose').addEventListener('click',()=>{now();note.textContent='';last='';lastBle='';bleOnScreen='';note.focus()});
+document.getElementById('compose').addEventListener('click',()=>{now();try{clearDrawing()}catch(e){}note.textContent='';last='';lastBle='';bleOnScreen='';note.focus()});
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,live:true,words:4,btns:{}},store.get('tset',{}));
+const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,live:true,words:4,drawPS:true,btns:{}},store.get('tset',{}));
 const BACT={none:'Nothing',lastWord:'Show last word',lastLine:'Show last line',full:'Show full note',previous:'Show previous peek',clear:'Clear PeekSmith'};
 P.btns=Object.assign({'1.click':'lastWord','1.longpress':'previous','2.click':'full','2.longpress':'clear','0.click':'none','0.longpress':'none'},P.btns);
 const saveP=()=>store.set('tset',P);
@@ -238,6 +273,7 @@ $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sLive').checked=!!P.live;$('sWords').value=String(P.words);
 $('sLive').onchange=e=>{P.live=e.target.checked;saveP()};
 $('sWords').onchange=e=>{P.words=+e.target.value;saveP()};
+$('sDraw').checked=!!P.drawPS;$('sDraw').onchange=e=>{P.drawPS=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
   for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
@@ -253,6 +289,100 @@ else{
   const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibilityState==='visible')bleSearch()};
   setTimeout(auto,400);setInterval(auto,6000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(auto,300)})}
+/* ================= Markup (drawing) — like the iOS Notes pen tools ================= */
+const cv=$('draw'),cx=cv.getContext('2d');
+const ink=()=>getComputedStyle(document.documentElement).getPropertyValue('--label').trim()||'#000';
+let strokes=[],redoStack=[],cur=null,tool='pen',color='ink';
+const TOOLS={pen:{w:3,a:1},marker:{w:14,a:.45},pencil:{w:2,a:.85},eraser:{w:26,a:1}};
+function sizeCanvas(){const d=devicePixelRatio||1;cv.width=innerWidth*d;cv.height=innerHeight*d;cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';cx.setTransform(d,0,0,d,0,0);redraw()}
+function paint(c,s,map){
+  if(s.points.length<1)return;
+  c.save();
+  if(s.tool==='eraser')c.globalCompositeOperation='destination-out';
+  c.globalAlpha=TOOLS[s.tool].a;c.strokeStyle=s.color==='ink'?ink():s.color;c.lineCap='round';c.lineJoin='round';
+  c.lineWidth=map?Math.max(map.minW,TOOLS[s.tool].w*map.k):TOOLS[s.tool].w;
+  const P=map?s.points.map(p=>[(p[0]-map.x)*map.k+map.ox,(p[1]-map.y)*map.k+map.oy]):s.points;
+  c.beginPath();c.moveTo(P[0][0],P[0][1]);
+  if(P.length===1)c.lineTo(P[0][0]+.01,P[0][1]);
+  for(let i=1;i<P.length-1;i++){const mx=(P[i][0]+P[i+1][0])/2,my=(P[i][1]+P[i+1][1])/2;c.quadraticCurveTo(P[i][0],P[i][1],mx,my)}
+  if(P.length>1)c.lineTo(P[P.length-1][0],P[P.length-1][1]);
+  c.stroke();c.restore()}
+function redraw(){cx.clearRect(0,0,innerWidth,innerHeight);strokes.forEach(s=>paint(cx,s))}
+function undoState(){$('undo').classList.toggle('dis',!strokes.length);$('redo').classList.toggle('dis',!redoStack.length)}
+cv.addEventListener('pointerdown',e=>{if(!document.body.classList.contains('drawing'))return;e.preventDefault();cv.setPointerCapture(e.pointerId);
+  cur={tool,color,points:[[e.clientX,e.clientY]]};strokes.push(cur);redoStack=[];paint(cx,cur);undoState()});
+cv.addEventListener('pointermove',e=>{if(!cur)return;e.preventDefault();
+  const evs=e.getCoalescedEvents?e.getCoalescedEvents():[e];for(const ev of evs)cur.points.push([ev.clientX,ev.clientY]);redraw()});
+const endStroke=()=>{if(!cur)return;cur=null;redraw();undoState();drawToPS()};
+cv.addEventListener('pointerup',endStroke);cv.addEventListener('pointercancel',endStroke);
+$('undo').onclick=()=>{if(strokes.length){redoStack.push(strokes.pop());redraw();undoState();drawToPS()}};
+$('redo').onclick=()=>{if(redoStack.length){strokes.push(redoStack.pop());redraw();undoState();drawToPS()}};
+document.querySelectorAll('.tool').forEach(t=>t.onclick=()=>{document.querySelectorAll('.tool').forEach(x=>x.classList.remove('on'));t.classList.add('on');tool=t.dataset.tool});
+function tintTools(){document.querySelectorAll('.tool .tip,.tool .band').forEach(p=>p.setAttribute('fill',color==='ink'?ink():color))}
+document.querySelectorAll('.cdot').forEach(d=>{if(d.dataset.c==='ink')d.style.background=ink();d.onclick=()=>{document.querySelectorAll('.cdot').forEach(x=>x.classList.remove('on'));d.classList.add('on');color=d.dataset.c;tintTools()}});
+function startDraw(){note.blur();document.body.classList.add('drawing');undoState();tintTools()}
+function endDraw(){document.body.classList.remove('drawing');drawToPS(true)}
+$('penBtn').onclick=startDraw;$('drawDone').onclick=endDraw;
+addEventListener('resize',sizeCanvas);sizeCanvas();
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{redraw();document.querySelector('.cdot[data-c=ink]').style.background=ink();tintTools()});
+/* clearing the note (hold date / compose) also clears the drawing */
+function clearDrawing(){strokes=[];redoStack=[];redraw();undoState()}
+
+/* ---------- send the drawing to the PeekSmith screen (160 × 80, image channel FFE2) ---------- */
+const PSW=160,PSH=80,SVC_U='0000FFE0-0000-1000-8000-00805F9B34FB',IMG_U='0000FFE2-0000-1000-8000-00805F9B34FB';
+let imgBusy=false,imgPending=false,imgNotify=false,ackWait=null;
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function renderPS(){
+  const vis=strokes.filter(s=>s.tool!=='eraser');if(!vis.length)return null;
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+  for(const s of vis)for(const [x,y] of s.points){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+  const pad=12;x0-=pad;y0-=pad;x1+=pad;y1+=pad;
+  const k=Math.min(PSW/(x1-x0),PSH/(y1-y0));
+  const c=document.createElement('canvas');c.width=PSW;c.height=PSH;const g=c.getContext('2d');
+  const map={x:x0,y:y0,k,ox:(PSW-(x1-x0)*k)/2,oy:(PSH-(y1-y0)*k)/2,minW:2};
+  // white drawing on black, eraser removes
+  const layer=document.createElement('canvas');layer.width=PSW;layer.height=PSH;const lg=layer.getContext('2d');
+  for(const s of strokes){const t={...s,color:'#fff'};paint(lg,t,map)}
+  g.fillStyle='#000';g.fillRect(0,0,PSW,PSH);g.drawImage(layer,0,0);
+  const d=g.getImageData(0,0,PSW,PSH).data;const px=new Uint8Array(PSW*PSH);
+  for(let i=0;i<px.length;i++)px[i]=(d[i*4]+d[i*4+1]+d[i*4+2])/3>96?1:0;
+  return px}
+/* 2-colour Byte-RLE stream (PROTO 0x09): 00 H W_HI W_LO <palette: black, white RGB565 LE> FIRST <runs> */
+function encodeRLE(px){
+  const out=[0,PSH,PSW>>8,PSW&255, 0x00,0x00, 0xFF,0xFF, px[0]];
+  let colour=px[0],run=0;
+  const emit=n=>{while(n>255){out.push(255,0);n-=255}out.push(n)};
+  for(let i=0;i<px.length;i++){if(px[i]===colour)run++;else{emit(run);colour=px[i];run=1}}
+  emit(run);return new Uint8Array(out)}
+async function imgWrite(bytes){await Aura.bluetooth.write(aps.id,SVC_U,IMG_U,bytes,{withoutResponse:true})}
+function waitAck(code,ms){return new Promise(r=>{const t=setTimeout(()=>{ackWait=null;r(false)},ms);ackWait={code,done:()=>{clearTimeout(t);ackWait=null;r(true)}}})}
+async function ensureImgNotify(){
+  if(imgNotify)return;imgNotify=true;
+  try{await Aura.bluetooth.startNotifications(aps.id,SVC_U,IMG_U)}catch(e){}
+  try{Aura.on('bluetooth.notification',d=>{
+    if(!d||!ackWait||String(d.characteristic||'').toUpperCase().indexOf('FFE2')<0)return;
+    const v=d.value;const b=v&&v.buffer?new Uint8Array(v.buffer,v.byteOffset,v.byteLength):new Uint8Array(v||[]);
+    if([...b].includes(ackWait.code))ackWait.done()})}catch(e){}}
+async function sendImage(px){
+  await ensureImgNotify();
+  const stream=encodeRLE(px);
+  await imgWrite(new Uint8Array([32,255,PSW>>8,PSW&255,PSH>>8,PSH&255,0]));await sleep(60);
+  const SLICE=150;let n=0;
+  for(let i=0;i<stream.length;i+=SLICE){
+    const part=stream.subarray(i,i+SLICE);const pkt=new Uint8Array(2+part.length);pkt[0]=34;pkt[1]=0x09;pkt.set(part,2);
+    await imgWrite(pkt);await sleep(25);n++;
+    if(n%20===0)await waitAck(0xFE,1500)}
+  await waitAck(0xFF,1500);
+  await imgWrite(new Uint8Array([100,8]));await sleep(60);
+  await imgWrite(new Uint8Array([31,255]))}
+async function drawToPS(force){
+  if(!P.drawPS||!bleOn()||!window.Aura||!Aura.bluetooth||!aps.id)return;
+  if(imgBusy){imgPending=true;return}
+  const px=renderPS();
+  imgBusy=true;
+  try{if(px)await sendImage(px);else{await aps.clear();bleOnScreen=''}}catch(e){}
+  bleOnScreen='';imgBusy=false;
+  if(imgPending){imgPending=false;drawToPS()}}
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
