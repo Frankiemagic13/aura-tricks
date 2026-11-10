@@ -150,6 +150,9 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Signal bars<div class="step"><button data-s="bars" data-d="-1">−</button><em id="barsV">2</em><button data-s="bars" data-d="1">+</button></div></div>
   </div>
   <div class="note">Use the fake status bar if AuraClip hides the real one. Turn it off if you see two status bars.</div>
+  <div class="lbl">PeekSmith</div>
+  <div class="grp"><div class="r">Send to PeekSmith<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
+  <div class="note">Open the link page on your own phone (c/p.html, in a Web Bluetooth browser such as Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
   <div class="lbl">Method</div>
   <div class="seg" id="method"><button data-v="add">4th number</button><button data-v="flip">Peek + face down</button></div>
   <div class="grp"><div class="r">Start after numbers<div class="step"><button data-s="n" data-d="-1">−</button><em id="nV">3</em><button data-s="n" data-d="1">+</button></div></div></div>
@@ -172,7 +175,7 @@ const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
   a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3),
   method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1',
-  sb:Q.get('sb')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10)};
+  sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10)};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -223,7 +226,23 @@ function livePeek(){
   if(S.method!=='flip'||!armed||S.mode==='off'||result!==null){if(armed)peek(0);return}
   const nums=toks.filter(t=>!isOp(t)).length;
   if(nums===S.n-1&&cur!==''&&cur!=='-'&&(!toks.length||isOp(toks.at(-1)))){const d=target()-evalToks(toks.concat([cur]));peek(d>0?1:d<0?-1:0)}else peek(0)}
-function press(k){press0(k);livePeek()}
+function press(k){press0(k);livePeek();try{psAfter(k)}catch(e){}}
+/* ---------- PeekSmith: send each number / total / result to the link page (c/p.html) ---------- */
+const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
+function psPost(t){if(!S.ps||!t||t===psLast)return;psLast=t;
+  try{fetch('https://ntfy.sh/'+encodeURIComponent(PS_TOPIC),{method:'POST',body:t,keepalive:true}).catch(()=>{})}catch(e){}}
+function psNow(t){clearTimeout(psT);psPost(t)}
+function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),350)}
+function psAfter(k){if(!S.ps)return;
+  if(/^\d$/.test(k)||k==='.'||k==='bk'||k==='clr'||k==='neg'){
+    if(force!==null||cur===''||cur==='-')return;
+    let t=fmtNum(cur);
+    if(S.method==='flip'&&armed&&S.mode!=='off'&&toks.filter(x=>!isOp(x)).length===S.n-1){const d=target()-evalToks(toks.concat([cur]));t+=d>0?' (+)':d<0?' (-)':''}
+    psDeb(t)}
+  else if(isOp(k)){
+    if(force!==null&&fi===0)psNow((fOp==='−'?'-':'+')+' '+force.length+' taps');
+    else psNow(fmtNum(evalToks(toks))+' '+(k==='−'?'-':k==='×'?'x':k==='÷'?'/':'+'))}
+  else if(k==='='&&result!==null)psNow('= '+fmtNum(result))}
 /* peek on the calculator key (bottom left): while the force is on, the number of dark dots = taps still needed */
 /* tap-count peek: while the force is on, the LAST DIGIT of the status bar time = taps still needed */
 function countPeek(){tick()}
@@ -312,9 +331,10 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No'}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No'}
 document.querySelectorAll('#method button').forEach(b=>b.onclick=()=>{S.method=b.dataset.v;syncSheet()});
 $('autoEq').onchange=()=>{S.autoEq=$('autoEq').checked};
+$('psOn').onchange=()=>{S.ps=$('psOn').checked};
 $('sbOn').onchange=()=>{S.sb=$('sbOn').checked;drawSB()};
 $('netSel').onchange=()=>{S.net=$('netSel').value;drawSB()};
 $('motion').onclick=async()=>{const m=$('motion');
