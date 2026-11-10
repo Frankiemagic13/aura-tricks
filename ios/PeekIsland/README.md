@@ -58,3 +58,17 @@ Peek Island sends each peek to your PeekSmith over Bluetooth. You do not need Bl
 | `12 + 34` | `34` |
 
 Long-press the Dynamic Island, or look at the lock screen, to see the full text.
+
+## Apple Watch
+
+Peek Island has a watch app. It listens to the same Firebase channel by itself, so the iPhone app does not have to run.
+
+Install: connect the iPhone that is paired with your watch, select it in Xcode, and click **Run**. The watch app installs with the iPhone app
+(on the watch: Settings → Privacy & Security → **Developer Mode** → On, if the watch asks).
+
+On the watch (turn the Digital Crown to change pages):
+- **Peek page:** the peek in large text. Tap the screen to blank it, tap again to show it.
+- **History:** the last 30 peeks. Tap one to show it again.
+- **Settings:** Show (full peek / last input / short), text size, buzz (off / one buzz / tap the last digit), Keep running (up to 1 hour with your wrist down), channel.
+
+The Live Activity on the iPhone also shows in the watch Smart Stack (watchOS 11 and later).

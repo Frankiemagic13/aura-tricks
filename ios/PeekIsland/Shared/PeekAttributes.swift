@@ -1,5 +1,6 @@
-import ActivityKit
 import Foundation
+#if os(iOS)
+import ActivityKit
 
 /// Data for the Live Activity. Used by the app and by the widget extension.
 struct PeekAttributes: ActivityAttributes {
@@ -14,6 +15,7 @@ struct PeekAttributes: ActivityAttributes {
     /// Small title on the lock screen, for example "Peek"
     var title: String
 }
+#endif
 
 enum PeekText {
     /// The last number the spectator typed. For a result ("... = 11,090,551") it is the result.

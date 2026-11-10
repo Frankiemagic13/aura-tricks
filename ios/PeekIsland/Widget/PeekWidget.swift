@@ -14,31 +14,8 @@ struct PeekLiveActivity: Widget {
 
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: PeekAttributes.self) { context in
-            // Lock screen and banner
-            HStack(spacing: 12) {
-                Image(systemName: "plus.forwardslash.minus")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(accent)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(context.attributes.title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    Text(context.state.full)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.5)
-                }
-                Spacer(minLength: 8)
-                Text(context.state.short)
-                    .font(.title2.weight(.bold))
-                    .monospacedDigit()
-                    .foregroundStyle(accent)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.5)
-            }
-            .padding(16)
-            .activityBackgroundTint(Color.black.opacity(0.85))
-            .activitySystemActionForegroundColor(.white)
+            // Lock screen, banner, and Apple Watch Smart Stack
+            PeekLockView(context: context, accent: accent)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -79,6 +56,60 @@ struct PeekLiveActivity: Widget {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
             }
+        }
+        .supplementalActivityFamilies([.small])
+    }
+}
+
+/// .medium = iPhone lock screen. .small = Apple Watch Smart Stack (and CarPlay).
+struct PeekLockView: View {
+    let context: ActivityViewContext<PeekAttributes>
+    let accent: Color
+    @Environment(\.activityFamily) private var family
+
+    var body: some View {
+        switch family {
+        case .small:
+            VStack(alignment: .leading, spacing: 2) {
+                Text(context.state.short)
+                    .font(.title2.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.4)
+                Text(context.state.full)
+                    .font(.caption)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .activityBackgroundTint(Color.black)
+        default:
+            HStack(spacing: 12) {
+                Image(systemName: "plus.forwardslash.minus")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(accent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(context.attributes.title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Text(context.state.full)
+                        .font(.headline)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.5)
+                }
+                Spacer(minLength: 8)
+                Text(context.state.short)
+                    .font(.title2.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(accent)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            .padding(16)
+            .activityBackgroundTint(Color.black.opacity(0.85))
+            .activitySystemActionForegroundColor(.white)
         }
     }
 }
