@@ -15,6 +15,11 @@ final class PeekSmithLink: NSObject, ObservableObject {
     @Published private(set) var deviceName = ""
     @Published private(set) var connected = false
     @Published private(set) var lastReply = ""
+    @Published private(set) var lastButton = ""
+
+    /// Called on each button event: (button 0/1/2, event "press"/"release"/"click"/"longpress")
+    var onButton: ((Int, String) -> Void)?
+    private var rxBuffer = ""
 
     private static let service = CBUUID(string: "FFE0")
     private static let textChar = CBUUID(string: "FFE1")
@@ -115,6 +120,12 @@ final class PeekSmithLink: NSObject, ObservableObject {
     }
 
     func test() { send("Test 123") }
+
+    /// Blanks the PeekSmith screen.
+    func clear() {
+        guard enabled else { return }
+        enqueue(prefix + " \n")
+    }
 
     // MARK: Writing
 
@@ -256,8 +267,32 @@ extension PeekSmithLink: CBPeripheralDelegate {
     }
 
     func peripheral(_ p: CBPeripheral, didUpdateValueFor c: CBCharacteristic, error: Error?) {
-        if let v = c.value, let s = String(data: v, encoding: .utf8) {
-            lastReply = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let v = c.value, let s = String(data: v, encoding: .utf8) else { return }
+        // Messages can be split over or joined in notifications: buffer and split on "\n"
+        rxBuffer += s
+        while let nl = rxBuffer.firstIndex(of: "\n") {
+            let line = String(rxBuffer[..<nl]).trimmingCharacters(in: .whitespacesAndNewlines)
+            rxBuffer = String(rxBuffer[rxBuffer.index(after: nl)...])
+            handleLine(line)
         }
+        if rxBuffer.count > 200 { rxBuffer = "" }
+    }
+
+    /// Button events: "isb<button>,<event>", for example "isb1,click"
+    private func handleLine(_ line: String) {
+        guard !line.isEmpty else { return }
+        if line.hasPrefix("isb") {
+            let body = line.dropFirst(3).split(separator: ",")
+            if body.count == 2, let b = Int(body[0]) {
+                let event = String(body[1])
+                if event == "click" || event == "longpress" {
+                    let names = [0: "Side", 1: "Left", 2: "Right"]
+                    lastButton = "\(names[b] ?? "\(b)") \(event == "click" ? "tap" : "hold")"
+                }
+                onButton?(b, event)
+                return
+            }
+        }
+        lastReply = line
     }
 }

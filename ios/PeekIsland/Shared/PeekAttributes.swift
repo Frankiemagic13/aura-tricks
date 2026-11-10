@@ -16,6 +16,27 @@ struct PeekAttributes: ActivityAttributes {
 }
 
 enum PeekText {
+    /// The last number the spectator typed. For a result ("... = 11,090,551") it is the result.
+    /// "12 + 34 + 56 + 8 taps" -> "56",  "12 + 34 + 5 (+)" -> "5",  "Queen of Hearts" -> "Queen of Hearts"
+    static func lastInput(from full: String) -> String {
+        var t = full.trimmingCharacters(in: .whitespaces)
+        if let r = t.range(of: " = ", options: .backwards) {
+            return String(t[r.upperBound...]).trimmingCharacters(in: .whitespaces)
+        }
+        if t.hasSuffix("(+)") || t.hasSuffix("(-)") { t = String(t.dropLast(3)).trimmingCharacters(in: .whitespaces) }
+        if t.hasSuffix("taps") {
+            var parts = t.split(separator: " ").map(String.init)
+            if parts.count >= 3 { parts.removeLast(3) } // "+", "8", "taps"
+            t = parts.joined(separator: " ")
+        }
+        let tokens = t.split(separator: " ").map(String.init)
+        let isMath = tokens.contains { ["+", "-", "x", "/"].contains($0) }
+        if isMath, let n = tokens.last(where: { $0.rangeOfCharacter(from: .decimalDigits) != nil }) {
+            return n
+        }
+        return t
+    }
+
     /// Makes the short text for the compact Dynamic Island.
     static func short(from full: String) -> String {
         let t = full.trimmingCharacters(in: .whitespaces)

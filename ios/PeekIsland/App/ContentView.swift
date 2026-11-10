@@ -65,6 +65,44 @@ struct ContentView: View {
                 }
 
                 Section {
+                    ForEach(PeekButton.all) { button in
+                        ForEach(PeekGesture.all) { gesture in
+                            Picker("\(button.name) – \(gesture.name)", selection: Binding(
+                                get: { model.action(button.index, gesture.event) },
+                                set: { model.setAction($0, button.index, gesture.event) }
+                            )) {
+                                ForEach(PeekAction.allCases) { a in Text(a.title).tag(a) }
+                            }
+                        }
+                    }
+                    if !ps.lastButton.isEmpty {
+                        Text("Last button: \(ps.lastButton)").font(.caption).foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("PeekSmith buttons")
+                } footer: {
+                    Text("Tap = short press. Hold = keep pressed for 1 second. \"Last input\" is the last number the spectator typed, or the result after =. \"Previous peek\" steps back one peek each time.")
+                }
+
+                Section {
+                    TextField("Inject ID", text: $model.injectID)
+                        .keyboardType(.numberPad)
+                    TextField("Inject URL", text: $model.injectURL, axis: .vertical)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .font(.footnote.monospaced())
+                    Toggle("Send text as POST body", isOn: $model.injectPOST)
+                    Button("Send test to Inject") { model.sendToInject("Test") }
+                    if !model.injectStatus.isEmpty {
+                        Text(model.injectStatus).font(.caption).foregroundStyle(.secondary)
+                    }
+                } header: {
+                    Text("Inject")
+                } footer: {
+                    Text("Put the Inject web address here. Use {id} for your Inject ID and {text} for the text, for example https://…/?id={id}&text={text}. With \"POST body\" on, the text is sent as the request body.")
+                }
+
+                Section {
                     TextField("Channel", text: $model.topic)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
