@@ -136,8 +136,9 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Start with<select id="sLen"><option value="4">4 digits</option><option value="6">6 digits</option></select></div>
     <div class="r">After the code<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="lock">Shake → live time again</option><option value="unlock">Unlock → home photo</option></select></div>
+    <div class="r">Wait for an extra digit<input type="checkbox" id="sExtra"></div>
   </div>
-  <div class="snote">Swipe left or right on the passcode screen to change between 4 and 6 digits. The screen accepts 1 extra digit with no extra dot, for large totals.</div>
+  <div class="snote">Swipe left or right on the passcode screen to change between 4 and 6 digits. Normal: the code is complete after 4 (or 6) digits, like iOS. A 5-digit total then gives a range on the PeekSmith, for example "8999-9009" (the PIN is in that range). "Wait for an extra digit": the screen waits for a 5th (or 7th) digit when the total needs it.</div>
 
   <div class="lbl">Tilt to unlock</div>
   <div class="grp">
@@ -183,7 +184,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'on',tiltMs:500,dim:.5,
-  batt:43,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,extra:false,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(P.tilt!=='off')P.tilt='on';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
@@ -253,6 +254,7 @@ function toggleLen(){len=len===4?6:4;code='';locked=false;clearTimeout(waitT);dr
 /* Does the total need one more digit? 4 digits: a total under (year + time) is the start of a 5-digit total.
    6 digits: 100000…100045 can be the start of a 7-digit total (PIN 996xxx and up). */
 function needsMore(){
+  if(!P.extra)return false;
   const v=+code,base=year()+timeNum();
   if(len===4)return code.length===4&&v<base-1;
   return code.length===6&&v>=100000&&v<=100045}
@@ -269,6 +271,9 @@ function digit(k){
     if(needsMore()){waitT=setTimeout(()=>{waitT=null;locked=true;complete()},len===4?4000:1500)}
     else{locked=true;setTimeout(complete,180)}}}
 function calcPin(total){
+  if(len===4&&code.length===4&&total<year()+timeNum()-1){ // first 4 digits of a 5-digit total
+    const lo=total*10-year()-timeNum(),hi=lo+10,c=n=>String(Math.max(0,Math.min(9999,n))).padStart(4,'0');
+    return c(lo)+'-'+c(hi)}
   const p=total-year()-timeNum(),L=len,max=Math.pow(10,L);
   const f=n=>(n>=0&&n<max)?String(n).padStart(L,'0'):null;
   const a=f(p),b=f(p+1);
@@ -381,7 +386,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sExtra').checked=P.extra;$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -393,6 +398,7 @@ $('sTilt').onchange=e=>{P.tilt=e.target.value;saveP()};
 $('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
 $('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
 $('sWifi').onchange=e=>{P.wifi=e.target.checked;saveP();drawBatt()};
+$('sExtra').onchange=e=>{P.extra=e.target.checked;saveP()};
 $('sDim').onchange=e=>{P.dim=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
