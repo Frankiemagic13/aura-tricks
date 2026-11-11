@@ -15,14 +15,14 @@
   color-scheme:light dark;
 }
 @media (prefers-color-scheme:dark){:root{
-  --page:#000;--label:#FFF;--sec:rgba(235,235,245,.6);--tint:#DBB03D;--title:#DCDCDC;--dimicon:#535353;
-  --glass:#202020;--glassb:transparent;--shadow:none;
+  --page:#000;--label:#FFF;--sec:rgba(235,235,245,.6);--tint:#DBB03D;--title:#DCDCDC;--dimicon:#5A5A5A;
+  --glass:#1F1F1F;--glassb:rgba(255,255,255,.1);--shadow:inset 0 .5px 0 rgba(255,255,255,.1);
 }}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--page);color:var(--label);overscroll-behavior:none;
   font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-text-size-adjust:100%}
 body{position:fixed;inset:0;overflow:hidden}
-.nav{position:fixed;left:0;right:0;top:0;z-index:5;padding:max(env(safe-area-inset-top),12px) 17px 10px 16px;
+.nav{position:fixed;left:0;right:0;top:0;z-index:5;padding:max(env(safe-area-inset-top),12px) 16px 10px 16px;
   display:flex;justify-content:space-between;align-items:center;background:linear-gradient(var(--page) 70%,transparent);pointer-events:none}
 .nav>*{pointer-events:auto}
 .right{display:flex;gap:12px;align-items:center}
@@ -33,11 +33,13 @@ body{position:fixed;inset:0;overflow:hidden}
 .btn{width:44px;height:44px}
 .pill{height:44px;padding:0 4px}
 .pill i{width:42px;height:44px;display:flex;align-items:center;justify-content:center}
-.nav .pill{width:110px;padding:0}
-.nav .pill i{width:55px}
+.nav .pill{width:110px;padding:0;position:relative}
+.nav .pill i{position:absolute;top:0;width:31px}
+.nav .pill #share{left:10px}.nav .pill #more{left:69px}
 #share.empty{color:var(--dimicon)}
 #undoBtn.gone{display:none}
-.done{background:var(--tint);border-color:transparent;color:#fff;box-shadow:none}
+.done{background:var(--tint);border-color:rgba(255,236,170,.3);color:#fff;box-shadow:none}
+@supports (color:color(display-p3 1 1 1)){@media (prefers-color-scheme:dark){:root{--tint:color(display-p3 .859 .690 .239)}}}
 .hidden{opacity:0;pointer-events:none;transform:scale(.8)}
 svg{display:block}
 #scroll{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
@@ -102,11 +104,11 @@ svg{display:block}
 </head>
 <body>
 <div class="nav">
-  <div class="glass btn" id="back"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></div>
+  <div class="glass btn" id="back"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.9" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></div>
   <div class="right">
-    <div class="glass btn gone" id="undoBtn"><svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 13 4 8.5 8.5 4"/><path d="M4 8.5h9.5a6 6 0 0 1 0 12H10"/></svg></div>
-    <div class="glass pill"><i id="share" class="empty"><svg width="29" height="31" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i id="more"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><circle cx="4.3" cy="12" r="2.3"/><circle cx="12" cy="12" r="2.3"/><circle cx="19.7" cy="12" r="2.3"/></svg></i></div>
-    <div class="glass btn done hidden" id="done"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+    <div class="glass btn gone" id="undoBtn"><svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 13.4 4.2 8.6 9 3.8"/><path d="M4.4 8.6h9.4a6 6 0 0 1 0 12h-3.4"/></svg></div>
+    <div class="glass pill"><i id="share" class="empty"><svg width="31" height="34" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2.45" style="margin-top:-3px" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i id="more"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><circle cx="3.6" cy="12" r="2.45"/><circle cx="12" cy="12" r="2.45"/><circle cx="20.4" cy="12" r="2.45"/></svg></i></div>
+    <div class="glass btn done hidden" id="done"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.4 12.4 9.6 17.8 19.6 5.4"/></svg></div>
   </div>
 </div>
 <div id="scroll">
@@ -246,8 +248,10 @@ note.addEventListener('input',()=>{
 /* ---------- editing look ---------- */
 function editing(on){done.classList.toggle('hidden',!on);document.body.classList.toggle('editing',on);kbarPlace()}
 /* iOS 27 look: share icon is gray while the note is empty; the undo button shows when the note has text */
-function topIcons(){const has=!!note.innerText.trim();$('share').classList.toggle('empty',!has);$('undoBtn').classList.toggle('gone',!has)}
-note.addEventListener('input',topIcons);
+let edited=false;
+function topIcons(){const has=!!note.innerText.trim();$('share').classList.toggle('empty',!has);$('undoBtn').classList.toggle('gone',!edited)}
+note.addEventListener('input',()=>{edited=true;topIcons()});
+function newNote(){edited=false;topIcons()}
 /* keep the keyboard toolbar just above the keyboard */
 function kbarPlace(){const v=window.visualViewport,k=document.getElementById('kbar');if(!k)return;
   const kb=v?Math.max(0,innerHeight-(v.offsetTop+v.height)):0;k.style.bottom=(kb>40?kb+9:8+0)+'px'}
@@ -267,13 +271,13 @@ note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||w
 
 /* ---------- secret: hold the ••• button for 1 s = clear the note ---------- */
 (function(){const el=document.getElementById('more');let tm=null;
-  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';try{clearDrawing()}catch(e){}},1000)},stop=()=>clearTimeout(tm);
+  const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';try{clearDrawing()}catch(e){}try{iSent='';newNote()}catch(e){}},1000)},stop=()=>clearTimeout(tm);
   el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
   el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
 
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
-document.getElementById('compose').addEventListener('click',()=>{now();try{clearDrawing()}catch(e){}note.textContent='';last='';lastBle='';bleOnScreen='';topIcons();note.focus()});
+document.getElementById('compose').addEventListener('click',()=>{now();try{clearDrawing()}catch(e){}note.textContent='';last='';lastBle='';bleOnScreen='';newNote();note.focus()});
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -484,8 +488,7 @@ new MutationObserver(()=>{if(document.body.classList.contains('open'))iSync()}).
 /* a cleared note makes the send ready again */
 note.addEventListener('input',()=>{if(!note.innerText.trim())iSent=''});
 $('compose').addEventListener('click',()=>{iSent=''});
-$('more').addEventListener('touchend',()=>setTimeout(()=>{if(!note.innerText.trim())iSent='';topIcons()},50));
-$('more').addEventListener('mouseup',()=>setTimeout(topIcons,50));
+
 function iTrigger(src){
   if(!P.inj||P.iWhen!==src||document.body.classList.contains('open'))return;
   iSend(false)}
