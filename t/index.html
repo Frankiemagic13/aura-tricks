@@ -159,6 +159,8 @@ svg{display:block}
     <div class="r">Live peek (each letter)<input type="checkbox" id="sLive"></div>
     <div class="r">Words on PeekSmith<select id="sWords"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="0">Whole note</option></select></div>
     <div class="r">Vibrate on each word<input type="checkbox" id="sVib"></div>
+    <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
+    <div class="r" id="conTextRow">Text<input class="tx" id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready"></div>
     <div class="r">Send drawings to PeekSmith<input type="checkbox" id="sDraw"></div>
     <div class="r">Drawing size on PeekSmith<select id="sDrawSize"><option value="0.35">Small</option><option value="0.55">Medium</option><option value="0.75">Large</option><option value="1">Fill screen</option></select></div>
   </div>
@@ -300,7 +302,7 @@ async function bleSearch(){
     if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');
     bleBtnText()});
-  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText()});
+  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
   bleBusy=false;bleBtnText()}
@@ -338,6 +340,15 @@ $('bleTest').onclick=()=>{if(bleOn())aps.text('Test 123',{raw:true}).catch(()=>{
 $('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
+/* what the PeekSmith shows when it connects */
+if(!P.conMode)P.conMode='text';if(P.conText==null)P.conText='Ready';
+function conShow(){if(!bleOn())return;
+  if(P.conMode==='text'&&P.conText){bleOnScreen='';bleWrite(String(P.conText))}
+  else if(P.conMode==='blank'){aps.clear().catch(()=>{});bleOnScreen=''}}
+function conSync(){$('conMode').value=P.conMode;$('conText').value=P.conText;$('conTextRow').style.display=P.conMode==='text'?'':'none'}
+$('conMode').onchange=e=>{P.conMode=e.target.value;saveP();conSync();conShow()};
+$('conText').onchange=e=>{P.conText=e.target.value;saveP();conShow()};
+conSync();
 $('sLive').checked=!!P.live;$('sWords').value=String(P.words);
 $('sLive').onchange=e=>{P.live=e.target.checked;saveP()};
 $('sWords').onchange=e=>{P.words=+e.target.value;saveP()};

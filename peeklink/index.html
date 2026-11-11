@@ -40,6 +40,8 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <div class="card">
     <div class="row">Text prefix<select id="pre"><option value="$">$ (iOS)</option><option value="#">#</option></select></div>
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
+    <div class="row">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
+    <div class="row" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready" style="width:55%"></div>
     <div class="row">Card recognition (AH → A♥)<input type="checkbox" id="cards"></div>
     <div class="row">Keep screen on<input type="checkbox" id="wake" checked></div>
   </div>
@@ -68,7 +70,16 @@ let stage='';
 let chr=null,dev=null,queue=Promise.resolve();
 const st={get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 $('pre').value=st.get('pre','$');$('vib').checked=st.get('vib','0')==='1';
-$('pre').onchange=()=>st.set('pre',$('pre').value);$('vib').onchange=()=>st.set('vib',$('vib').checked?'1':'0');
+$('pre').onchange=()=>st.set('pre',$('pre').value);
+/* what the PeekSmith shows when it connects */
+function conShow(){const m=$('conMode').value,t=$('conText').value;
+  if(!psReady())return;
+  if(m==='text'&&t){if(AURA)aps.text(t,{raw:true}).catch(()=>{});else writeCmd("'"+t+'\n')}
+  else if(m==='blank'){if(AURA)aps.clear().catch(()=>{});else writeCmd('$\n')}}
+function conSync(){$('conTextRow').style.display=$('conMode').value==='text'?'':'none'}
+$('conMode').value=st.get('conMode','text');$('conText').value=st.get('conText','Ready');conSync();
+$('conMode').onchange=()=>{st.set('conMode',$('conMode').value);conSync();conShow()};
+$('conText').onchange=()=>{st.set('conText',$('conText').value);conShow()};$('vib').onchange=()=>st.set('vib',$('vib').checked?'1':'0');
 $('info').textContent='Channel: '+TOPIC+'. Open this page in Aura (add frankiemagic13.github.io to your Aura bookmarks), or in a Web Bluetooth browser such as Bluefy. Disconnect the PeekSmith app first: the PeekSmith accepts one connection at a time.';
 function log(s){const l=$('log');l.textContent=(new Date().toLocaleTimeString()+'  '+s+'\n'+l.textContent).slice(0,4000)}
 function setB(t,c){$('bs').textContent=t;$('bd').className='dot '+(c||'')}
@@ -98,7 +109,7 @@ async function connectAura(){
     if(state==='connected')setB(name||'Connected','on');
     if(state==='reconnecting')setB('Reconnecting… ('+attempt+')','err');
     if(state==='disconnected')setB('Not connected','err')});
-  aps.on('connect',({name})=>{log('Connected to '+name+' (Aura)');aps.vibrate('.').catch(()=>{})});
+  aps.on('connect',({name})=>{log('Connected to '+name+' (Aura)');aps.vibrate('.').catch(()=>{});setTimeout(conShow,250)});
   aps.on('disconnect',()=>log('Disconnected'));
   aps.on('button',({button,event})=>onButton(button,event));
   try{await aps.connect()}catch(e){setB('Not connected','err');log('Connect failed: '+e.message);aps=null}}
@@ -177,7 +188,7 @@ async function link(){
       while((i=rx.indexOf('\n'))>=0){const line=rx.slice(0,i).trim();rx=rx.slice(i+1);const m=line.match(/^isb(\d),(\w+)/);if(m)onButton(+m[1],m[2]);else if(line)log('PeekSmith says: '+line)}
       if(rx.length>200)rx=''}catch(_){}})}catch(e){log('Notify (main): '+e.message)}
   try{const ds=await srv.getPrimaryService(SVC_DBG);const dc=(await ds.getCharacteristics())[0];await dc.startNotifications()}catch(e){}
-  setB(dev.name||'Connected','on');log('Connected to '+(dev.name||'PeekSmith'));writeCmd('~.\n')}
+  setB(dev.name||'Connected','on');log('Connected to '+(dev.name||'PeekSmith'));writeCmd('~.\n');setTimeout(conShow,250)}
 async function onDisc(){chr=null;setB('Reconnecting…','err');log('Disconnected');
   for(let i=0;i<10&&dev;i++){try{await wait(1500);await link();return}catch(e){}}
   setB('Not connected','err')}
