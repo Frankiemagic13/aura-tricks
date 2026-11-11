@@ -609,17 +609,19 @@ $('pxStart').onclick=pxStart;
 /* start the sensor automatically: when the page opens, on the first taps (some sensors start only
    after a tap) and each time the page comes back to the front. Stops trying when data comes in. */
 let pxGot=false,pxTries=0,pxLastTry=0;
-{const o=pxChange;pxChange=function(n){pxGot=true;return o(n)}}
+{const o=pxHandle;pxHandle=function(d,src){if(pxRead(d)!==null)pxGot=true;return o(d,src)}}
 function pxAuto(force){
   if(!window.Aura||!window.Aura.proximity)return;
-  if(!force&&(pxGot||pxTries>=6||Date.now()-pxLastTry<600))return;
+  if(!force&&(pxGot||pxTries>=40||Date.now()-pxLastTry<600))return;
   pxTries++;pxLastTry=Date.now();pxStart()}
 function pxBoot(){
   if(window.Aura){pxInit();setTimeout(()=>pxAuto(),1200);return}
   let n=0;const t=setInterval(()=>{n++;   // Aura can add window.Aura a moment after the page loads
     if(window.Aura){clearInterval(t);pxInit();setTimeout(()=>pxAuto(),1200)}
     else if(n>=20){clearInterval(t);pxInit()}},250)}
-addEventListener('touchstart',()=>pxAuto(),{capture:true,passive:true});
+/* iOS counts a tap as a user action only on touchend / click (not on touchstart) */
+addEventListener('touchend',()=>pxAuto(),{capture:true,passive:true});
+addEventListener('click',()=>pxAuto(),{capture:true,passive:true});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){pxGot=false;pxTries=0;setTimeout(()=>pxAuto(true),300)}});
 pxBoot();
 
