@@ -81,6 +81,8 @@ svg{display:block}
 .r+.r::before{content:"";position:absolute;top:0;left:16px;right:0;height:.5px;background:rgba(84,84,88,.65)}
 .r select{background:none;border:0;color:rgba(235,235,245,.6);font:17px -apple-system,system-ui;text-align:right;outline:none;-webkit-appearance:none;appearance:none}
 .r input[type=checkbox]{width:20px;height:20px;accent-color:#FF9F0A}
+.r input.tx{background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;width:55%}
+.dim{color:rgba(235,235,245,.6);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .snote{font-size:13px;color:rgba(235,235,245,.6);margin:8px 16px 0;line-height:1.35}
 </style>
 </head>
@@ -148,6 +150,32 @@ svg{display:block}
   </div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
+  <div class="lbl">Send to Inject</div>
+  <div class="grp">
+    <div class="r">Send to Inject<input type="checkbox" id="iOn"></div>
+    <div class="r">Text to send<select id="iWhat">
+      <option value="lastWord">Last word</option>
+      <option value="lastLine">Last line</option>
+      <option value="full">Whole note</option>
+      <option value="word">Word in position…</option>
+      <option value="custom">Custom text</option>
+    </select></div>
+    <div class="r" id="iPosRow">Position<select id="iPos"><option value="1">1st word</option><option value="2">2nd word</option><option value="3">3rd word</option><option value="4">4th word</option><option value="5">5th word</option><option value="6">6th word</option><option value="7">7th word</option><option value="8">8th word</option><option value="9">9th word</option><option value="10">10th word</option></select></div>
+    <div class="r" id="iCustRow">Custom text<input class="tx" id="iCust" autocapitalize="off" autocorrect="off" placeholder="Text"></div>
+    <div class="r">Send when<select id="iWhen">
+      <option value="prox">Proximity sensor covered</option>
+      <option value="done">Done is tapped</option>
+    </select></div>
+    <div class="r">Inject ID<input class="tx" id="iId" inputmode="numeric" pattern="[0-9]*" placeholder="13297"></div>
+    <div class="r">Text now<span id="iNow" class="dim">—</span></div>
+    <div class="r"><button class="sbtn" id="iTest">Send now</button><span id="iSt" class="dim"></span></div>
+  </div>
+  <div class="lbl">Proximity sensor</div>
+  <div class="grp">
+    <div class="r">Sensor<span id="pxSt" class="dim">—</span></div>
+    <div class="r">Covered now<span id="pxNow" class="dim">—</span></div>
+  </div>
+  <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the date for 1 second to clear the note.</div>
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -386,6 +414,74 @@ async function drawToPS(force){
   bleOnScreen='';imgBusy=false;
   if(imgPending){imgPending=false;drawToPS()}}
 document.addEventListener('gesturestart',e=>e.preventDefault());
+
+/* ================= Send to Inject (same as the calculator) ================= */
+Object.assign(P,Object.assign({inj:false,iWhat:'lastWord',iPos:1,iCust:'',iWhen:'prox',iId:'13297'},
+  Object.fromEntries(['inj','iWhat','iPos','iCust','iWhen','iId'].filter(k=>k in P).map(k=>[k,P[k]]))));
+if(Q.get('inj')==='1')P.inj=true;
+let iSent='';
+function noteWords(){return note.innerText.replace(/ /g,' ').split(/\s+/).filter(Boolean)}
+function noteLines(){return note.innerText.replace(/ /g,' ').split('\n').map(s=>s.trim()).filter(Boolean)}
+function iValue(){
+  const w=noteWords(),l=noteLines();
+  if(P.iWhat==='lastWord')return w.length?w[w.length-1]:'';
+  if(P.iWhat==='lastLine')return l.length?l[l.length-1]:'';
+  if(P.iWhat==='full')return l.join(' ');
+  if(P.iWhat==='word')return w[(+P.iPos||1)-1]||'';
+  if(P.iWhat==='custom')return P.iCust||'';
+  return''}
+function iSync(){
+  $('iOn').checked=!!P.inj;$('iWhat').value=P.iWhat;$('iPos').value=String(P.iPos);$('iCust').value=P.iCust;
+  $('iWhen').value=P.iWhen;$('iId').value=P.iId;
+  $('iPosRow').style.display=P.iWhat==='word'?'':'none';$('iCustRow').style.display=P.iWhat==='custom'?'':'none';
+  $('iNow').textContent=iValue()||'—'}
+$('iOn').onchange=e=>{P.inj=e.target.checked;saveP()};
+$('iWhat').onchange=e=>{P.iWhat=e.target.value;saveP();iSync()};
+$('iPos').onchange=e=>{P.iPos=+e.target.value;saveP();iSync()};
+$('iCust').oninput=e=>{P.iCust=e.target.value;saveP();iSync()};
+$('iWhen').onchange=e=>{P.iWhen=e.target.value;saveP()};
+$('iId').oninput=e=>{P.iId=e.target.value.replace(/\D/g,'');saveP()};
+$('iTest').onclick=()=>iSend(true);
+iSync();
+/* refresh "Text now" each time the menu opens (hold share) */
+new MutationObserver(()=>{if(document.body.classList.contains('open'))iSync()}).observe(document.body,{attributes:true,attributeFilter:['class']});
+/* a cleared note makes the send ready again */
+note.addEventListener('input',()=>{if(!note.innerText.trim())iSent=''});
+$('compose').addEventListener('click',()=>{iSent=''});
+$('date').addEventListener('touchend',()=>setTimeout(()=>{if(!note.innerText.trim())iSent=''},50));
+function iTrigger(src){
+  if(!P.inj||P.iWhen!==src||document.body.classList.contains('open'))return;
+  iSend(false)}
+done.addEventListener('click',()=>iTrigger('done'));
+async function iSend(manual){
+  const st=$('iSt'),v=iValue();
+  if(!v){if(manual)st.textContent='No text yet';return}
+  if(!manual&&v===iSent)return;
+  iSent=v;
+  const id=(P.iId||'13297').replace(/\D/g,'')||'13297';
+  try{
+    /* Inject accepts JSON only (a form gives error 415) */
+    const r=await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({value:v})});
+    if(!r.ok){iSent='';st.textContent='Inject error '+r.status;bleShow('Inject error '+r.status);return}
+    st.textContent='Sent ✓';bleShow('Inject: '+v)}
+  catch(e){iSent='';st.textContent='Not sent (no internet?)';bleShow('Inject failed')}}
+
+/* proximity sensor: Aura.proximity.start() replies with {"supported":true,"near":false}.
+   Ask it 4 times each second (this also starts the sensor), so no tap on a start button is needed. */
+let pxNear=null,pxBusy=false,pxOk=false;
+function pxChange(n){$('pxNow').textContent=n?'Yes':'No';if(n===pxNear)return;const was=pxNear;pxNear=n;if(n&&was!==null)iTrigger('prox')}
+setInterval(async()=>{
+  const A=window.Aura,Px=A&&A.proximity;
+  if(!Px||typeof Px.start!=='function'){if(!pxOk)$('pxSt').textContent=A?'Not in Aura':'Only in Aura';return}
+  if(pxBusy||document.visibilityState!=='visible')return;
+  pxBusy=true;
+  try{let r=Px.start();if(r&&typeof r.then==='function')r=await r;
+    if(r&&typeof r==='object'){
+      if(r.supported===false){$('pxSt').textContent='Not supported';}
+      else if('near' in r){if(!pxOk){pxOk=true;$('pxSt').textContent='On'}pxChange(!!r.near)}}}
+  catch(e){$('pxSt').textContent='Error'}
+  pxBusy=false},250);
 </script>
 </body>
 </html>
