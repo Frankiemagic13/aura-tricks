@@ -40,6 +40,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <div class="card">
     <div class="row">Text prefix<select id="pre"><option value="$">$ (iOS)</option><option value="#">#</option></select></div>
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
+    <div class="row">Inject ID<input id="injId" inputmode="numeric" pattern="[0-9]*" placeholder="13297" style="width:40%"></div>
     <div class="row">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
     <div class="row" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready" style="width:55%"></div>
     <div class="row">Card recognition (AH → A♥)<input type="checkbox" id="cards"></div>
@@ -71,6 +72,7 @@ let chr=null,dev=null,queue=Promise.resolve();
 const st={get(k,d){try{return localStorage.getItem(k)??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 $('pre').value=st.get('pre','$');$('vib').checked=st.get('vib','0')==='1';
 $('pre').onchange=()=>st.set('pre',$('pre').value);
+$('injId').value=st.get('injId','13297');$('injId').onchange=()=>st.set('injId',$('injId').value.replace(/\D/g,''));
 /* what the PeekSmith shows when it connects */
 function conShow(){const m=$('conMode').value,t=$('conText').value;
   if(!psReady())return;
@@ -132,8 +134,8 @@ const history=[];let back=0;
 function sendText(t){history.push(t);if(history.length>50)history.shift();back=0;show(t)}
 
 /* ---------- PeekSmith buttons ---------- */
-const ACTIONS={none:'Nothing',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
-const DEFAULTS={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'none','0.longpress':'none'};
+const ACTIONS={none:'Nothing',inject:'Send last input to Inject',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
+const DEFAULTS={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'inject','0.longpress':'none'};
 let map={...DEFAULTS};try{Object.assign(map,JSON.parse(st.get('btns','{}')))}catch(e){}
 document.querySelectorAll('select[data-k]').forEach(s=>{
   for(const [v,n] of Object.entries(ACTIONS)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
@@ -160,11 +162,19 @@ function onButton(b,e){
   const last=history[history.length-1];
   if(a!=='previousPeek')back=0;
   if(!last&&a!=='clear'){show('No peek yet');return}
-  if(a==='lastInput')show(lastInput(last));
+  if(a==='inject')sendInject(lastInput(last));
+  else if(a==='lastInput')show(lastInput(last));
   else if(a==='lastPeek')show(last);
   else if(a==='shortPeek')show(shortPeek(last));
   else if(a==='previousPeek'){back=(back+1)%history.length;show(history[history.length-1-back])}
   else if(a==='clear')clearPS()}
+/* Send to Inject (JSON {"value": ...}; Inject refuses a form with error 415) */
+async function sendInject(v){
+  v=String(v||'').trim();if(!v){show('Inject: nothing');return}
+  const id=($('injId').value||'13297').replace(/\D/g,'')||'13297';
+  try{const r=await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',keepalive:true,headers:{'Content-Type':'application/json'},body:JSON.stringify({value:v})});
+    if(r.ok){show('Inject: '+v);log('Sent to Inject: '+v)}else{show('Inject error '+r.status);log('Inject error '+r.status)}}
+  catch(e){show('Inject failed');log('Inject failed: '+e.message)}}
 async function connect(all){
   if(!navigator.bluetooth){setB('No Web Bluetooth here','err');log('This browser has no Web Bluetooth. On iPhone, open this page in a Web Bluetooth browser such as Bluefy.');return}
   try{

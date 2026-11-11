@@ -562,8 +562,8 @@ async function bleSearch(){
 function bleShow(t){if(!bleConnected())return;aps.text(String(t),{raw:true}).catch(()=>{});if(S.bleVib)aps.vibrate('.').catch(()=>{})}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
-const BACT={none:'Nothing',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
-const BDEF={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'none','0.longpress':'none'};
+const BACT={none:'Nothing',inject:'Send to Inject',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
+const BDEF={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'inject','0.longpress':'none'};
 S.btns=Object.assign({},BDEF,S.btns||{});
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
   for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
@@ -583,6 +583,7 @@ function bleButton(b,e){
   const a=S.btns[b+'.'+e]||'none';if(a==='none')return;
   const last=psHist[psHist.length-1];if(a!=='previousPeek')psBack=0;
   if(a==='clear'){aps.clear().catch(()=>{});return}
+  if(a==='inject'){injSend(true);return}   // sends the number chosen in Send to Inject
   if(!last){bleShow('No peek yet');return}
   if(a==='lastInput')bleShow(lastInputOf(last));
   else if(a==='lastPeek')bleShow(last);
@@ -640,7 +641,7 @@ function injTrigger(src){
 function injOnEq(){injTrigger('eq')}
 async function injSend(manual){
   const st=$('injSt'),v=injValue();
-  if(!v){if(manual)st.textContent='No number yet';return}
+  if(!v){if(manual){st.textContent='No number yet';try{bleShow('Inject: no number')}catch(e){}}return}
   if(!manual&&v===injSent)return; // one time for each number; AC makes it ready again
   injSent=v;injLastT=Date.now();
   const id=(S.injId||'13297').replace(/\D/g,'')||'13297';
@@ -708,7 +709,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v16. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v17. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
