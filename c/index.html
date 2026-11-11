@@ -377,7 +377,8 @@ function birthPeek(nums){
   if(y<1900||y>cy||m<1||m>12||d<1||d>new Date(y,m,0).getDate())return null;
   const days=Math.floor((Date.UTC(cy,now.getMonth(),now.getDate())-Date.UTC(y,m-1,d))/864e5);
   if(days<0)return null;
-  return days.toLocaleString('en-US')+' days '+starSign(m,d)}
+  return lastBirth=days.toLocaleString('en-US')+' days '+starSign(m,d)}
+let lastBirth='';
 function psAfter(k){
   if(k==='='){if(result!==null){const bp=birthPeek(eqNums);psNow(bp||lastExpr+' = '+fmtNum(result))}return}
   if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
@@ -583,7 +584,7 @@ async function bleSearch(){
 function bleShow(t){if(!bleConnected())return;aps.text(String(t),{raw:true}).catch(()=>{});if(S.bleVib)aps.vibrate('.').catch(()=>{})}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
-const BACT={none:'Nothing',inject:'Send to Inject',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
+const BACT={none:'Nothing',inject:'Send to Inject',birthday:'Show birthday peek',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
 const BDEF={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'inject','0.longpress':'none'};
 S.btns=Object.assign({},BDEF,S.btns||{});
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
@@ -605,6 +606,7 @@ function bleButton(b,e){
   const last=psHist[psHist.length-1];if(a!=='previousPeek')psBack=0;
   if(a==='clear'){aps.clear().catch(()=>{});return}
   if(a==='inject'){injSend(true);return}   // sends the number chosen in Send to Inject
+  if(a==='birthday'){const nn=result!==null?eqNums:toks.filter(x=>!isOp(x)).concat(cur!==''?[cur]:[]);bleShow(birthPeek(nn.slice(0,3))||lastBirth||'No birthday yet');return}
   if(!last){bleShow('No peek yet');return}
   if(a==='lastInput')bleShow(lastInputOf(last));
   else if(a==='lastPeek')bleShow(last);
@@ -731,7 +733,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v19. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v20. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
