@@ -15,44 +15,70 @@
 html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#000;color:#fff;
   font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-body{position:fixed;inset:0;display:flex;flex-direction:column;gap:14px;
-  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px)}
-.app{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-  border-radius:28px;background:#111113;cursor:pointer;
-  transition:transform .12s ease,background .12s ease}
-.app:active,.app.down{transform:scale(.97);background:#1c1c1f}
-.icon{width:84px;height:84px;border-radius:20px;position:relative;overflow:hidden}
-.label{font-size:20px;font-weight:600;letter-spacing:-.3px;color:#f2f2f7}
+/* Wallpaper */
+body{position:fixed;inset:0;
+  background:
+    radial-gradient(120% 70% at 15% 10%,#3a2a6b 0%,transparent 60%),
+    radial-gradient(110% 70% at 90% 95%,#0f4a63 0%,transparent 60%),
+    linear-gradient(160deg,#141026,#05070d);
+  padding:calc(env(safe-area-inset-top) + 34px) 22px calc(env(safe-area-inset-bottom) + 24px)}
+/* Icon grid: 4 across like the iOS home screen */
+.grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:26px;column-gap:10px;justify-items:center}
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;cursor:pointer}
+.icon{width:62px;height:62px;border-radius:14px;position:relative;overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .12s ease,filter .12s ease}
+.app.down .icon{transform:scale(.9);filter:brightness(.75)}
+.label{font-size:12px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);white-space:nowrap}
 /* Notes icon */
 .notes{background:#fff}
 .notes::before{content:"";position:absolute;left:0;right:0;top:0;height:22%;
   background:linear-gradient(#ffd84a,#f5c400)}
-.notes i{position:absolute;left:13%;right:13%;height:2px;background:#d9d9de}
+.notes i{position:absolute;left:13%;right:13%;height:1.5px;background:#d9d9de}
 .notes i:nth-child(1){top:44%}.notes i:nth-child(2){top:62%}.notes i:nth-child(3){top:80%}
 /* Calculator icon */
-.calc{background:#1c1c1e;display:grid;grid-template-columns:repeat(2,1fr);gap:7px;padding:12px;
-  box-shadow:inset 0 0 0 1px #2c2c2e}
+.calc{background:#1c1c1e;display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding:9px;
+  box-shadow:inset 0 0 0 1px #2c2c2e,0 2px 8px rgba(0,0,0,.35)}
 .calc b{border-radius:50%;background:#505055;display:grid;place-items:center;
-  font:600 19px/1 -apple-system,system-ui;color:#fff}
+  font:600 14px/1 -apple-system,system-ui;color:#fff}
 .calc b.o{background:#ff9f0a}
-/* Launch fade */
-.fade{position:fixed;inset:0;z-index:9;opacity:0;pointer-events:none;transition:opacity .2s ease}
-.fade.on{opacity:1}
+/* Flashlight icon */
+.torch{background:linear-gradient(#3a3a3e,#1c1c1e);display:grid;place-items:center}
+.torch svg{width:30px;height:30px}
+/* Dock */
+.dock{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);
+  height:92px;border-radius:30px;background:rgba(255,255,255,.14);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+/* Launch zoom */
+.fade{position:fixed;z-index:9;pointer-events:none;opacity:0;border-radius:14px;
+  transition:all .22s cubic-bezier(.2,.8,.2,1)}
+.fade.on{opacity:1;left:0!important;top:0!important;width:100vw!important;height:100vh!important;border-radius:0}
 </style>
 </head>
 <body>
-<div class="app" data-go="notes" id="nApp">
-  <div class="icon notes"><i></i><i></i><i></i></div>
-  <div class="label">Notes</div>
+<div class="grid">
+  <div class="app" data-go="notes" data-bg="#fff" id="nApp">
+    <div class="icon notes"><i></i><i></i><i></i></div>
+    <div class="label">Notes</div>
+  </div>
+  <div class="app" data-go="calc" data-bg="#000">
+    <div class="icon calc"><b>−</b><b>+</b><b>×</b><b class="o">=</b></div>
+    <div class="label">Calculator</div>
+  </div>
+  <div class="app" data-go="torch" data-bg="#000">
+    <div class="icon torch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 3h10v3l-2 4v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V10L7 6z"/>
+        <path d="M7 6h10"/><circle cx="12" cy="14" r="1.2" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="label">Flashlight</div>
+  </div>
 </div>
-<div class="app" data-go="calc">
-  <div class="icon calc"><b>−</b><b>+</b><b>×</b><b class="o">=</b></div>
-  <div class="label">Calculator</div>
-</div>
+<div class="dock"></div>
 <div class="fade" id="fade"></div>
 <script>
 const BASE='https://frankiemagic13.github.io/aura-tricks/';
-const URLS={notes:BASE+'t/',calc:BASE+'c/',pred:BASE+'n/'};
+const URLS={notes:BASE+'t/',calc:BASE+'c/',pred:BASE+'n/',torch:BASE+'f/'};
 const q=new URLSearchParams(location.search);
 // Pass on extra URL settings (for example ?ps=0) to the trick page
 function target(key){
@@ -60,31 +86,31 @@ function target(key){
   q.forEach((v,k)=>{if(k!=='go')u.searchParams.set(k,v)});
   return u.href;
 }
-let busy=false;
-function launch(key){
-  if(busy)return;busy=true;
-  if(navigator.vibrate)navigator.vibrate(8);
-  const f=document.getElementById('fade');
-  f.style.background=key==='calc'?'#000':'#fff';
-  f.classList.add('on');
-  setTimeout(()=>location.replace(target(key)),180);
-}
-// Direct open: ?go=notes, ?go=calc or ?go=pred
+// Direct open: ?go=notes, ?go=calc, ?go=pred or ?go=torch
 const go=q.get('go');
 if(go&&URLS[go])location.replace(target(go));
+let busy=false;
+function launch(key,el){
+  if(busy)return;busy=true;
+  if(navigator.vibrate)navigator.vibrate(8);
+  const f=document.getElementById('fade'),r=el.querySelector('.icon').getBoundingClientRect();
+  f.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${key==='pred'?'#fff':el.dataset.bg}`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('on')));
+  setTimeout(()=>location.replace(target(key)),230);
+}
 // Tap = open. Hold Notes for 1 s = Notes prediction.
 document.querySelectorAll('.app').forEach(el=>{
   let t=null,held=false;
   el.addEventListener('touchstart',()=>{held=false;el.classList.add('down');
-    if(el.id==='nApp')t=setTimeout(()=>{held=true;el.classList.remove('down');launch('pred')},1000);
+    if(el.id==='nApp')t=setTimeout(()=>{held=true;el.classList.remove('down');launch('pred',el)},1000);
   },{passive:true});
   const end=()=>{clearTimeout(t);el.classList.remove('down')};
-  el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go)});
+  el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go,el)});
   el.addEventListener('touchcancel',end);
-  el.addEventListener('click',()=>{if(!held)launch(el.dataset.go)}); // desktop test
+  el.addEventListener('click',()=>{if(!held)launch(el.dataset.go,el)}); // desktop test
 });
-// Back from a trick (page cache): show the chooser again
-addEventListener('pageshow',()=>{busy=false;document.getElementById('fade').classList.remove('on')});
+// Back from a trick (page cache): show the home screen again
+addEventListener('pageshow',()=>{busy=false;const f=document.getElementById('fade');f.className='fade';f.style.cssText=''});
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
