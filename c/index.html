@@ -232,7 +232,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
       <option value="none">Nothing</option>
       <option value="reset">Reset the calculator</option>
       <option value="url">Go to a web page</option>
-      <option value="calc">Open the real Calculator app</option>
+      <option value="calc">Clean (reset + clear history)</option>
     </select></div>
     <div class="r" id="lockUrlRow">Web page<input id="lockUrl" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="https://www.google.com"></div>
   </div>
@@ -793,20 +793,10 @@ function onLock(){
   if(document.body.classList.contains('open'))return;        // not while the secret menu is open
   if(S.onLock==='reset'){reset();psHist.length=0;psLast='';render()}
   else if(S.onLock==='url'){reset();psHist.length=0;location.replace(S.lockUrl||'https://www.google.com')}
-  else if(S.onLock==='calc'){if(Date.now()-calcAt<4000)return;   // the page hid because the Calculator app opened
-    reset();psHist.length=0;psLast='';render();calcPending=true}}
-/* real Calculator app: iOS lets a page open an app only while the page shows.
-   Thus the page tries on lock, and again when the phone unlocks (page shows again). */
-let calcPending=false,calcAt=0;
-function openRealCalc(){
-  const u='calc://';calcAt=Date.now();
-  try{const A=window.Aura;
-    if(A&&typeof A.openURL==='function'){const r=A.openURL(u);if(r&&r.catch)r.catch(()=>{});return}
-    if(A&&typeof A.open==='function'){const r=A.open(u);if(r&&r.catch)r.catch(()=>{});return}}catch(e){}
-  try{location.href=u}catch(e){}}
-function calcBack(){if(S.onLock==='calc'&&calcPending){calcPending=false;setTimeout(openRealCalc,150)}}
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')onLock();else calcBack()});
-addEventListener('pageshow',calcBack);
+  else if(S.onLock==='calc'){reset();psHist.length=0;psLast='';histSave([]);render()}}
+/* Aura blocks app links (calc:// = "unsupported URL"), so the page cannot open the real Calculator app.
+   "Clean" resets and clears the history: after unlock, it looks like a calculator that nobody used. */
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')onLock()});
 addEventListener('pagehide',()=>{if(S.onLock==='url')onLock()});
 
 document.addEventListener('gesturestart',e=>e.preventDefault());
