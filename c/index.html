@@ -598,7 +598,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v6. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();pxStart()}
@@ -623,6 +623,17 @@ function pxBoot(){
 addEventListener('touchend',()=>pxAuto(),{capture:true,passive:true});
 addEventListener('click',()=>pxAuto(),{capture:true,passive:true});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){pxGot=false;pxTries=0;setTimeout(()=>pxAuto(true),300)}});
+/* Aura.proximity.start() replies with the current state ({"supported":true,"near":false}).
+   Ask it 4 times each second, so "covered" is seen even if Aura sends no event. */
+let pxPolls=0,pxBusy=false;
+setInterval(async()=>{
+  const P=window.Aura&&window.Aura.proximity;
+  if(!P||typeof P.start!=='function'||pxBusy||document.visibilityState!=='visible')return;
+  pxBusy=true;
+  try{let r=P.start();if(r&&typeof r.then==='function')r=await r;
+    if(r&&typeof r==='object'&&'near' in r){pxPolls++;pxGot=true;pxChange(!!r.near)}}
+  catch(e){}
+  pxBusy=false},250);
 pxBoot();
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
