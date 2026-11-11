@@ -10,22 +10,22 @@
 <title>Notes</title>
 <style>
 :root{
-  --page:#FFFFFF;--label:#000;--sec:rgba(60,60,67,.6);--tint:#E3A900;
+  --page:#FFFFFF;--label:#000;--sec:rgba(60,60,67,.6);--tint:#E3A900;--title:#000;--dimicon:#B8B8B8;
   --glass:rgba(255,255,255,.74);--glassb:rgba(255,255,255,.95);--shadow:0 4px 16px rgba(0,0,0,.09);
   color-scheme:light dark;
 }
 @media (prefers-color-scheme:dark){:root{
-  --page:#000;--label:#FFF;--sec:rgba(235,235,245,.6);--tint:#FFC90A;
-  --glass:rgba(40,40,42,.72);--glassb:rgba(255,255,255,.14);--shadow:0 4px 16px rgba(0,0,0,.4);
+  --page:#000;--label:#FFF;--sec:rgba(235,235,245,.6);--tint:#DBB03D;--title:#DCDCDC;--dimicon:#535353;
+  --glass:#202020;--glassb:transparent;--shadow:none;
 }}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--page);color:var(--label);overscroll-behavior:none;
   font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-text-size-adjust:100%}
 body{position:fixed;inset:0;overflow:hidden}
-.nav{position:fixed;left:0;right:0;top:0;z-index:5;padding:calc(env(safe-area-inset-top) + 8px) 16px 10px;
+.nav{position:fixed;left:0;right:0;top:0;z-index:5;padding:max(env(safe-area-inset-top),12px) 17px 10px 16px;
   display:flex;justify-content:space-between;align-items:center;background:linear-gradient(var(--page) 70%,transparent);pointer-events:none}
 .nav>*{pointer-events:auto}
-.right{display:flex;gap:10px}
+.right{display:flex;gap:12px;align-items:center}
 .glass{background:var(--glass);-webkit-backdrop-filter:blur(22px) saturate(190%);backdrop-filter:blur(22px) saturate(190%);
   border:.5px solid var(--glassb);box-shadow:var(--shadow);border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--label);
   transition:transform .15s,opacity .2s}
@@ -33,20 +33,34 @@ body{position:fixed;inset:0;overflow:hidden}
 .btn{width:44px;height:44px}
 .pill{height:44px;padding:0 4px}
 .pill i{width:42px;height:44px;display:flex;align-items:center;justify-content:center}
-.done{background:var(--tint);border-color:transparent;color:#fff}
+.nav .pill{width:110px;padding:0}
+.nav .pill i{width:55px}
+#share.empty{color:var(--dimicon)}
+#undoBtn.gone{display:none}
+.done{background:var(--tint);border-color:transparent;color:#fff;box-shadow:none}
 .hidden{opacity:0;pointer-events:none;transform:scale(.8)}
 svg{display:block}
 #scroll{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:calc(env(safe-area-inset-top) + 62px) 20px calc(env(safe-area-inset-bottom) + 120px)}
-#date{text-align:center;font-size:13px;color:var(--sec);padding:2px 0 14px;-webkit-user-select:none;user-select:none}
+  padding:calc(max(env(safe-area-inset-top),12px) + 61px) 20px calc(env(safe-area-inset-bottom) + 120px) 26px}
+#date{display:none}
 #note{min-height:60vh;outline:none;font-size:17px;line-height:23px;white-space:pre-wrap;word-wrap:break-word;caret-color:var(--tint);
   -webkit-user-select:text;user-select:text}
-#note::first-line{font-size:28px;line-height:34px;font-weight:700;letter-spacing:.3px}
-#note:empty::before{content:attr(data-ph);color:var(--sec);font-size:28px;line-height:34px;font-weight:700;pointer-events:none}
+#note::first-line{font-size:30px;line-height:40px;font-weight:800;letter-spacing:.2px;color:var(--title)}
+#note:empty{min-height:max(60vh,40px)}
+#note:empty::before{content:'';display:inline-block;height:40px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:14px 16px calc(env(safe-area-inset-bottom) + 8px);
   display:flex;justify-content:space-between;align-items:center;background:linear-gradient(transparent,var(--page) 45%);pointer-events:none}
 .bar>*{pointer-events:auto}
 .tint{color:var(--tint)}
+/* keyboard toolbar (shows above the keyboard while typing, like iOS 27 Notes) */
+#kbar{position:fixed;left:8px;right:9px;height:48px;bottom:8px;z-index:6;border-radius:24px;background:var(--glass);
+  border:.5px solid var(--glassb);box-shadow:var(--shadow);display:none;align-items:center;justify-content:flex-start;padding:0 0 0 2px;color:var(--label)}
+@media (prefers-color-scheme:dark){#kbar{border-color:rgba(255,255,255,.09)}}
+.editing #kbar{display:flex}
+.editing .bar{display:none}
+#kbar i{width:73px;height:48px;display:flex;align-items:center;justify-content:center}
+#kbar svg *{stroke-width:2.4}
+#kbar i:first-child{margin-left:-8px}
 /* markup / drawing mode */
 #draw{position:fixed;inset:0;z-index:3;pointer-events:none;touch-action:none}
 .drawing #draw{pointer-events:auto}
@@ -88,15 +102,16 @@ svg{display:block}
 </head>
 <body>
 <div class="nav">
-  <div class="glass btn" id="back"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></div>
+  <div class="glass btn" id="back"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4.5 7.5 12l7.5 7.5"/></svg></div>
   <div class="right">
-    <div class="glass pill"><i id="share"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></svg></i></div>
-    <div class="glass btn done hidden" id="done"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
+    <div class="glass btn gone" id="undoBtn"><svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 13 4 8.5 8.5 4"/><path d="M4 8.5h9.5a6 6 0 0 1 0 12H10"/></svg></div>
+    <div class="glass pill"><i id="share" class="empty"><svg width="29" height="31" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5v11M8 7.2l4-3.9 4 3.9"/><path d="M8.5 10.5H7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1.5"/></svg></i><i id="more"><svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><circle cx="4.3" cy="12" r="2.3"/><circle cx="12" cy="12" r="2.3"/><circle cx="19.7" cy="12" r="2.3"/></svg></i></div>
+    <div class="glass btn done hidden" id="done"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></div>
   </div>
 </div>
 <div id="scroll">
   <div id="date"></div>
-  <div id="note" contenteditable="true" spellcheck="true" autocapitalize="sentences" data-ph="New Note"></div>
+  <div id="note" contenteditable="true" spellcheck="true" autocapitalize="sentences"></div>
 </div>
 <div class="bar">
   <div class="glass pill">
@@ -106,6 +121,13 @@ svg{display:block}
     <i id="penBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.8 5.2 4 4M4 20l1-4.5L16.2 4.3a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></svg></i>
   </div>
   <div class="glass btn tint" id="compose"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
+</div>
+<div id="kbar">
+  <i><svg width="34" height="24" viewBox="0 0 34 24" fill="currentColor"><text x="1" y="20" font-family="-apple-system,system-ui" font-size="25" font-weight="500" letter-spacing="-.5">Aa</text></svg></i>
+  <i><svg width="30" height="26" viewBox="0 0 30 26" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="4.3"/><path d="m3.6 6 1.5 1.5 2.6-2.8"/><circle cx="5.5" cy="19.5" r="4.3"/><path d="M14 6h13.5M14 19.5h13.5"/></svg></i>
+  <i><svg width="30" height="24" viewBox="0 0 30 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="1.5" y="1.5" width="27" height="21" rx="4"/><path d="M1.5 8.5h27M1.5 15.5h27M15 8.5v14M8.2 8.5v14" stroke-width="1.9"/><path d="M1.5 5.5h27v3h-27z" fill="currentColor" stroke="none"/></svg></i>
+  <i><svg width="26" height="28" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20.5 12.4-8.3 8.3a5.3 5.3 0 0 1-7.5-7.5l8.7-8.7a3.6 3.6 0 0 1 5.1 5.1l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></i>
+  <i id="kPen"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="14" r="11.8"/><path d="M9.6 25 13 9.5h2L18.4 25"/><path d="m12.4 12.4 1.6-6.5 1.6 6.5"/><path d="M11.3 18.6h5.4"/></svg></i>
 </div>
 <canvas id="draw"></canvas>
 <div id="dnav">
@@ -177,7 +199,7 @@ svg{display:block}
     <div class="r">Covered now<span id="pxNow" class="dim">—</span></div>
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
-  <div class="snote">Hold the share button for 1 second to open this menu. Hold the date for 1 second to clear the note.</div>
+  <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button for 1 second to clear the note.</div>
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../relay.js"></script>
@@ -222,7 +244,19 @@ note.addEventListener('input',()=>{
   if(ch===' '||ch==='\n')now();else soon()});
 
 /* ---------- editing look ---------- */
-function editing(on){done.classList.toggle('hidden',!on)}
+function editing(on){done.classList.toggle('hidden',!on);document.body.classList.toggle('editing',on);kbarPlace()}
+/* iOS 27 look: share icon is gray while the note is empty; the undo button shows when the note has text */
+function topIcons(){const has=!!note.innerText.trim();$('share').classList.toggle('empty',!has);$('undoBtn').classList.toggle('gone',!has)}
+note.addEventListener('input',topIcons);
+/* keep the keyboard toolbar just above the keyboard */
+function kbarPlace(){const v=window.visualViewport,k=document.getElementById('kbar');if(!k)return;
+  const kb=v?Math.max(0,innerHeight-(v.offsetTop+v.height)):0;k.style.bottom=(kb>40?kb+9:8+0)+'px'}
+if(window.visualViewport){visualViewport.addEventListener('resize',kbarPlace);visualViewport.addEventListener('scroll',kbarPlace)}
+/* taps on the toolbar and undo do not close the keyboard */
+['kbar','undoBtn'].forEach(id=>{const el=document.getElementById(id);
+  el.addEventListener('mousedown',e=>e.preventDefault());el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}))})});
+document.getElementById('undoBtn').addEventListener('click',()=>{try{document.execCommand('undo')}catch(e){}topIcons();soon()});
+document.getElementById('kPen').addEventListener('click',()=>{note.blur();document.getElementById('penBtn').click()});
 note.addEventListener('focus',()=>editing(true));
 note.addEventListener('blur',()=>{editing(false);now()});
 done.addEventListener('click',()=>{now();note.blur();window.getSelection().removeAllRanges()});
@@ -231,15 +265,15 @@ function placeEnd(){const r=document.createRange();r.selectNodeContents(note);r.
 // paste as plain text
 note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,s)});
 
-/* ---------- secret: hold the date for 1 s = clear the note ---------- */
-(function(){const el=document.getElementById('date');let tm=null;
+/* ---------- secret: hold the ••• button for 1 s = clear the note ---------- */
+(function(){const el=document.getElementById('more');let tm=null;
   const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';try{clearDrawing()}catch(e){}},1000)},stop=()=>clearTimeout(tm);
   el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
   el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
 
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
-document.getElementById('compose').addEventListener('click',()=>{now();try{clearDrawing()}catch(e){}note.textContent='';last='';lastBle='';bleOnScreen='';note.focus()});
+document.getElementById('compose').addEventListener('click',()=>{now();try{clearDrawing()}catch(e){}note.textContent='';last='';lastBle='';bleOnScreen='';topIcons();note.focus()});
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
@@ -450,7 +484,8 @@ new MutationObserver(()=>{if(document.body.classList.contains('open'))iSync()}).
 /* a cleared note makes the send ready again */
 note.addEventListener('input',()=>{if(!note.innerText.trim())iSent=''});
 $('compose').addEventListener('click',()=>{iSent=''});
-$('date').addEventListener('touchend',()=>setTimeout(()=>{if(!note.innerText.trim())iSent=''},50));
+$('more').addEventListener('touchend',()=>setTimeout(()=>{if(!note.innerText.trim())iSent='';topIcons()},50));
+$('more').addEventListener('mouseup',()=>setTimeout(topIcons,50));
 function iTrigger(src){
   if(!P.inj||P.iWhen!==src||document.body.classList.contains('open'))return;
   iSend(false)}
