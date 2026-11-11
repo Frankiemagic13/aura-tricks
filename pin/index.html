@@ -78,7 +78,6 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .classic .c0{left:calc(90 * var(--u))!important}.classic .c1{left:calc(200.5 * var(--u))!important}.classic .c2{left:calc(311 * var(--u))!important}
 .classic .foot{top:calc(797 * var(--u));font-size:calc(19.5 * var(--u));font-weight:600}
 .classic #emergency{left:calc(20 * var(--u))}.classic #cancel{left:calc(240.5 * var(--u))}
-.shapes .foot{text-decoration:underline;text-decoration-thickness:calc(1.3 * var(--u));text-underline-offset:calc(3 * var(--u))}
 .classic #hbar{display:block;position:absolute;left:50%;bottom:calc(8 * var(--u));width:calc(140 * var(--u));height:calc(5 * var(--u));border-radius:3px;background:#fff;transform:translateX(-50%)}
 #net.on{display:block;font-size:calc(13 * var(--u));font-weight:650;letter-spacing:calc(.1 * var(--u))}
 
@@ -187,7 +186,6 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Look</div>
   <div class="grp">
     <div class="r">Style<select id="sStyle"><option value="classic">Classic (frosted keys)</option><option value="glass">iOS 26 (glass keys)</option></select></div>
-    <div class="r">Underline "Emergency / Cancel"<input type="checkbox" id="sShapes"></div>
     <div class="r">Network<select id="sNet"><option value="none">Signal only</option><option value="lte">Signal + LTE</option><option value="5g">Signal + 5G</option><option value="wifi">Signal + Wi-Fi</option></select></div>
     <div class="r">Battery number<input type="checkbox" id="sBnum"></div>
     <div class="r">Charging<input type="checkbox" id="sChg"></div>
@@ -218,7 +216,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v9</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v10</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -230,7 +228,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',shapes:true,net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
@@ -245,7 +243,7 @@ function haptic(s){try{if(window.Aura&&Aura.haptic)Aura.haptic('impact',{style:s
 /* ---------- wallpaper and home photo ---------- */
 function img(key){try{return localStorage.getItem(key)}catch(e){return null}}
 function drawBatt(){const b=Math.max(1,Math.min(100,+P.batt||43)),low=b<=20&&!P.chg;
-  B.classList.toggle('classic',P.style!=='glass');B.classList.toggle('shapes',!!P.shapes);
+  B.classList.toggle('classic',P.style!=='glass');
   const f=$('bfill'),t=$('btext');
   if(P.bnum){f.setAttribute('x',0);f.setAttribute('y',0);f.setAttribute('height',13.4);f.setAttribute('rx',0);f.setAttribute('width',(24*b/100).toFixed(2));
     $('bbg').setAttribute('fill','rgba(255,255,255,.38)');$('bbg').setAttribute('stroke','none');t.style.display='';t.textContent=b;t.setAttribute('fill',low?'#fff':'#000')}
@@ -450,7 +448,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sStyle').value=P.style;$('sShapes').checked=P.shapes;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -462,7 +460,6 @@ $('sTilt').onchange=e=>{P.tilt=e.target.value;saveP()};
 $('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
 $('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
 $('sStyle').onchange=e=>{P.style=e.target.value;saveP();drawBatt()};
-$('sShapes').onchange=e=>{P.shapes=e.target.checked;saveP();drawBatt()};
 $('sNet').onchange=e=>{P.net=e.target.value;saveP();drawBatt()};
 $('sBnum').onchange=e=>{P.bnum=e.target.checked;saveP();drawBatt()};
 $('sChg').onchange=e=>{P.chg=e.target.checked;saveP();drawBatt()};
