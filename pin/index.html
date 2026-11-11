@@ -59,6 +59,29 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .foot{position:absolute;top:calc(782 * var(--u));font-size:calc(19 * var(--u));font-weight:500;width:calc(140 * var(--u));text-align:center;line-height:calc(24 * var(--u))}
 #emergency{left:calc(29 * var(--u))}#cancel{left:calc(232 * var(--u))}
 
+/* ---------- classic style (iOS 13-17 screenshot): blurred wallpaper, frosted keys, lock icon ---------- */
+#clock,#hbar,#net{display:none}
+.classic #pill{display:none}
+.classic #clock{display:block;position:absolute;left:50%;top:calc(65 * var(--u));width:calc(24 * var(--u));transform:translateX(-50%)}
+.classic #bg{filter:blur(34px) saturate(1.25);transform:scale(1.2)}
+.classic #title{top:calc(175 * var(--u));font-size:calc(21 * var(--u));font-weight:600;letter-spacing:0}
+.classic #dots{top:calc(220 * var(--u));gap:calc(26.8 * var(--u))}
+.classic .dot{width:calc(14 * var(--u));height:calc(14 * var(--u));border-width:calc(1.3 * var(--u))}
+.classic .key{width:calc(80 * var(--u));height:calc(80 * var(--u));margin:calc(-40 * var(--u)) 0 0 calc(-40 * var(--u));
+  background:rgba(255,255,255,.24);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;transition:background .4s ease}
+.classic .key.down{background:rgba(255,255,255,.78);transition:none}
+.classic .key b{font-size:calc(39.5 * var(--u));font-weight:600;margin-top:calc(2 * var(--u))}
+.classic .key small{font-size:calc(9.6 * var(--u));font-weight:700;letter-spacing:calc(2.2 * var(--u));margin-top:calc(2.5 * var(--u))}
+.classic .key.zero b{margin-top:0}
+.classic .r0{top:calc(350 * var(--u))!important}.classic .r1{top:calc(449.3 * var(--u))!important}
+.classic .r2{top:calc(548.6 * var(--u))!important}.classic .r3{top:calc(649 * var(--u))!important}
+.classic .c0{left:calc(90 * var(--u))!important}.classic .c1{left:calc(200.5 * var(--u))!important}.classic .c2{left:calc(311 * var(--u))!important}
+.classic .foot{top:calc(797 * var(--u));font-size:calc(19.5 * var(--u));font-weight:600}
+.classic #emergency{left:calc(20 * var(--u))}.classic #cancel{left:calc(240.5 * var(--u))}
+.shapes .foot{text-decoration:underline;text-decoration-thickness:calc(1.3 * var(--u));text-underline-offset:calc(3 * var(--u))}
+.classic #hbar{display:block;position:absolute;left:50%;bottom:calc(8 * var(--u));width:calc(140 * var(--u));height:calc(5 * var(--u));border-radius:3px;background:#fff;transform:translateX(-50%)}
+#net.on{display:block;font-size:calc(13 * var(--u));font-weight:650;letter-spacing:calc(.1 * var(--u))}
+
 /* ---------- unlocked: home photo ---------- */
 #home{position:fixed;inset:0;background:#000 center/cover no-repeat;opacity:0;transform:scale(1.12);pointer-events:none;
   transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1);z-index:5}
@@ -97,14 +120,18 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
       <div id="sicons">
         <svg style="width:calc(17.7 * var(--u));height:calc(12.2 * var(--u))" viewBox="0 0 17.7 12.2" fill="#fff"><rect x="0" y="8.2" width="3.3" height="4" rx="1.1"/><rect x="4.8" y="5.6" width="3.3" height="6.6" rx="1.1"/><rect x="9.6" y="2.9" width="3.3" height="9.3" rx="1.1"/><rect x="14.4" y="0" width="3.3" height="12.2" rx="1.1"/></svg>
         <svg id="wifi" style="width:calc(16.5 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.3c2.5 0 4.8 1 6.5 2.6l1.3-1.3A11 11 0 0 0 8.5.4 11 11 0 0 0 .7 3.6L2 4.9a9.2 9.2 0 0 1 6.5-2.6Z"/><path d="M8.5 5.8c1.5 0 2.9.6 4 1.6l1.3-1.3a7.6 7.6 0 0 0-10.6 0l1.3 1.3a5.7 5.7 0 0 1 4-1.6Z"/><path d="M8.5 9.2c.6 0 1.1.2 1.5.6L8.5 11.3 7 9.8c.4-.4.9-.6 1.5-.6Z"/></svg>
+        <span id="net"></span>
         <svg id="batt" style="width:calc(26.5 * var(--u));height:calc(13.4 * var(--u))" viewBox="0 0 26.5 13.4">
           <defs><clipPath id="bclip"><rect x="0" y="0" width="24" height="13.4" rx="4.3"/></clipPath></defs>
-          <g clip-path="url(#bclip)"><rect width="24" height="13.4" fill="rgba(255,255,255,.38)"/><rect id="bfill" width="10.3" height="13.4" fill="#fff"/></g>
+          <rect id="bbg" x=".6" y=".6" width="22.8" height="12.2" rx="3.9" fill="rgba(255,255,255,.38)"/><g clip-path="url(#bclip)"><rect id="bfill" width="10.3" height="13.4" fill="#fff"/></g>
           <path d="M25.1 4.6v4.2c.8-.3 1.4-1.1 1.4-2.1s-.6-1.8-1.4-2.1Z" fill="rgba(255,255,255,.4)"/>
+          <path id="bbolt" d="M13.4 2.2 8.2 7.6h3.1l-1.6 3.6 5.2-5.4h-3.1Z" fill="#000" style="display:none"/>
           <text id="btext" x="12" y="10.3" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#000" letter-spacing="-.2">43</text>
         </svg>
       </div>
     </div>
+    <svg id="clock" viewBox="0 0 18 24" fill="#fff"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
+    <div id="hbar"></div>
     <div id="pill">
       <svg class="pl" viewBox="0 0 18 24" fill="#d8d8dc"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
       <svg class="fid" viewBox="0 0 24 24" fill="none" stroke="#a6e8a6" stroke-width="1.45" stroke-linecap="round"><path d="M2.5 7.5V5A2.5 2.5 0 0 1 5 2.5h2.5M16.5 2.5H19A2.5 2.5 0 0 1 21.5 5v2.5M21.5 16.5V19a2.5 2.5 0 0 1-2.5 2.5h-2.5M7.5 21.5H5A2.5 2.5 0 0 1 2.5 19v-2.5M8 8.5v1.5M16 8.5v1.5M12.2 8.5v4.3h-1M9 16.2a4.4 4.4 0 0 0 6 0"/></svg>
@@ -157,11 +184,20 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
   <div class="snote">Runs the shortcut with this name (the same spelling as in the Shortcuts app) each time the phone unlocks: by tilt, or by the code when "After the code" is "Unlock". Leave it empty to run nothing. iOS opens the Shortcuts app to run it.</div>
 
+  <div class="lbl">Look</div>
+  <div class="grp">
+    <div class="r">Style<select id="sStyle"><option value="classic">Classic (frosted keys)</option><option value="glass">iOS 26 (glass keys)</option></select></div>
+    <div class="r">Underline "Emergency / Cancel"<input type="checkbox" id="sShapes"></div>
+    <div class="r">Network<select id="sNet"><option value="none">Signal only</option><option value="lte">Signal + LTE</option><option value="5g">Signal + 5G</option><option value="wifi">Signal + Wi-Fi</option></select></div>
+    <div class="r">Battery number<input type="checkbox" id="sBnum"></div>
+    <div class="r">Charging<input type="checkbox" id="sChg"></div>
+  </div>
+  <div class="snote">Classic: the look of your screenshot (blurred wallpaper, frosted keys, lock icon). iOS 26: sharp wallpaper, glass keys, Face ID in the island.</div>
+
   <div class="lbl">Wallpaper</div>
   <div class="grp">
     <div class="r">Wallpaper<span><button class="sbtn" id="sPick">Choose…</button> <button class="sbtn" id="sReset">Default</button></span></div>
     <div class="r">Battery %<input type="number" id="sBatt" inputmode="numeric" min="1" max="100"></div>
-    <div class="r">Wi-Fi icon<input type="checkbox" id="sWifi"></div>
     <div class="r">Passcode dim<select id="sDim"><option value=".3">Light</option><option value=".5">iOS</option><option value=".65">Dark</option></select></div>
     <div class="r">Home photo<span><button class="sbtn" id="sPickHome">Choose…</button> <button class="sbtn" id="sResetHome">Wallpaper</button></span></div>
   </div>
@@ -182,7 +218,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v8</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v9</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -194,8 +230,9 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',shapes:true,net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
+if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
 if(Q.get('ble')==='0')P.auto=false;
@@ -207,8 +244,16 @@ function haptic(s){try{if(window.Aura&&Aura.haptic)Aura.haptic('impact',{style:s
 
 /* ---------- wallpaper and home photo ---------- */
 function img(key){try{return localStorage.getItem(key)}catch(e){return null}}
-function drawBatt(){const b=Math.max(1,Math.min(100,+P.batt||43));$('bfill').setAttribute('width',(24*b/100).toFixed(2));
-  $('bfill').setAttribute('fill',b<=20?'#ff3b30':'#fff');$('btext').textContent=b;$('btext').setAttribute('fill',b<=20?'#fff':'#000');$('wifi').classList.toggle('off',!P.wifi)}
+function drawBatt(){const b=Math.max(1,Math.min(100,+P.batt||43)),low=b<=20&&!P.chg;
+  B.classList.toggle('classic',P.style!=='glass');B.classList.toggle('shapes',!!P.shapes);
+  const f=$('bfill'),t=$('btext');
+  if(P.bnum){f.setAttribute('x',0);f.setAttribute('y',0);f.setAttribute('height',13.4);f.setAttribute('rx',0);f.setAttribute('width',(24*b/100).toFixed(2));
+    $('bbg').setAttribute('fill','rgba(255,255,255,.38)');$('bbg').setAttribute('stroke','none');t.style.display='';t.textContent=b;t.setAttribute('fill',low?'#fff':'#000')}
+  else{f.setAttribute('x',2);f.setAttribute('y',2);f.setAttribute('height',9.4);f.setAttribute('rx',2.4);f.setAttribute('width',(20*b/100).toFixed(2));
+    $('bbg').setAttribute('fill','none');$('bbg').setAttribute('stroke','rgba(255,255,255,.45)');t.style.display='none'}
+  f.setAttribute('fill',P.chg?'#34c759':low?'#ff3b30':'#fff');
+  $('bbolt').style.display=P.chg&&!P.bnum?'':'none';$('bbolt').setAttribute('fill',P.chg?'#fff':'#000');
+  $('wifi').classList.toggle('off',P.net!=='wifi');const n=$('net');n.textContent=P.net==='lte'?'LTE':P.net==='5g'?'5G':'';n.classList.toggle('on',P.net==='lte'||P.net==='5g')}
 function applyBg(){drawBatt();
   const bg=$('bg'),i=img('pinbg');
   if(i){bg.classList.remove('gradient');bg.style.backgroundImage='url("'+i+'")'}else{bg.classList.add('gradient');bg.style.backgroundImage=''}
@@ -261,7 +306,7 @@ function runShortcut(){
 const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
 const KX=[98.8,200.3,301.9],KY=[340.6,436.3,532,626.5];
 KEYS.forEach(([k,l],i)=>{const e=document.createElement('div');e.className='key'+(k==='0'?' zero':'');e.dataset.k=k;
-  const col=k==='0'?1:i%3,row=k==='0'?3:Math.floor(i/3);
+  const col=k==='0'?1:i%3,row=k==='0'?3:Math.floor(i/3);e.classList.add('r'+row,'c'+col);
   e.style.left='calc('+KX[col]+' * var(--u))';e.style.top='calc('+KY[row]+' * var(--u))';
   e.innerHTML='<b>'+k+'</b>'+(l?'<small>'+l+'</small>':'');$('pad').appendChild(e)});
 let len=P.len,code='',locked=false,waitT=null,lastPin='',armed=false;
@@ -405,7 +450,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sStyle').value=P.style;$('sShapes').checked=P.shapes;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -416,7 +461,11 @@ $('sAfter').onchange=e=>{P.after=e.target.value;saveP()};
 $('sTilt').onchange=e=>{P.tilt=e.target.value;saveP()};
 $('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
 $('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
-$('sWifi').onchange=e=>{P.wifi=e.target.checked;saveP();drawBatt()};
+$('sStyle').onchange=e=>{P.style=e.target.value;saveP();drawBatt()};
+$('sShapes').onchange=e=>{P.shapes=e.target.checked;saveP();drawBatt()};
+$('sNet').onchange=e=>{P.net=e.target.value;saveP();drawBatt()};
+$('sBnum').onchange=e=>{P.bnum=e.target.checked;saveP();drawBatt()};
+$('sChg').onchange=e=>{P.chg=e.target.checked;saveP();drawBatt()};
 $('sCopy').onchange=e=>{P.copy=e.target.checked;saveP()};
 $('sSc').oninput=e=>{P.sc=e.target.value.trim();saveP()};
 $('sScIn').onchange=e=>{P.scIn=e.target.value;saveP()};
