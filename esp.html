@@ -9,15 +9,16 @@
 <title>Notes</title>
 <style>
   :root{
-    --bg:#000; --text:#fff; --dim:#8e8e93; --accent:#ffd60a; --sep:#2c2c2e; --hl:#1c1c1e;
+    --bg:#000; --text:#fff; --dim:#8e8e93; --accent:#ffd60a; --sep:#2c2c2e; --hl:#1c1c1e; --pal:#1c1c1e;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
   html,body{background:var(--bg);color:var(--text);height:100%}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
     -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;
-    overscroll-behavior:none;
+    -webkit-touch-callout:none;overscroll-behavior:none;
   }
+  body.drawing{overflow:hidden;touch-action:none}
   /* Top bar */
   .top{
     position:fixed;top:0;left:0;right:0;z-index:5;
@@ -25,36 +26,40 @@
     display:flex;align-items:center;justify-content:space-between;
     background:linear-gradient(#000 70%,rgba(0,0,0,0));
   }
-  .back{display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px}
+  .back{display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px;cursor:pointer;padding:4px 8px 4px 0}
   .back svg{width:13px;height:21px}
-  .actions{display:flex;gap:22px;align-items:center}
-  .actions svg{width:23px;height:23px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  #mic{cursor:pointer}
+  .actions,.dactions{display:flex;gap:22px;align-items:center}
+  .dactions{display:none}
+  body.drawing .actions{display:none}
+  body.drawing .dactions{display:flex}
+  .top svg{width:23px;height:23px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;cursor:pointer}
+  .top svg.off{opacity:.35}
+  .done{color:var(--accent);font-size:17px;font-weight:600;cursor:pointer}
   #mic .dot{fill:var(--accent);stroke:none}
   #mic.on .ring{fill:var(--accent)}
   #mic.on .dot{fill:#000}
   #mic.err .ring{stroke:#ff453a}
   /* Note body */
-  main{padding:calc(env(safe-area-inset-top) + 56px) 20px calc(env(safe-area-inset-bottom) + 90px)}
+  main{
+    position:relative;min-height:100vh;
+    padding:calc(env(safe-area-inset-top) + 56px) 20px calc(env(safe-area-inset-bottom) + 90px);
+  }
   .date{color:var(--dim);font-size:13px;text-align:center;margin:4px 0 14px}
   h1{font-size:28px;font-weight:700;letter-spacing:.2px;margin-bottom:10px}
+  body.hidden #note{display:none}
   .sec{margin-top:14px}
-  .head{
-    display:flex;align-items:center;gap:6px;font-size:20px;font-weight:700;
-    padding:6px 0;cursor:pointer;
-  }
+  .head{display:flex;align-items:center;gap:6px;font-size:20px;font-weight:700;padding:6px 0;cursor:pointer}
   .head .chev{width:12px;height:12px;stroke:var(--accent);stroke-width:2.4;fill:none;transition:transform .2s}
   .sec.closed .chev{transform:rotate(-90deg)}
   .sec.closed ul{display:none}
   ul{list-style:none}
-  li{
-    display:flex;align-items:baseline;gap:8px;font-size:17px;line-height:1.35;
-    padding:5px 6px;margin:0 -6px;border-radius:8px;
-  }
+  li{display:flex;align-items:baseline;gap:8px;font-size:17px;line-height:1.35;padding:5px 6px;margin:0 -6px;border-radius:8px}
   li.on{background:var(--hl)}
   li .e{width:24px;flex:none;text-align:center}
   li b{font-weight:600}
-  li .w{color:var(--text)}
+  /* Drawing layer */
+  #ink{position:absolute;left:0;top:0;width:100%;pointer-events:none;z-index:2}
+  body.drawing #ink{pointer-events:auto;touch-action:none}
   /* Bottom toolbar */
   .bar{
     position:fixed;left:0;right:0;bottom:0;z-index:5;
@@ -63,12 +68,28 @@
     background:linear-gradient(rgba(0,0,0,0),#000 35%);
   }
   .bar svg{width:25px;height:25px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #markup{cursor:pointer}
+  body.drawing .bar{display:none}
+  /* Markup palette */
+  .pal{
+    position:fixed;left:10px;right:10px;z-index:6;bottom:calc(env(safe-area-inset-bottom) + 10px);
+    background:var(--pal);border-radius:18px;padding:10px 14px;
+    display:none;align-items:flex-end;justify-content:space-between;gap:10px;
+    box-shadow:0 4px 24px rgba(0,0,0,.6);
+  }
+  body.drawing .pal{display:flex}
+  .tools{display:flex;gap:16px;align-items:flex-end;height:54px;overflow:hidden}
+  .tool{width:22px;height:54px;transform:translateY(14px);transition:transform .15s;cursor:pointer}
+  .tool.sel{transform:translateY(2px)}
+  .colors{display:flex;gap:9px;align-items:center;height:54px}
+  .c{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent}
+  .c.sel{border-color:#fff;box-shadow:0 0 0 2px var(--pal) inset}
 </style>
 </head>
 <body>
 
 <div class="top">
-  <div class="back">
+  <div class="back" id="back">
     <svg viewBox="0 0 13 21"><path d="M11 2 2.5 10.5 11 19" stroke="#ffd60a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
     Notes
   </div>
@@ -76,19 +97,34 @@
     <svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
     <svg viewBox="0 0 24 24" id="mic"><circle class="ring" cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r=".9"/><circle class="dot" cx="12" cy="12" r=".9"/><circle class="dot" cx="16.5" cy="12" r=".9"/></svg>
   </div>
+  <div class="dactions">
+    <svg viewBox="0 0 24 24" id="undo"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+    <svg viewBox="0 0 24 24" id="redo"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></svg>
+    <div class="done" id="done">Done</div>
+  </div>
 </div>
 
-<main>
+<main id="main">
   <div class="date" id="date"></div>
   <h1>Drawings</h1>
   <div id="note"></div>
+  <canvas id="ink"></canvas>
 </main>
 
 <div class="bar">
   <svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><path d="M10 6h10M10 12h10M10 18h10"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M12 20s-7-5.5-7-10.5A4 4 0 0 1 12 7a4 4 0 0 1 7 2.5C19 14.5 12 20 12 20Z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M14.5 6.5 8 13a2 2 0 0 0 2.8 2.8L18 8.6a3.5 3.5 0 0 0-5-5L5.6 11a5 5 0 0 0 7.1 7.1L19 12"/></svg>
+  <svg viewBox="0 0 24 24" id="markup"><circle cx="12" cy="12" r="9.5"/><path d="M9 15.5 10.2 12 15 7.2a1 1 0 0 1 1.5 1.5L11.7 13.5Z"/><path d="M8 16.5h4"/></svg>
   <svg viewBox="0 0 24 24"><path d="M15 4.5 19.5 9M5 19l1-4.5L15.5 5a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L9.5 18 5 19Z"/><path d="M4 21h16"/></svg>
+</div>
+
+<div class="pal">
+  <div class="tools">
+    <svg class="tool sel" data-t="pen" viewBox="0 0 22 54"><path d="M3 54V16L11 2l8 14v38Z" fill="#f2f2f7"/><path d="M8 7.5 11 2l3 5.5Z" class="tip" fill="#fff"/><rect class="band" x="3" y="22" width="16" height="5" fill="#fff"/></svg>
+    <svg class="tool" data-t="marker" viewBox="0 0 22 54"><path d="M3 54V18l4-6V5h8v7l4 6v36Z" fill="#f2f2f7"/><rect class="tip" x="7" y="5" width="8" height="5" fill="#fff"/><rect class="band" x="3" y="24" width="16" height="5" fill="#fff"/></svg>
+    <svg class="tool" data-t="eraser" viewBox="0 0 22 54"><path d="M3 54V12a8 8 0 0 1 16 0v42Z" fill="#f2f2f7"/><path d="M3 12a8 8 0 0 1 16 0v4H3Z" fill="#ff9fb0"/></svg>
+  </div>
+  <div class="colors" id="colors"></div>
 </div>
 
 <script>
@@ -115,25 +151,26 @@ const DATA = [
   ]]
 ];
 
+const Q = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
+
 // Live date line, same format as iOS Notes
 const d = new Date();
-document.getElementById("date").textContent =
+$("date").textContent =
   d.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}) + " at " +
   d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
 
-const note = document.getElementById("note");
+/* ---------- The list ---------- */
+const note = $("note");
 DATA.forEach(([title, items]) => {
   const sec = document.createElement("div");
   sec.className = "sec";
   sec.innerHTML =
     `<div class="head"><svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4"/></svg>${title}</div>` +
     `<ul>${items.map(([e,k,w]) => `<li><span class="e">${e}</span><span><b>${k}:</b> <span class="w">${w}</span></span></li>`).join("")}</ul>`;
-  // Tap a heading to collapse or open the section (like iOS Notes)
   sec.querySelector(".head").onclick = () => sec.classList.toggle("closed");
   note.appendChild(sec);
 });
-
-// Tap a line to mark it (tap again to clear)
 note.addEventListener("click", e => {
   const li = e.target.closest("li");
   if (!li) return;
@@ -142,25 +179,144 @@ note.addEventListener("click", e => {
   if (!was) li.classList.add("on");
 });
 
+// Tap "‹ Notes" to hide or show the list. ?h=1 starts with the list hidden.
+if (Q.get("h") === "1") document.body.classList.add("hidden");
+$("back").addEventListener("click", () => {
+  if (document.body.classList.contains("drawing")) return;
+  document.body.classList.toggle("hidden");
+  window.scrollTo(0, 0);
+  sizeInk();
+});
+
+/* ---------- Drawing (Markup) ---------- */
+const ink = $("ink"), ctx = ink.getContext("2d"), main = $("main");
+const COLORS = ["#ffffff","#ffd60a","#ff453a","#0a84ff","#30d158"];
+let tool = "pen", color = COLORS[0];
+let strokes = [], redoStack = [], cur = null;
+
+function sizeInk() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = main.clientWidth, h = Math.max(main.scrollHeight, window.innerHeight);
+  ink.style.height = h + "px";
+  ink.width = Math.round(w * dpr); ink.height = Math.round(h * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  redraw();
+}
+
+function drawStroke(s) {
+  const p = s.pts;
+  if (!p.length) return;
+  ctx.save();
+  ctx.globalCompositeOperation = s.tool === "eraser" ? "destination-out" : "source-over";
+  ctx.globalAlpha = s.tool === "marker" ? 0.45 : 1;
+  ctx.strokeStyle = ctx.fillStyle = s.color;
+  ctx.lineCap = "round"; ctx.lineJoin = "round";
+  const base = s.tool === "pen" ? 3.2 : s.tool === "marker" ? 14 : 26;
+  if (p.length === 1) {
+    ctx.beginPath(); ctx.arc(p[0].x, p[0].y, base / 2, 0, Math.PI * 2); ctx.fill();
+  } else if (s.tool === "pen") {
+    // Pen: width follows Apple Pencil pressure
+    for (let i = 1; i < p.length; i++) {
+      const a = p[i - 1], b = p[i], m1 = i > 1 ? mid(p[i - 2], a) : a, m2 = mid(a, b);
+      ctx.lineWidth = base * (0.55 + b.f);
+      ctx.beginPath(); ctx.moveTo(m1.x, m1.y); ctx.quadraticCurveTo(a.x, a.y, m2.x, m2.y); ctx.stroke();
+    }
+  } else {
+    ctx.lineWidth = base;
+    ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y);
+    for (let i = 1; i < p.length - 1; i++) { const m = mid(p[i], p[i + 1]); ctx.quadraticCurveTo(p[i].x, p[i].y, m.x, m.y); }
+    ctx.lineTo(p[p.length - 1].x, p[p.length - 1].y); ctx.stroke();
+  }
+  ctx.restore();
+}
+const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+
+function redraw() {
+  ctx.clearRect(0, 0, ink.width, ink.height);
+  strokes.forEach(drawStroke);
+  $("undo").classList.toggle("off", !strokes.length);
+  $("redo").classList.toggle("off", !redoStack.length);
+}
+
+function pt(e) {
+  const r = ink.getBoundingClientRect();
+  const f = e.pointerType === "pen" && e.pressure ? e.pressure : 0.5;
+  return { x: e.clientX - r.left, y: e.clientY - r.top, f };
+}
+ink.addEventListener("pointerdown", e => {
+  if (!document.body.classList.contains("drawing")) return;
+  e.preventDefault();
+  ink.setPointerCapture(e.pointerId);
+  cur = { tool, color, pts: [pt(e)] };
+  strokes.push(cur); redoStack = [];
+  redraw();
+});
+ink.addEventListener("pointermove", e => {
+  if (!cur) return;
+  e.preventDefault();
+  const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+  evs.forEach(ev => cur.pts.push(pt(ev)));
+  redraw();
+});
+["pointerup", "pointercancel"].forEach(t => ink.addEventListener(t, () => { cur = null; }));
+// Stop iOS from scrolling the page while you draw
+document.addEventListener("touchmove", e => { if (document.body.classList.contains("drawing")) e.preventDefault(); }, { passive: false });
+
+$("markup").addEventListener("click", () => { document.body.classList.add("drawing"); sizeInk(); });
+$("done").addEventListener("click", () => document.body.classList.remove("drawing"));
+$("undo").addEventListener("click", () => { if (strokes.length) { redoStack.push(strokes.pop()); redraw(); } });
+$("redo").addEventListener("click", () => { if (redoStack.length) { strokes.push(redoStack.pop()); redraw(); } });
+
+// Tools and colors
+document.querySelectorAll(".tool").forEach(t => t.addEventListener("click", () => {
+  document.querySelectorAll(".tool").forEach(x => x.classList.remove("sel"));
+  t.classList.add("sel"); tool = t.dataset.t;
+}));
+const colorsEl = $("colors");
+COLORS.forEach((c, i) => {
+  const el = document.createElement("div");
+  el.className = "c" + (i ? "" : " sel"); el.style.background = c;
+  el.onclick = () => {
+    colorsEl.querySelectorAll(".c").forEach(x => x.classList.remove("sel"));
+    el.classList.add("sel"); color = c; paintTools();
+  };
+  colorsEl.appendChild(el);
+});
+function paintTools() {
+  document.querySelectorAll(".tool .tip, .tool .band").forEach(x => x.setAttribute("fill", color));
+}
+paintTools();
+
+// Hold the date for 1 second to clear the drawing for the next spectator
+let holdT;
+$("date").addEventListener("pointerdown", () => {
+  holdT = setTimeout(() => { strokes = []; redoStack = []; redraw(); if (navigator.vibrate) navigator.vibrate(30); }, 1000);
+});
+["pointerup", "pointerleave", "pointercancel"].forEach(t => $("date").addEventListener(t, () => clearTimeout(holdT)));
+
+window.addEventListener("resize", sizeInk);
+sizeInk();
+
 /* ---------- Listen for key words ---------- */
 // Settings in the link: ?pk=0 stops peeks to Peek Island, ?ch=name changes the channel
-const Q = new URLSearchParams(location.search);
 const PEEK_ON = Q.get("pk") !== "0";
 const CHANNEL = Q.get("ch") || "fvt-c-k27x9m4q8w";
 
-// Give each line its key word. Longest key words first, so "in the sky" wins over "sky".
 const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
 const KEYS = [];
 note.querySelectorAll("li").forEach(li => {
-  const [e, k, w] = [li.querySelector(".e").textContent, li.querySelector("b").textContent.replace(":",""), li.querySelector(".w").textContent];
-  KEYS.push({ key: norm(w), emoji: e, name: k, li });
+  KEYS.push({
+    key: norm(li.querySelector(".w").textContent),
+    emoji: li.querySelector(".e").textContent,
+    name: li.querySelector("b").textContent.replace(":", ""),
+    li
+  });
 });
 KEYS.sort((a, b) => b.key.length - a.key.length);
 
 function findKey(text) {
   const t = " " + norm(text) + " ";
   let best = null, bestPos = -1;
-  // Use the key word that was said last
   for (const k of KEYS) {
     const p = t.lastIndexOf(" " + k.key + " ");
     if (p > bestPos) { best = k; bestPos = p; }
@@ -171,21 +327,21 @@ function findKey(text) {
 let lastHit = null, lastHitAt = 0;
 function hit(k) {
   const now = Date.now();
-  if (k === lastHit && now - lastHitAt < 1500) return;   // do not repeat the same word
+  if (k === lastHit && now - lastHitAt < 1500) return;
   lastHit = k; lastHitAt = now;
-  const sec = k.li.closest(".sec");
-  sec.classList.remove("closed");
   note.querySelectorAll("li.on").forEach(x => x.classList.remove("on"));
   k.li.classList.add("on");
-  k.li.scrollIntoView({ behavior: "smooth", block: "center" });
-  if (navigator.vibrate) navigator.vibrate(40);
-  if (PEEK_ON) {
-    fetch("https://ntfy.sh/" + CHANNEL, { method: "POST", body: k.emoji + " " + k.name }).catch(() => {});
+  // Scroll to the line only when the list shows and you are not drawing
+  if (!document.body.classList.contains("hidden") && !document.body.classList.contains("drawing")) {
+    k.li.closest(".sec").classList.remove("closed");
+    k.li.scrollIntoView({ behavior: "smooth", block: "center" });
   }
+  if (navigator.vibrate) navigator.vibrate(40);
+  if (PEEK_ON) fetch("https://ntfy.sh/" + CHANNEL, { method: "POST", body: k.emoji + " " + k.name }).catch(() => {});
 }
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-const micBtn = document.getElementById("mic");
+const micBtn = $("mic");
 let rec = null, listening = false, seen = new Set();
 
 function startRec() {
@@ -196,7 +352,6 @@ function startRec() {
   rec.onresult = ev => {
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
       const k = findKey(ev.results[i][0].transcript);
-      // Each key word fires one time in each sentence
       if (k && !seen.has(i + "|" + k.key)) { seen.add(i + "|" + k.key); hit(k); }
     }
   };
@@ -207,7 +362,6 @@ function startRec() {
       micBtn.classList.add("err");
     }
   };
-  // iOS stops after a pause. Start again while the mic is on.
   rec.onend = () => {
     seen = new Set();
     if (listening) { try { rec.start(); } catch (e) { setTimeout(() => listening && startRec(), 300); } }
