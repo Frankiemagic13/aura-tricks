@@ -22,9 +22,9 @@ body{position:fixed;inset:0;
     radial-gradient(110% 70% at 90% 95%,#0f4a63 0%,transparent 60%),
     linear-gradient(160deg,#141026,#05070d);
   padding:calc(env(safe-area-inset-top) + 34px) 22px calc(env(safe-area-inset-bottom) + 24px)}
-/* Icon grid: 4 across like the iOS home screen */
-.grid{display:grid;grid-template-columns:repeat(4,1fr);row-gap:26px;column-gap:10px;justify-items:center}
-.app{display:flex;flex-direction:column;align-items:center;gap:6px;width:100%;cursor:pointer}
+/* Apps sit in the dock at the bottom, like the iOS dock */
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.dock .label{display:none}
 .icon{width:62px;height:62px;border-radius:14px;position:relative;overflow:hidden;
   box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .12s ease,filter .12s ease}
 .app.down .icon{transform:scale(.9);filter:brightness(.75)}
@@ -47,6 +47,7 @@ body{position:fixed;inset:0;
 /* Dock */
 .dock{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);
   height:92px;border-radius:30px;background:rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:space-evenly;padding:0 8px;
   -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
 /* Launch zoom */
 .fade{position:fixed;z-index:9;pointer-events:none;opacity:0;border-radius:14px;
@@ -55,7 +56,7 @@ body{position:fixed;inset:0;
 </style>
 </head>
 <body>
-<div class="grid">
+<div class="dock">
   <div class="app" data-go="notes" data-bg="#fff" id="nApp">
     <div class="icon notes"><i></i><i></i><i></i></div>
     <div class="label">Notes</div>
@@ -74,7 +75,6 @@ body{position:fixed;inset:0;
     <div class="label">Flashlight</div>
   </div>
 </div>
-<div class="dock"></div>
 <div class="fade" id="fade"></div>
 <script>
 const BASE='https://frankiemagic13.github.io/aura-tricks/';
