@@ -547,7 +547,11 @@ async function injSend(manual){
 let pxNear=false;
 function pxRead(d){
   if(d==null)return null;
-  if(typeof d!=='object')return d===true||d===1||d==='near'||d==='covered';
+  if(typeof d==='boolean')return d;
+  if(d===1||d===0)return d===1;
+  if(typeof d==='string'){const s=d.toLowerCase();
+    return['near','covered','true','1'].includes(s)?true:['far','uncovered','clear','false','0'].includes(s)?false:null}
+  if(typeof d!=='object')return null;
   for(const k of ['near','covered','isNear','isCovered','proximity','proximityState','state','value','detected'])if(k in d)return pxRead(d[k]);
   return null}
 function pxChange(near){near=!!near;const n=$('pxNow');if(n)n.textContent=near?'Yes':'No';
@@ -571,7 +575,7 @@ async function pxStart(){
       if(f==='on'){for(const ev of ['change','changed','proximity','update','near','state'])try{P.on(ev,cb)}catch(e){}res.push('on');continue}
       try{r=P[f](cb)}catch(e){r=P[f]({})}
       if(r&&typeof r.then==='function')r=await r.then(x=>x,e=>'error '+((e&&e.message)||e));
-      res.push(f+'→'+pxShort(r));const v=pxRead(r);if(v!==null)pxChange(v)}
+      res.push(f+'→'+pxShort(r));const v=(r&&typeof r==='object')?pxRead(r):null;if(v!==null)pxChange(v)}
     catch(e){res.push(f+' error '+e.message)}}
   for(const f of pxKeys(P)){
     if(typeof P[f]!=='function'||!/^(get|read|current|isNear|query|state)/i.test(f))continue;
@@ -602,7 +606,22 @@ function pxInit(){
   addEventListener('userproximity',e=>{pxChange(e.near)});
   $('pxSt').textContent=found.length?found.join(', '):'Not available'}
 $('pxStart').onclick=pxStart;
-pxInit();
+/* start the sensor automatically: when the page opens, on the first taps (some sensors start only
+   after a tap) and each time the page comes back to the front. Stops trying when data comes in. */
+let pxGot=false,pxTries=0,pxLastTry=0;
+{const o=pxChange;pxChange=function(n){pxGot=true;return o(n)}}
+function pxAuto(force){
+  if(!window.Aura||!window.Aura.proximity)return;
+  if(!force&&(pxGot||pxTries>=6||Date.now()-pxLastTry<600))return;
+  pxTries++;pxLastTry=Date.now();pxStart()}
+function pxBoot(){
+  if(window.Aura){pxInit();setTimeout(()=>pxAuto(),1200);return}
+  let n=0;const t=setInterval(()=>{n++;   // Aura can add window.Aura a moment after the page loads
+    if(window.Aura){clearInterval(t);pxInit();setTimeout(()=>pxAuto(),1200)}
+    else if(n>=20){clearInterval(t);pxInit()}},250)}
+addEventListener('touchstart',()=>pxAuto(),{capture:true,passive:true});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){pxGot=false;pxTries=0;setTimeout(()=>pxAuto(true),300)}});
+pxBoot();
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
