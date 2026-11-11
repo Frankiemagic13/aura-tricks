@@ -214,6 +214,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Vibrate on each peek<label><input type="checkbox" id="bleVib" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
     <div class="r" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready"></div>
+    <div class="r">Birthday peek<select id="bdMode"><option value="mdy">Month + Day + Year</option><option value="dmy">Day + Month + Year</option><option value="off">Off</option></select></div>
   </div>
   <div class="note" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. The page must be open in Aura or AuraClip.</div>
   <div class="lbl">PeekSmith buttons</div>
@@ -361,8 +362,25 @@ function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}if
 function psNow(t){clearTimeout(psT);psPost(t)}
 function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),400)}
 function psExpr(t){return t.map(x=>x==='−'?' - ':x==='×'?' x ':x==='÷'?' / ':x==='+'?' + ':x).join('').trim()}
+/* birthday peek: if the first 3 numbers are a birth date (for example 10 + 29 + 1999),
+   the peek is the days since birth and the star sign, for example "9,874 days Scorpio" */
+/* [month, first day, sign that starts on that day] */
+const SIGNS=[[1,20,'Aquarius'],[2,19,'Pisces'],[3,21,'Aries'],[4,20,'Taurus'],[5,21,'Gemini'],[6,21,'Cancer'],
+  [7,23,'Leo'],[8,23,'Virgo'],[9,23,'Libra'],[10,23,'Scorpio'],[11,22,'Sagittarius'],[12,22,'Capricorn']];
+function starSign(m,d){let z='Capricorn';for(const [mm,dd,n] of SIGNS){if(m===mm)return d<dd?z:n;z=n}return z}
+function birthPeek(nums){
+  if(S.bdMode==='off'||!nums||nums.length!==3)return null;
+  const v=nums.map(x=>String(x));if(v.some(x=>!/^\d+$/.test(x)))return null;
+  let [a,b,y]=v.map(Number);const [m,d]=S.bdMode==='dmy'?[b,a]:[a,b];
+  const now=new Date(),cy=now.getFullYear();
+  if(v[2].length===2)y=y<=cy%100?2000+y:1900+y;else if(v[2].length!==4)return null;
+  if(y<1900||y>cy||m<1||m>12||d<1||d>new Date(y,m,0).getDate())return null;
+  const days=Math.floor((Date.UTC(cy,now.getMonth(),now.getDate())-Date.UTC(y,m-1,d))/864e5);
+  if(days<0)return null;
+  return days.toLocaleString('en-US')+' days '+starSign(m,d)}
 function psAfter(k){
-  if(k==='='){if(result!==null)psNow(lastExpr+' = '+fmtNum(result));return}
+  if(k==='='){if(result!==null){const bp=birthPeek(eqNums);psNow(bp||lastExpr+' = '+fmtNum(result))}return}
+  if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
   if(force!==null&&fi>0)return;
   if(toks.length===0&&cur==='')return;
   let t=psExpr(toks.concat(cur!==''?[cur]:[]));
@@ -605,6 +623,7 @@ function conSync(){$('conMode').value=S.conMode;$('conText').value=S.conText;$('
 $('conMode').onchange=e=>{S.conMode=e.target.value;saveS();conSync();conShow()};
 $('conText').onchange=e=>{S.conText=e.target.value;saveS();conShow()};
 conSync();
+if(!S.bdMode)S.bdMode='mdy';$('bdMode').value=S.bdMode;$('bdMode').onchange=e=>{S.bdMode=e.target.value;saveS()};
 document.getElementById('bleAuto').checked=!!S.bleAuto;document.getElementById('bleVib').checked=!!S.bleVib;
 if(!AURA){bleStatus('Only in Aura');document.getElementById('bleNote').textContent='Bluetooth is only available when this page is open in Aura or AuraClip (and the site is in your Aura bookmarks). Online peeks still work.'}
 else{
@@ -712,7 +731,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v18. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v19. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
