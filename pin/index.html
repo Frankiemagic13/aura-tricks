@@ -177,12 +177,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Send to Inject</div>
   <div class="grp">
     <div class="r">Send to Inject<input type="checkbox" id="sInj"></div>
-    <div class="r">Send when<select id="sInjWhen"><option value="code">The code is complete</option><option value="unlock">The phone unlocks</option><option value="button">PeekSmith side button (hold)</option></select></div>
+    <div class="r">Send when<select id="sInjWhen"><option value="tilt">Tilt, then the code</option><option value="code">The code is complete</option><option value="unlock">The phone unlocks</option><option value="button">PeekSmith side button (hold)</option></select></div>
     <div class="r">Which PIN<select id="sInjWhich"><option value="a">First (birthday passed)</option><option value="b">Second (birthday not passed)</option><option value="both">Both (4821/4822)</option><option value="space">Both (4821 4822)</option><option value="two">Both, as 2 notifications</option></select></div>
     <div class="r">Inject ID<input type="number" id="sInjId" inputmode="numeric" placeholder="13297"></div>
     <div class="r"><button class="sbtn" id="sInjTest">Send now (test: 1234)</button><span class="val" id="sInjSt"></span></div>
   </div>
-  <div class="snote">Sends the PIN to your Inject (needs internet). On by default. "Which PIN" is used when the PeekSmith shows two PINs or a range. The PeekSmith shows "Inject: 4821" when it is sent. You can also send it with the PeekSmith side button (hold) at any time.</div>
+  <div class="snote">Sends the PIN to your Inject (needs internet). On by default. "Tilt, then the code": only the code typed after you tilt the phone up goes to Inject; codes typed before the tilt do not. "Which PIN" is used when the PeekSmith shows two PINs or a range. The PeekSmith shows "Inject: 4821" when it is sent. You can also send it with the PeekSmith side button (hold) at any time.</div>
 
   <div class="lbl">Shortcut after unlock</div>
   <div class="grp">
@@ -238,10 +238,11 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'code',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
+if(!P.injTiltV){P.injWhen='tilt';P.injTiltV=1} // New default: send only the code typed after the tilt
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
 if(Q.get('ble')==='0')P.auto=false;
@@ -355,7 +356,7 @@ function complete(){
   waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
   onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{});
   if(P.online){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
-  if(P.inj&&P.injWhen==='code')injSend(false);
+  if(P.inj&&(P.injWhen==='code'||(P.injWhen==='tilt'&&armed)))injSend(false);
   if(armed||P.after==='unlock'){armed=false;unlock();return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
