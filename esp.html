@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#000000">
+<title>Notes</title>
+<style>
+  :root{
+    --bg:#000; --text:#fff; --dim:#8e8e93; --accent:#ffd60a; --sep:#2c2c2e; --hl:#1c1c1e;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{background:var(--bg);color:var(--text);height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;
+    -webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none;
+    overscroll-behavior:none;
+  }
+  /* Top bar */
+  .top{
+    position:fixed;top:0;left:0;right:0;z-index:5;
+    padding:calc(env(safe-area-inset-top) + 6px) 12px 8px;
+    display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(#000 70%,rgba(0,0,0,0));
+  }
+  .back{display:flex;align-items:center;gap:2px;color:var(--accent);font-size:17px}
+  .back svg{width:13px;height:21px}
+  .actions{display:flex;gap:22px;align-items:center}
+  .actions svg{width:23px;height:23px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  #mic{cursor:pointer}
+  #mic .dot{fill:var(--accent);stroke:none}
+  #mic.on .ring{fill:var(--accent)}
+  #mic.on .dot{fill:#000}
+  #mic.err .ring{stroke:#ff453a}
+  /* Note body */
+  main{padding:calc(env(safe-area-inset-top) + 56px) 20px calc(env(safe-area-inset-bottom) + 90px)}
+  .date{color:var(--dim);font-size:13px;text-align:center;margin:4px 0 14px}
+  h1{font-size:28px;font-weight:700;letter-spacing:.2px;margin-bottom:10px}
+  .sec{margin-top:14px}
+  .head{
+    display:flex;align-items:center;gap:6px;font-size:20px;font-weight:700;
+    padding:6px 0;cursor:pointer;
+  }
+  .head .chev{width:12px;height:12px;stroke:var(--accent);stroke-width:2.4;fill:none;transition:transform .2s}
+  .sec.closed .chev{transform:rotate(-90deg)}
+  .sec.closed ul{display:none}
+  ul{list-style:none}
+  li{
+    display:flex;align-items:baseline;gap:8px;font-size:17px;line-height:1.35;
+    padding:5px 6px;margin:0 -6px;border-radius:8px;
+  }
+  li.on{background:var(--hl)}
+  li .e{width:24px;flex:none;text-align:center}
+  li b{font-weight:600}
+  li .w{color:var(--text)}
+  /* Bottom toolbar */
+  .bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:5;
+    padding:10px 26px calc(env(safe-area-inset-bottom) + 10px);
+    display:flex;justify-content:space-between;align-items:center;
+    background:linear-gradient(rgba(0,0,0,0),#000 35%);
+  }
+  .bar svg{width:25px;height:25px;stroke:var(--accent);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="back">
+    <svg viewBox="0 0 13 21"><path d="M11 2 2.5 10.5 11 19" stroke="#ffd60a" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Notes
+  </div>
+  <div class="actions">
+    <svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+    <svg viewBox="0 0 24 24" id="mic"><circle class="ring" cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r=".9"/><circle class="dot" cx="12" cy="12" r=".9"/><circle class="dot" cx="16.5" cy="12" r=".9"/></svg>
+  </div>
+</div>
+
+<main>
+  <div class="date" id="date"></div>
+  <h1>Drawings</h1>
+  <div id="note"></div>
+</main>
+
+<div class="bar">
+  <svg viewBox="0 0 24 24"><circle cx="5" cy="6" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="5" cy="18" r="1.6"/><path d="M10 6h10M10 12h10M10 18h10"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M12 20s-7-5.5-7-10.5A4 4 0 0 1 12 7a4 4 0 0 1 7 2.5C19 14.5 12 20 12 20Z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M15 4.5 19.5 9M5 19l1-4.5L15.5 5a1.4 1.4 0 0 1 2 0l1.5 1.5a1.4 1.4 0 0 1 0 2L9.5 18 5 19Z"/><path d="M4 21h16"/></svg>
+</div>
+
+<script>
+const DATA = [
+  ["ESP", [
+    ["⭕️","CIRCLE","wonderful"],["➕","CROSS","towards"],["🌊","WAVES","free"],
+    ["🔺","TRIANGLE","fair choice"],["🟨","SQUARE","fantastic"],["⭐️","STAR","finally"]
+  ]],
+  ["DRAWINGS", [
+    ["🧍","STICK FIG","human"],["😃","SMILEY","zoomed"],["❤️","HEART","affectionate"],
+    ["🛥️","BOAT","serene"],["🏠","HOUSE","wholesome"],["🚲","BIKE","movement"],
+    ["🚗","CAR","speed"],["🚂","TRAIN","momentum"],["✈️","PLANE","take flight"],
+    ["🚀","ROCKET","outer space"],["⛩️","TABLE","surface"],["📺","TV","visual"],
+    ["📞","PHONE","communicate"],["📖","BOOK","literature"],["🍷","GLASS","drink from"],
+    ["✏️","PEN(CIL)","artistic"],["🔐","KEY","security"],["⏰","CLOCK","keeping time"],
+    ["🔪","KNIFE","sharp"],["🔫","GUN","lethal"],["🌳","TREE","natural"],
+    ["🌻","FLOWER","organic"],["☀️","SUN","painting"],["🌙","MOON","night sky"],
+    ["🌧️","RAIN","weather"],["⚡️","BOLT","powerful"],["🐶","DOG","loyal"],
+    ["🐱","CAT","living"],["🐟","FISH","underwater"],["🦜","BIRD","in the sky"],
+    ["👽","ALIEN","weirdly"],["👻","GHOST","spooky"],["💀","SKULL","morbid"]
+  ]],
+  ["HECKLERS", [
+    ["📝","SCRIBBLE","nothing"],["🖕🏼","F-U","offensive"],["🚫","NO","negative"],["🍆","COCK","strangely"]
+  ]]
+];
+
+// Live date line, same format as iOS Notes
+const d = new Date();
+document.getElementById("date").textContent =
+  d.toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"}) + " at " +
+  d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit"});
+
+const note = document.getElementById("note");
+DATA.forEach(([title, items]) => {
+  const sec = document.createElement("div");
+  sec.className = "sec";
+  sec.innerHTML =
+    `<div class="head"><svg class="chev" viewBox="0 0 12 12"><path d="M2 4l4 4 4-4"/></svg>${title}</div>` +
+    `<ul>${items.map(([e,k,w]) => `<li><span class="e">${e}</span><span><b>${k}:</b> <span class="w">${w}</span></span></li>`).join("")}</ul>`;
+  // Tap a heading to collapse or open the section (like iOS Notes)
+  sec.querySelector(".head").onclick = () => sec.classList.toggle("closed");
+  note.appendChild(sec);
+});
+
+// Tap a line to mark it (tap again to clear)
+note.addEventListener("click", e => {
+  const li = e.target.closest("li");
+  if (!li) return;
+  const was = li.classList.contains("on");
+  note.querySelectorAll("li.on").forEach(x => x.classList.remove("on"));
+  if (!was) li.classList.add("on");
+});
+
+/* ---------- Listen for key words ---------- */
+// Settings in the link: ?pk=0 stops peeks to Peek Island, ?ch=name changes the channel
+const Q = new URLSearchParams(location.search);
+const PEEK_ON = Q.get("pk") !== "0";
+const CHANNEL = Q.get("ch") || "fvt-c-k27x9m4q8w";
+
+// Give each line its key word. Longest key words first, so "in the sky" wins over "sky".
+const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+const KEYS = [];
+note.querySelectorAll("li").forEach(li => {
+  const [e, k, w] = [li.querySelector(".e").textContent, li.querySelector("b").textContent.replace(":",""), li.querySelector(".w").textContent];
+  KEYS.push({ key: norm(w), emoji: e, name: k, li });
+});
+KEYS.sort((a, b) => b.key.length - a.key.length);
+
+function findKey(text) {
+  const t = " " + norm(text) + " ";
+  let best = null, bestPos = -1;
+  // Use the key word that was said last
+  for (const k of KEYS) {
+    const p = t.lastIndexOf(" " + k.key + " ");
+    if (p > bestPos) { best = k; bestPos = p; }
+  }
+  return best;
+}
+
+let lastHit = null, lastHitAt = 0;
+function hit(k) {
+  const now = Date.now();
+  if (k === lastHit && now - lastHitAt < 1500) return;   // do not repeat the same word
+  lastHit = k; lastHitAt = now;
+  const sec = k.li.closest(".sec");
+  sec.classList.remove("closed");
+  note.querySelectorAll("li.on").forEach(x => x.classList.remove("on"));
+  k.li.classList.add("on");
+  k.li.scrollIntoView({ behavior: "smooth", block: "center" });
+  if (navigator.vibrate) navigator.vibrate(40);
+  if (PEEK_ON) {
+    fetch("https://ntfy.sh/" + CHANNEL, { method: "POST", body: k.emoji + " " + k.name }).catch(() => {});
+  }
+}
+
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const micBtn = document.getElementById("mic");
+let rec = null, listening = false, seen = new Set();
+
+function startRec() {
+  rec = new SR();
+  rec.lang = "en-US";
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onresult = ev => {
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const k = findKey(ev.results[i][0].transcript);
+      // Each key word fires one time in each sentence
+      if (k && !seen.has(i + "|" + k.key)) { seen.add(i + "|" + k.key); hit(k); }
+    }
+  };
+  rec.onerror = ev => {
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+      listening = false;
+      micBtn.classList.remove("on");
+      micBtn.classList.add("err");
+    }
+  };
+  // iOS stops after a pause. Start again while the mic is on.
+  rec.onend = () => {
+    seen = new Set();
+    if (listening) { try { rec.start(); } catch (e) { setTimeout(() => listening && startRec(), 300); } }
+  };
+  rec.start();
+}
+
+micBtn.addEventListener("click", () => {
+  if (!SR) { micBtn.classList.add("err"); return; }
+  micBtn.classList.remove("err");
+  listening = !listening;
+  micBtn.classList.toggle("on", listening);
+  if (listening) startRec();
+  else if (rec) { try { rec.stop(); } catch (e) {} }
+});
+</script>
+</body>
+</html>
