@@ -219,14 +219,15 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r"><button class="sbtn" id="bleBtn">Connect PeekSmith</button><button class="sbtn" id="bleTest">Test</button></div>
     <div class="r">Search automatically<input type="checkbox" id="sAuto"></div>
     <div class="r">Show the time when it freezes<input type="checkbox" id="sPkTime"></div>
+    <div class="r">Peek only after the tilt<input type="checkbox" id="sPkTilt"></div>
     <div class="r">Show digits while typing<input type="checkbox" id="sPkLive"></div>
     <div class="r">Vibrate with the PIN<input type="checkbox" id="sVib"></div>
   </div>
-  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = send to Inject.</div>
+  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = send to Inject. "Peek only after the tilt": codes typed before you tilt the phone up do not go to the PeekSmith or the online peeks; only the code typed after the tilt does (with "Tilt straight up" set to "Next code unlocks").</div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v15</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v16</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -238,7 +239,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
@@ -321,6 +322,8 @@ KEYS.forEach(([k,l],i)=>{const e=document.createElement('div');e.className='key'
   e.style.left='calc('+KX[col]+' * var(--u))';e.style.top='calc('+KY[row]+' * var(--u))';
   e.innerHTML='<b>'+k+'</b>'+(l?'<small>'+l+'</small>':'');$('pad').appendChild(e)});
 let len=P.len,code='',locked=false,waitT=null,lastPin='',armed=false;
+/* Peek only the code typed after the tilt (when tilt arms the next code) */
+function peekOk(){return !P.pkTilt||P.tilt!=='arm'||armed}
 function drawDots(){const d=$('dots');d.innerHTML='';for(let i=0;i<len;i++){const s=document.createElement('div');s.className='dot'+(i<code.length?' on':'');d.appendChild(s)}
   $('cancel').textContent=code.length?'Delete':'Cancel'}
 drawDots();
@@ -331,7 +334,7 @@ function digit(k){
   if(locked||view!=='pass'||code.length>=len)return;
   if(!frozen)freeze();
   code+=k;haptic();drawDots();
-  if(P.pkLive)psWrite(code.split('').join(' '));
+  if(P.pkLive&&peekOk())psWrite(code.split('').join(' '));
   if(code.length===len){locked=true;armCopy();setTimeout(complete,180)}}
 /* copy: iOS allows the clipboard only during a tap, so the PIN is copied when the finger lifts from the last key */
 let pendingCopy='';
@@ -354,15 +357,16 @@ function calcPin(total){
   if(a&&b)return a+'/'+b;return a||b||('? '+total)}
 function complete(){
   waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
-  onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{});
-  if(P.online){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
+  const pk=peekOk();
+  if(pk){onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{})}
+  if(P.online&&pk){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
   if(P.inj&&(P.injWhen==='code'||(P.injWhen==='tilt'&&armed)))injSend(false);
   if(armed||P.after==='unlock'){armed=false;unlock();return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
   setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots();if(P.after==='lock')toLock(true)},560)}
 $('cancel').onclick=()=>{if(view!=='pass'||locked)return;
-  if(code.length){code=code.slice(0,-1);clearTimeout(waitT);waitT=null;drawDots();if(P.pkLive)psWrite(code?code.split('').join(' '):' ')}
+  if(code.length){code=code.slice(0,-1);clearTimeout(waitT);waitT=null;drawDots();if(P.pkLive&&peekOk())psWrite(code?code.split('').join(' '):' ')}
 };
 
 /* key touches: instant highlight like iOS */
@@ -464,7 +468,7 @@ function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
-  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
+  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
 $('sH24').onchange=e=>{P.h24=e.target.value==='1';saveP();if(frozen){const f=frozen;frozen=null;/* keep the same moment, new format */const h=Math.floor(f.num/100),m=f.num%100;frozen={str:(P.h24?pad2(h):h)+':'+pad2(m),num:f.num}}drawClock()};
@@ -515,6 +519,7 @@ $('sDim').onchange=e=>{P.dim=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
 $('sPkLive').onchange=e=>{P.pkLive=e.target.checked;saveP()};
+$('sPkTilt').onchange=e=>{P.pkTilt=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
 $('bleBtn').onclick=bleToggle;
