@@ -430,10 +430,31 @@ function blindTap(e){if(!faceDown||document.body.classList.contains('open'))retu
 
 /* touch: 0 key tap = 0, hold 0.7 s = secret settings */
 const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
+/* secret: type a number, then hold any key 1–9 for 0.7 s = that number becomes the force (Custom).
+   The held digit is taken back, the display goes back to 0, and the PeekSmith shows "Force: …". */
+let digT=null;
+function snap(){return{toks:toks.slice(),cur,result,shownExpr,armed,force,fi,before,fOp,forceTarget,eqNums:eqNums.slice()}}
+function unsnap(z){toks=z.toks;cur=z.cur;result=z.result;shownExpr=z.shownExpr;armed=z.armed;force=z.force;fi=z.fi;before=z.before;fOp=z.fOp;forceTarget=z.forceTarget;eqNums=z.eqNums}
+function saveForce(z){
+  let n=z.result!==null&&isFinite(z.result)?String(Math.round(Math.abs(z.result))):String(z.cur||'').replace(/\D/g,'');
+  n=n.replace(/^0+(?=\d)/,'');
+  if(!n||n==='0'){try{bleShow('No number')}catch(e){}return false}
+  S.mode='custom';S.custom=n;saveS();
+  try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}
+  try{bleShow('Force: '+n)}catch(e){}
+  return true}
 function down(b){b.classList.add('down');
-  if(b.dataset.k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700)}
-  else press(b.dataset.k)}
+  const k=b.dataset.k;
+  if(k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700);return}
+  if(/^[1-9]$/.test(k)&&force===null){
+    const z=snap();
+    clearTimeout(digT);digT=setTimeout(()=>{digT=null;b.classList.remove('down');
+      unsnap(z);                                   // take back the held digit
+      if(saveForce(z)){reset();}
+      render()},700)}
+  press(k)}
 function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove('down'));
+  clearTimeout(digT);digT=null;
   if(zeroDown){zeroDown=false;clearTimeout(holdT);if(!held)press('0')}}
 keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();down(b)},{passive:false});
 keys.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
@@ -644,7 +665,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v10. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v11. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
