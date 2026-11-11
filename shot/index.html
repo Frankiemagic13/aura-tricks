@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Screenshot Test</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:#000;color:#fff;font:16px -apple-system,system-ui,sans-serif;padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px)}
+h1{font-size:24px;margin-bottom:4px}
+.sub{color:rgba(235,235,245,.6);font-size:14px;margin-bottom:16px}
+#sample{border-radius:18px;padding:18px;margin-bottom:16px;background:linear-gradient(135deg,#ff9f0a,#ff375f 50%,#5e5ce6);text-align:center}
+#sample b{display:block;font-size:44px;font-weight:800;letter-spacing:-1px}
+#sample span{font-size:15px;opacity:.9}
+.grp{background:#1c1c1e;border-radius:14px;overflow:hidden;margin-bottom:12px}
+.r{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 16px;gap:10px;border-bottom:.5px solid #3a3a3c}
+.r:last-child{border-bottom:0}
+select{background:none;border:0;color:rgba(235,235,245,.6);font:16px -apple-system,system-ui;text-align:right;outline:none;-webkit-appearance:none;appearance:none}
+#go{width:100%;height:56px;border:0;border-radius:14px;background:#FF9F0A;color:#000;font:600 18px -apple-system,system-ui;margin-bottom:12px}
+#go:disabled{opacity:.5}
+#count{position:fixed;inset:0;display:none;align-items:center;justify-content:center;font-size:120px;font-weight:800;pointer-events:none;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+#count.on{display:flex}
+#st{font-size:15px;min-height:22px;margin-bottom:10px;color:#30d158}
+#st.err{color:#ff453a}
+#prev{width:100%;border-radius:12px;display:none;border:1px solid #3a3a3c;margin-bottom:12px}
+.lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 4px 6px}
+#api{font:12px ui-monospace,Menlo,monospace;color:rgba(235,235,245,.7);background:#1c1c1e;border-radius:12px;padding:12px;white-space:pre-wrap;word-break:break-all}
+</style>
+</head>
+<body>
+<h1>Screenshot Test</h1>
+<div class="sub">Tap the button. After 3 s the page takes a screenshot and copies it to the clipboard. Then paste it in Notes or Messages.</div>
+
+<div id="sample"><b id="clock">--:--:--</b><span>Sample content: this must show in the screenshot</span></div>
+
+<div class="grp">
+  <div class="r">Method<select id="method"><option value="auto">Auto (Aura first, then page)</option><option value="aura">Aura only</option><option value="page">Page render only</option></select></div>
+  <div class="r">Delay<select id="delay"><option value="3">3 s</option><option value="1">1 s</option><option value="5">5 s</option></select></div>
+</div>
+<button id="go">Take screenshot in 3 s</button>
+<div id="st"></div>
+<img id="prev" alt="">
+
+<div class="lbl">Aura functions found (for the test)</div>
+<div id="api">Searching…</div>
+<div id="count"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+setInterval(()=>{$('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false})},250);
+$('delay').onchange=()=>{$('go').textContent='Take screenshot in '+$('delay').value+' s'};
+function status(t,err){const s=$('st');s.textContent=t;s.classList.toggle('err',!!err)}
+
+/* ---------- 1. Look for a screenshot function in Aura's bridge ---------- */
+function auraFns(){
+  const out=[];const A=window.Aura;if(!A)return out;
+  const seen=new Set();
+  (function walk(o,path,depth){
+    if(!o||depth>2||seen.has(o))return;seen.add(o);
+    let keys=[];try{keys=Object.keys(o).concat(Object.getOwnPropertyNames(Object.getPrototypeOf(o)||{}))}catch(e){}
+    for(const k of new Set(keys)){if(k==='constructor')continue;let v;try{v=o[k]}catch(e){continue}
+      const p=path+'.'+k;
+      if(typeof v==='function')out.push(p);
+      else if(v&&typeof v==='object')walk(v,p,depth+1)}})(A,'Aura',0);
+  return out}
+const FNS=auraFns();
+const SHOT=FNS.filter(p=>/screen|shot|capture|snapshot|snap/i.test(p));
+$('api').textContent=!window.Aura?'Aura not found. Open this page in Aura to test the Aura method.\nThe page-render method still works here.'
+  :(SHOT.length?'Screenshot candidates:\n'+SHOT.join('\n')+'\n\n':'No screenshot function in Aura.\n\n')+'All functions:\n'+FNS.join('\n');
+function getPath(p){return p.split('.').slice(1).reduce((o,k)=>o&&o[k],window.Aura)}
+function getParent(p){return p.split('.').slice(1,-1).reduce((o,k)=>o&&o[k],window.Aura)}
+
+async function toBlob(r){ // accept the common result shapes: Blob, data URL, base64, {image|data|base64|dataURL|url}
+  if(!r)throw new Error('empty result');
+  if(r instanceof Blob)return r;
+  if(typeof r==='object'){for(const k of ['dataURL','dataUrl','image','data','base64','png','url','uri'])if(r[k])return toBlob(r[k]);throw new Error('unknown result '+JSON.stringify(r).slice(0,80))}
+  if(typeof r==='string'){
+    if(r.startsWith('data:')||r.startsWith('http')||r.startsWith('blob:'))return (await fetch(r)).blob();
+    const bin=atob(r.replace(/\s/g,''));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new Blob([u],{type:'image/png'})}
+  throw new Error('unknown result')}
+async function auraShot(){
+  for(const p of SHOT){
+    try{const f=getPath(p);const r=await f.call(getParent(p));const b=await toBlob(r);return {blob:b,how:p}}
+    catch(e){console.log(p,e)}}
+  throw new Error('Aura has no working screenshot function')}
+
+/* ---------- 2. Page render (this page only, not the home screen or other apps) ---------- */
+async function pageShot(){
+  if(!window.html2canvas)throw new Error('html2canvas did not load');
+  const c=await html2canvas(document.body,{backgroundColor:'#000',scale:Math.min(3,devicePixelRatio||2),
+    ignoreElements:el=>el.id==='count'});
+  const b=await new Promise(r=>c.toBlob(r,'image/png'));return {blob:b,how:'page render'}}
+
+async function shoot(){
+  const m=$('method').value;
+  if(m==='aura')return auraShot();
+  if(m==='page')return pageShot();
+  try{return await auraShot()}catch(e){return pageShot()}}
+
+/* ---------- button: 3 s delay, screenshot, clipboard ----------
+   iOS allows the clipboard only during a tap. The trick: start the clipboard write in the tap,
+   with a "promise" of the image; the image arrives 3 s later and iOS still accepts it. */
+let result=null;
+$('go').onclick=()=>{
+  const sec=+$('delay').value;$('go').disabled=true;$('prev').style.display='none';status('');
+  const imgPromise=(async()=>{
+    for(let n=sec;n>0;n--){$('count').textContent=n;$('count').classList.add('on');await new Promise(r=>setTimeout(r,1000))}
+    $('count').classList.remove('on');await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    result=await shoot();return result.blob})();
+  let copied;
+  try{copied=navigator.clipboard.write([new ClipboardItem({'image/png':imgPromise})])}
+  catch(e){copied=Promise.reject(e)}
+  imgPromise.then(b=>{$('prev').src=URL.createObjectURL(b);$('prev').style.display='block'}).catch(()=>{});
+  copied.then(()=>status('Copied to the clipboard ✓ ('+result.how+'). Paste it in Notes to check.'))
+    .catch(async e=>{
+      try{await imgPromise}catch(e2){status('Screenshot failed: '+e2.message,true);$('go').disabled=false;return}
+      status('Screenshot OK ('+(result&&result.how)+'), but the clipboard refused it: '+(e&&e.message||e)+'. Press and hold the preview to copy it.',true)})
+    .finally(()=>{$('go').disabled=false})};
+</script>
+</body>
+</html>
