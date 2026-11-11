@@ -43,8 +43,8 @@ body{position:fixed;inset:0;overflow:hidden}
 .hidden{opacity:0;pointer-events:none;transform:scale(.8)}
 svg{display:block}
 #scroll{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
-  padding:calc(max(env(safe-area-inset-top),12px) + 61px) 20px calc(env(safe-area-inset-bottom) + 120px) 26px}
-#date{display:none}
+  padding:calc(max(env(safe-area-inset-top),12px) + 53px) 20px calc(env(safe-area-inset-bottom) + 120px) 26px}
+#date{text-align:center;font-size:16.5px;line-height:22px;font-weight:500;color:#97969B;padding:0 0 12px;margin-left:-6px;-webkit-user-select:none;user-select:none;letter-spacing:-.1px}
 #note{min-height:60vh;outline:none;font-size:17px;line-height:23px;white-space:pre-wrap;word-wrap:break-word;caret-color:var(--tint);
   -webkit-user-select:text;user-select:text}
 #note::first-line{font-size:30px;line-height:40px;font-weight:800;letter-spacing:.2px;color:var(--title)}
@@ -201,7 +201,7 @@ svg{display:block}
     <div class="r">Covered now<span id="pxNow" class="dim">—</span></div>
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
-  <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button for 1 second to clear the note.</div>
+  <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../relay.js"></script>
@@ -270,10 +270,10 @@ function placeEnd(){const r=document.createRange();r.selectNodeContents(note);r.
 note.addEventListener('paste',e=>{e.preventDefault();const s=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,s)});
 
 /* ---------- secret: hold the ••• button for 1 s = clear the note ---------- */
-(function(){const el=document.getElementById('more');let tm=null;
+['more','date'].forEach(function(id){const el=document.getElementById(id);let tm=null;
   const go=()=>{tm=setTimeout(()=>{note.textContent='';last='';lastBle='';bleOnScreen='';try{clearDrawing()}catch(e){}try{iSent='';newNote()}catch(e){}},1000)},stop=()=>clearTimeout(tm);
   el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
-  el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
+  el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)});
 
 // back / compose start a new empty note (looks natural, keeps the page)
 document.getElementById('back').addEventListener('click',()=>{now();note.blur()});
