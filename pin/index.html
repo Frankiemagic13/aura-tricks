@@ -85,6 +85,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 #home{position:fixed;inset:0;background:#000 center/cover no-repeat;opacity:0;transform:scale(1.12);pointer-events:none;
   transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1);z-index:5}
 .unlocked #home{opacity:1;transform:none;pointer-events:auto}
+/* PIN peek as an iOS notification badge on the home photo */
+#badge{position:absolute;display:none;transform:translate(-50%,-50%) scale(0);height:6.4vw;min-width:6.4vw;padding:0 1.8vw;
+  border-radius:3.2vw;background:#ff3b30;color:#fff;font:700 4.4vw/6.4vw -apple-system,system-ui,"SF Pro Text",sans-serif;
+  text-align:center;letter-spacing:.1px;transition:transform .28s cubic-bezier(.3,1.5,.5,1) .35s}
+#badge.on{display:block}
+.unlocked #badge.on{transform:translate(-50%,-50%) scale(1)}
 .unlocked #app{opacity:0;transition:opacity .25s}
 
 /* ---------- secret settings sheet ---------- */
@@ -142,7 +148,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="foot" id="cancel">Cancel</div>
   </div>
 </div>
-<div id="home"></div>
+<div id="home"><div id="badge"></div></div>
 
 <div id="sheetBg"></div>
 <div id="sheet">
@@ -210,6 +216,13 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Home photo<span><button class="sbtn" id="sPickHome">Choose…</button> <button class="sbtn" id="sResetHome">Wallpaper</button></span></div>
   </div>
   <div class="snote">Tip: use a screenshot of your home screen as the home photo. The photos stay on this phone only.</div>
+
+  <div class="lbl">Badge peek</div>
+  <div class="grp">
+    <div class="r">Show the PIN as a badge<input type="checkbox" id="sBadge"></div>
+    <div class="r">Badge position<button class="sbtn" id="sBadgePos">Set…</button></div>
+  </div>
+  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens; tap the place for the badge. A test badge "1234" shows there. Tap the photo 3 times quickly to go back. With two PINs, the badge shows the PIN from "Which PIN".</div>
   <input type="file" id="file" accept="image/*" hidden>
   <input type="file" id="fileHome" accept="image/*" hidden>
 
@@ -227,7 +240,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v16</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v17</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -239,7 +252,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
@@ -298,14 +311,28 @@ function unfreeze(){frozen=null;haptic('light');drawClock()}
 
 /* ---------- screens ---------- */
 let view='pass';
-function toLock(live){view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
+function toLock(live){placing=false;showBadge('');view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
 function unlock(){if(view==='home')return;view='home';clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
-  haptic('medium');B.classList.add('unlocked');
+  haptic('medium');showBadge(badgePin());B.classList.add('unlocked');
   if(P.inj&&P.injWhen==='unlock')injSend(false);
   if(P.sc)setTimeout(runShortcut,P.scMs)}
-let lastTotal='';
+let lastTotal='',placing=false;
+/* Badge peek */
+function badgePin(){
+  if(!P.badge||!lastPin||lastPin[0]==='?')return '';
+  const parts=lastPin.split(/[\/-]/).filter(Boolean);
+  return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
+function showBadge(t){const b=$('badge');b.textContent=t;b.style.left=P.bx+'%';b.style.top=P.by+'%';b.classList.toggle('on',!!t)}
+function placeBadge(){
+  B.classList.remove('open');placing=true;view='home';
+  const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
+  if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
+  showBadge('1234');B.classList.add('unlocked')}
+$('home').addEventListener('click',e=>{if(!placing)return;
+  P.bx=+(e.clientX/innerWidth*100).toFixed(2);P.by=+(e.clientY/innerHeight*100).toFixed(2);saveP();
+  showBadge('1234');haptic('light')},true);
 function runShortcut(){
   if(!P.sc)return;
   let u='shortcuts://run-shortcut?name='+encodeURIComponent(P.sc);
@@ -468,7 +495,7 @@ function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
-  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
+  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
 $('sH24').onchange=e=>{P.h24=e.target.value==='1';saveP();if(frozen){const f=frozen;frozen=null;/* keep the same moment, new format */const h=Math.floor(f.num/100),m=f.num%100;frozen={str:(P.h24?pad2(h):h)+':'+pad2(m),num:f.num}}drawClock()};
@@ -519,6 +546,8 @@ $('sDim').onchange=e=>{P.dim=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
 $('sPkLive').onchange=e=>{P.pkLive=e.target.checked;saveP()};
+$('sBadge').onchange=e=>{P.badge=e.target.checked;saveP()};
+$('sBadgePos').onclick=placeBadge;
 $('sPkTilt').onchange=e=>{P.pkTilt=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
