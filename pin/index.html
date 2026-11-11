@@ -21,32 +21,22 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 /* wallpaper: sharp, dimmed more on the passcode screen */
 #bg{position:fixed;inset:0;background:#000 center/cover no-repeat}
 #bg.gradient{background:radial-gradient(110% 70% at 20% 15%,#3b4f8f 0%,transparent 60%),radial-gradient(120% 80% at 85% 95%,#6d2f5f 0%,transparent 60%),linear-gradient(165deg,#18213f,#1d1230 60%,#08070d)}
-#dim{position:fixed;inset:0;background:#000;opacity:.12;transition:opacity .35s ease}
-.pass #dim{opacity:var(--dim,.5)}
+#dim{position:fixed;inset:0;background:#000;opacity:var(--dim,.5)}
 
 #app{position:fixed;top:0;left:50%;transform:translateX(-50%);width:calc(402 * var(--u));height:100%;max-width:100vw}
 .v{position:absolute;inset:0;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1)}
 
-/* ---------- lock screen ---------- */
-#lock .lic{position:absolute;left:50%;top:calc(54 * var(--u));width:calc(15 * var(--u));transform:translateX(-50%);opacity:.9}
-#date{position:absolute;left:0;right:0;top:calc(84 * var(--u));text-align:center;font-size:calc(21 * var(--u));font-weight:600;opacity:.92}
-#time{position:absolute;left:0;right:0;top:calc(102 * var(--u));text-align:center;font-size:calc(108 * var(--u));font-weight:700;
-  letter-spacing:calc(-2 * var(--u));line-height:1.05;font-variant-numeric:tabular-nums}
-.qb{position:absolute;bottom:calc(46 * var(--u));width:calc(50 * var(--u));height:calc(50 * var(--u));border-radius:50%;
-  background:rgba(40,40,40,.45);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);display:flex;align-items:center;justify-content:center}
-.qb svg{width:calc(22 * var(--u));height:calc(22 * var(--u))}
-#qL{left:calc(46 * var(--u))}#qR{right:calc(46 * var(--u))}
-.bar{position:absolute;left:50%;bottom:calc(8 * var(--u));width:calc(140 * var(--u));height:calc(5 * var(--u));border-radius:3px;background:#fff;transform:translateX(-50%)}
-.pass #lock{opacity:0;transform:translateY(calc(-60 * var(--u)));pointer-events:none}
-
+/* ---------- status bar (the time here is the one that freezes) ---------- */
+#sb{position:absolute;left:0;right:0;top:calc(25.5 * var(--u));height:calc(26 * var(--u));z-index:3}
+#stime{position:absolute;left:calc(10 * var(--u));width:calc(88 * var(--u));text-align:center;font-size:calc(17.5 * var(--u));font-weight:600;
+  line-height:calc(26 * var(--u));letter-spacing:calc(-.2 * var(--u));font-variant-numeric:tabular-nums}
+#sicons{position:absolute;right:calc(14 * var(--u));width:calc(84 * var(--u));height:100%;display:flex;align-items:center;justify-content:center;gap:calc(6 * var(--u))}
+#sicons svg{display:block}
 /* ---------- passcode screen (matches the iOS screenshot) ---------- */
-#pc{opacity:0;transform:scale(1.06);pointer-events:none}
-.pass #pc{opacity:1;transform:none;pointer-events:auto}
 #pill{position:absolute;left:50%;top:calc(12 * var(--u));height:calc(53 * var(--u));width:calc(126 * var(--u));transform:translateX(-50%);
-  border-radius:calc(27 * var(--u));background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.13);transition:width .45s cubic-bezier(.2,.9,.25,1)}
-.pass #pill{width:calc(206 * var(--u))}
-#pill svg{position:absolute;top:50%;transform:translateY(-50%);opacity:0;transition:opacity .25s .2s}
-.pass #pill svg{opacity:1}
+  border-radius:calc(27 * var(--u));background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.13)}
+#pill{width:calc(206 * var(--u))}
+#pill svg{position:absolute;top:50%;transform:translateY(-50%)}
 #pill .pl{left:calc(17 * var(--u));width:calc(18 * var(--u))}
 #pill .fid{right:calc(15 * var(--u));width:calc(24 * var(--u))}
 #title{position:absolute;left:0;right:0;top:calc(162 * var(--u));text-align:center;font-size:calc(22 * var(--u));font-weight:600;letter-spacing:calc(.1 * var(--u))}
@@ -99,17 +89,16 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <div id="bg" class="gradient"></div>
 <div id="dim"></div>
 <div id="app">
-  <!-- lock screen -->
-  <div class="v" id="lock">
-    <svg class="lic" viewBox="0 0 18 24" fill="#fff"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
-    <div id="date"></div>
-    <div id="time"></div>
-    <div class="qb" id="qL"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10v3l-2 4v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V10L7 6z"/><path d="M7 6h10"/><circle cx="12" cy="14" r="1.1" fill="#fff"/></svg></div>
-    <div class="qb" id="qR"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linejoin="round"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h2l1.5-2h6l1.5 2h2A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></svg></div>
-    <div class="bar"></div>
-  </div>
   <!-- passcode screen -->
   <div class="v" id="pc">
+    <div id="sb">
+      <div id="stime"></div>
+      <div id="sicons">
+        <svg style="width:calc(19 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 19 12" fill="#fff"><rect x="0" y="8" width="3.4" height="4" rx="1"/><rect x="5" y="5.5" width="3.4" height="6.5" rx="1"/><rect x="10" y="3" width="3.4" height="9" rx="1"/><rect x="15" y="0" width="3.4" height="12" rx="1"/></svg>
+        <svg style="width:calc(17 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.3c2.5 0 4.8 1 6.5 2.6l1.3-1.3A11 11 0 0 0 8.5.4 11 11 0 0 0 .7 3.6L2 4.9a9.2 9.2 0 0 1 6.5-2.6Z"/><path d="M8.5 5.8c1.5 0 2.9.6 4 1.6l1.3-1.3a7.6 7.6 0 0 0-10.6 0l1.3 1.3a5.7 5.7 0 0 1 4-1.6Z"/><path d="M8.5 9.2c.6 0 1.1.2 1.5.6L8.5 11.3 7 9.8c.4-.4.9-.6 1.5-.6Z"/></svg>
+        <svg style="width:calc(27 * var(--u));height:calc(13 * var(--u))" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="#fff" stroke-opacity=".4"/><rect x="2" y="2" width="16" height="9" rx="2.4" fill="#fff"/><path d="M25 4.3v4.4c.9-.3 1.5-1.2 1.5-2.2s-.6-1.9-1.5-2.2Z" fill="#fff" fill-opacity=".45"/></svg>
+      </div>
+    </div>
     <div id="pill">
       <svg class="pl" viewBox="0 0 18 24" fill="#d8d8dc"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
       <svg class="fid" viewBox="0 0 24 24" fill="none" stroke="#7ee08a" stroke-width="1.7" stroke-linecap="round"><path d="M2.5 7.5V5A2.5 2.5 0 0 1 5 2.5h2.5M16.5 2.5H19A2.5 2.5 0 0 1 21.5 5v2.5M21.5 16.5V19a2.5 2.5 0 0 1-2.5 2.5h-2.5M7.5 21.5H5A2.5 2.5 0 0 1 2.5 19v-2.5M8 8.5v1.5M16 8.5v1.5M12.2 8.5v4.3h-1M9 16.2a4.4 4.4 0 0 0 6 0"/></svg>
@@ -140,17 +129,17 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Passcode</div>
   <div class="grp">
     <div class="r">Start with<select id="sLen"><option value="4">4 digits</option><option value="6">6 digits</option></select></div>
-    <div class="r">After the code<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="lock">Shake → lock screen</option><option value="unlock">Unlock → home photo</option></select></div>
+    <div class="r">After the code<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="lock">Shake → live time again</option><option value="unlock">Unlock → home photo</option></select></div>
   </div>
   <div class="snote">Swipe left or right on the passcode screen to change between 4 and 6 digits. The screen accepts 1 extra digit with no extra dot, for large totals.</div>
 
   <div class="lbl">Tilt to unlock</div>
   <div class="grp">
-    <div class="r">Tilt straight up<select id="sTilt"><option value="pass">On the passcode screen</option><option value="all">Everywhere</option><option value="off">Off</option></select></div>
+    <div class="r">Tilt straight up<select id="sTilt"><option value="on">On</option><option value="off">Off</option></select></div>
     <div class="r">Hold time<select id="sTiltMs"><option value="300">0.3 s</option><option value="500">0.5 s</option><option value="800">0.8 s</option></select></div>
     <div class="r">Motion<span><span class="val" id="sMotion">Not allowed yet</span> <button class="sbtn" id="sMotionBtn">Allow</button></span></div>
   </div>
-  <div class="snote">Hold the phone vertical (screen to you) to unlock to the home photo, with any code. To go back: tap the home photo 3 times quickly.</div>
+  <div class="snote">Hold the phone vertical (screen to you) to unlock to the home photo, with any code or no code. To go back: tap the home photo 3 times quickly.</div>
 
   <div class="lbl">Wallpaper</div>
   <div class="grp">
@@ -171,10 +160,10 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Show digits while typing<input type="checkbox" id="sPkLive"></div>
     <div class="r">Vibrate with the PIN<input type="checkbox" id="sVib"></div>
   </div>
-  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = back to the live lock screen.</div>
+  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code).</div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
-  <div class="snote">Gestures: swipe down on the lock screen = freeze the time. Swipe up = passcode. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu.</div>
+  <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -185,8 +174,9 @@ const Q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'pass',tiltMs:500,dim:.5,
+const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'on',tiltMs:500,dim:.5,
   auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+if(P.tilt!=='off')P.tilt='on';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
 if(Q.get('ble')==='0')P.auto=false;
@@ -222,9 +212,7 @@ function clockNow(){const d=new Date(),h=d.getHours(),m=d.getMinutes(),hh=P.h24?
 function year(){const y=parseInt(P.year,10);return y>0?y:new Date().getFullYear()}
 function timeNum(){return (frozen||clockNow()).num}
 function drawClock(){
-  const d=new Date();
-  $('date').textContent=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  $('time').textContent=(frozen||clockNow()).str;
+  $('stime').textContent=(frozen||clockNow()).str;
   if(B.classList.contains('open'))drawMath()}
 drawClock();setInterval(drawClock,1000);
 function freeze(){if(frozen)return;frozen=clockNow();haptic('medium');drawClock();
@@ -232,9 +220,8 @@ function freeze(){if(frozen)return;frozen=clockNow();haptic('medium');drawClock(
 function unfreeze(){frozen=null;haptic('light');drawClock()}
 
 /* ---------- screens ---------- */
-let view='lock';
-function toPass(){if(!frozen)freeze();view='pass';code='';locked=false;drawDots();B.classList.add('pass')}
-function toLock(live){view='lock';B.classList.remove('pass','unlocked');code='';locked=false;clearTimeout(waitT);drawDots();if(live)unfreeze()}
+let view='pass';
+function toLock(live){view='pass';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
 function unlock(){if(view==='home')return;view='home';clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
@@ -263,6 +250,7 @@ function digit(k){
   if(locked||view!=='pass')return;
   if(code.length>=len+1)return;
   if(code.length>=len&&!waitT)return;
+  if(!frozen)freeze();
   code+=k;haptic();drawDots();
   if(P.pkLive)psWrite(code.split('').join(' '));
   clearTimeout(waitT);waitT=null;
@@ -284,10 +272,10 @@ function complete(){
   if(P.after==='unlock'){unlock();return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
-  setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots();if(P.after==='lock')toLock(false)},560)}
+  setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots();if(P.after==='lock')toLock(true)},560)}
 $('cancel').onclick=()=>{if(view!=='pass'||locked)return;
   if(code.length){code=code.slice(0,-1);clearTimeout(waitT);waitT=null;drawDots();if(P.pkLive)psWrite(code?code.split('').join(' '):' ')}
-  else toLock(false)};
+};
 
 /* key touches: instant highlight like iOS */
 const pad=$('pad');
@@ -300,23 +288,23 @@ pad.addEventListener('mousedown',e=>{if(touchUsed)return;const el=e.target.close
 addEventListener('mouseup',()=>{if(!touchUsed)release()});
 
 /* ---------- swipes ---------- */
-let sx=0,sy=0,st=0,sOnSheet=false;
+let sx=0,sy=0,st=0,sOnSheet=false,sCode='';
+addEventListener('touchstart',()=>{sCode=code},{passive:true,capture:true});
 function gStart(x,y,t){sx=x;sy=y;st=Date.now();sOnSheet=!!(t.closest&&t.closest('#sheet'))||B.classList.contains('open')}
+function undoSwipeDigit(){if(code.length>sCode.length&&!locked){code=sCode;clearTimeout(waitT);waitT=null;drawDots()}}
 function gEnd(x,y){
   if(sOnSheet||Date.now()-st>800)return;
   const dx=x-sx,dy=y-sy,ax=Math.abs(dx),ay=Math.abs(dy);
-  if(view==='lock'){
-    if(dy>60&&ay>ax)freeze();
-    else if(dy<-60&&ay>ax)toPass()}
-  else if(view==='pass'){
-    if(ax>70&&ax>ay*1.5)toggleLen()}}
+  if(view!=='pass')return;
+  if(dy>60&&ay>ax*1.5){undoSwipeDigit();freeze()}
+  else if(ax>70&&ax>ay*1.5)toggleLen()}
 addEventListener('touchstart',e=>{const t=e.changedTouches[0];gStart(t.clientX,t.clientY,e.target)},{passive:true});
 addEventListener('touchend',e=>{const t=e.changedTouches[0];gEnd(t.clientX,t.clientY);askMotion()},{passive:true});
-addEventListener('mousedown',e=>{if(!touchUsed)gStart(e.clientX,e.clientY,e.target)});
+addEventListener('mousedown',e=>{if(!touchUsed){sCode=code;gStart(e.clientX,e.clientY,e.target)}},true);
 addEventListener('mouseup',e=>{if(!touchUsed)gEnd(e.clientX,e.clientY)});
 
 /* time: hold 1.5 s = settings, double-tap = live time again */
-(function(){const el=$('time');let tm=null,last=0,moved=false;
+(function(){const el=$('stime');let tm=null,last=0,moved=false;
   el.addEventListener('touchstart',e=>{moved=false;tm=setTimeout(()=>{tm=null;openSheet()},1500)},{passive:true});
   el.addEventListener('touchmove',()=>{moved=true;clearTimeout(tm)},{passive:true});
   el.addEventListener('touchend',()=>{if(!tm)return;clearTimeout(tm);tm=null;if(moved)return;
@@ -341,7 +329,6 @@ addEventListener('deviceorientation',e=>{
   if(e.beta==null)return;
   if(motion!=='granted'){motion='granted';motionText()}
   if(P.tilt==='off'||view==='home'||B.classList.contains('open')){upSince=0;return}
-  if(P.tilt==='pass'&&view!=='pass'){upSince=0;return}
   const up=e.beta>75&&e.beta<120&&Math.abs(e.gamma||0)<30;
   if(!up){upSince=0;return}
   if(!upSince)upSince=Date.now();
