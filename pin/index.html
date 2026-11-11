@@ -136,18 +136,17 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Start with<select id="sLen"><option value="4">4 digits</option><option value="6">6 digits</option></select></div>
     <div class="r">After the code<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="lock">Shake → live time again</option><option value="unlock">Unlock → home photo</option></select></div>
-    <div class="r">Wait for an extra digit<input type="checkbox" id="sExtra"></div>
     <div class="r">Copy the PIN to the clipboard<input type="checkbox" id="sCopy"></div>
   </div>
-  <div class="snote">Swipe left or right on the passcode screen to change between 4 and 6 digits. Normal: the code is complete after 4 (or 6) digits, like iOS. A 5-digit total then gives a range on the PeekSmith, for example "8999-9009" (the PIN is in that range). "Wait for an extra digit": the screen waits for a 5th (or 7th) digit when the total needs it.</div>
+  <div class="snote">Swipe left or right on the passcode screen to change between 4 and 6 digits. The code is complete after 4 (or 6) digits, like iOS. A 5-digit total gives a range on the PeekSmith, for example "8999-9009" (the PIN is in that range).</div>
 
   <div class="lbl">Tilt to unlock</div>
   <div class="grp">
-    <div class="r">Tilt straight up<select id="sTilt"><option value="on">On</option><option value="off">Off</option></select></div>
+    <div class="r">Tilt straight up<select id="sTilt"><option value="arm">Next code unlocks</option><option value="now">Unlock at once</option><option value="off">Off</option></select></div>
     <div class="r">Hold time<select id="sTiltMs"><option value="300">0.3 s</option><option value="500">0.5 s</option><option value="800">0.8 s</option></select></div>
     <div class="r">Motion<span><span class="val" id="sMotion">Not allowed yet</span> <button class="sbtn" id="sMotionBtn">Allow</button></span></div>
   </div>
-  <div class="snote">Hold the phone vertical (screen to you) to unlock to the home photo, with any code or no code. To go back: tap the home photo 3 times quickly.</div>
+  <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: tap the home photo 3 times quickly.</div>
 
   <div class="lbl">Shortcut after unlock</div>
   <div class="grp">
@@ -183,6 +182,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v8</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -193,9 +193,9 @@ const Q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'on',tiltMs:500,dim:.5,
-  batt:43,extra:false,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
-if(P.tilt!=='off')P.tilt='on';
+const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
+  batt:43,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
 if(Q.get('ble')==='0')P.auto=false;
@@ -242,7 +242,7 @@ function unfreeze(){frozen=null;haptic('light');drawClock()}
 
 /* ---------- screens ---------- */
 let view='pass';
-function toLock(live){view='pass';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
+function toLock(live){view='pass';armed=false;B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
 function unlock(){if(view==='home')return;view='home';clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
@@ -264,30 +264,19 @@ KEYS.forEach(([k,l],i)=>{const e=document.createElement('div');e.className='key'
   const col=k==='0'?1:i%3,row=k==='0'?3:Math.floor(i/3);
   e.style.left='calc('+KX[col]+' * var(--u))';e.style.top='calc('+KY[row]+' * var(--u))';
   e.innerHTML='<b>'+k+'</b>'+(l?'<small>'+l+'</small>':'');$('pad').appendChild(e)});
-let len=P.len,code='',locked=false,waitT=null,lastPin='';
+let len=P.len,code='',locked=false,waitT=null,lastPin='',armed=false;
 function drawDots(){const d=$('dots');d.innerHTML='';for(let i=0;i<len;i++){const s=document.createElement('div');s.className='dot'+(i<code.length?' on':'');d.appendChild(s)}
   $('cancel').textContent=code.length?'Delete':'Cancel'}
 drawDots();
 function toggleLen(){len=len===4?6:4;code='';locked=false;clearTimeout(waitT);drawDots();haptic('light')}
 /* Does the total need one more digit? 4 digits: a total under (year + time) is the start of a 5-digit total.
    6 digits: 100000…100045 can be the start of a 7-digit total (PIN 996xxx and up). */
-function needsMore(){
-  if(!P.extra)return false;
-  const v=+code,base=year()+timeNum();
-  if(len===4)return code.length===4&&v<base-1;
-  return code.length===6&&v>=100000&&v<=100045}
 function digit(k){
-  if(locked||view!=='pass')return;
-  if(code.length>=len+1)return;
-  if(code.length>=len&&!waitT)return;
+  if(locked||view!=='pass'||code.length>=len)return;
   if(!frozen)freeze();
   code+=k;haptic();drawDots();
   if(P.pkLive)psWrite(code.split('').join(' '));
-  clearTimeout(waitT);waitT=null;
-  if(code.length===len+1){locked=true;armCopy();setTimeout(complete,180);return}
-  if(code.length===len){
-    if(needsMore()){waitT=setTimeout(()=>{waitT=null;locked=true;complete()},len===4?4000:1500)}
-    else{locked=true;armCopy();setTimeout(complete,180)}}}
+  if(code.length===len){locked=true;armCopy();setTimeout(complete,180)}}
 /* copy: iOS allows the clipboard only during a tap, so the PIN is copied when the finger lifts from the last key */
 let pendingCopy='';
 function armCopy(){pendingCopy=P.copy?calcPin(+code):''}
@@ -311,7 +300,7 @@ function complete(){
   waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
   onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{});
   if(P.online){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
-  if(P.after==='unlock'){unlock();return}
+  if(armed||P.after==='unlock'){armed=false;unlock();return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
   setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots();if(P.after==='lock')toLock(true)},560)}
@@ -371,11 +360,13 @@ $('sMotionBtn').onclick=()=>{motion='unknown';askMotion()};
 addEventListener('deviceorientation',e=>{
   if(e.beta==null)return;
   if(motion!=='granted'){motion='granted';motionText()}
-  if(P.tilt==='off'||view==='home'||B.classList.contains('open')){upSince=0;return}
+  if(P.tilt==='off'||view==='home'||B.classList.contains('open')||(P.tilt==='arm'&&armed)){upSince=0;return}
   const up=e.beta>75&&e.beta<120&&Math.abs(e.gamma||0)<30;
   if(!up){upSince=0;return}
   if(!upSince)upSince=Date.now();
-  else if(Date.now()-upSince>=P.tiltMs){upSince=0;unlock()}});
+  else if(Date.now()-upSince>=P.tiltMs){upSince=0;
+    if(P.tilt==='now'){unlock();return}
+    if(!armed){armed=true;haptic('light');if(bleOn())aps.vibrate('.').catch(()=>{})}}});
 
 /* ---------- PeekSmith ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
@@ -414,7 +405,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sExtra').checked=P.extra;$('sCopy').checked=P.copy;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -426,7 +417,6 @@ $('sTilt').onchange=e=>{P.tilt=e.target.value;saveP()};
 $('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
 $('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
 $('sWifi').onchange=e=>{P.wifi=e.target.checked;saveP();drawBatt()};
-$('sExtra').onchange=e=>{P.extra=e.target.checked;saveP()};
 $('sCopy').onchange=e=>{P.copy=e.target.checked;saveP()};
 $('sSc').oninput=e=>{P.sc=e.target.value.trim();saveP()};
 $('sScIn').onchange=e=>{P.scIn=e.target.value;saveP()};
@@ -445,7 +435,7 @@ const closeSheet=()=>B.classList.remove('open');
 $('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
 document.addEventListener('gesturestart',e=>e.preventDefault());
 /* test hook */
-window.__pin={calcPin,needsMore,setCode:c=>{code=c},setLen:l=>{len=l},setFrozen:n=>{frozen={str:'',num:n}},P};
+window.__pin={calcPin,setCode:c=>{code=c},setLen:l=>{len=l},setFrozen:n=>{frozen={str:'',num:n}},P};
 </script>
 </body>
 </html>
