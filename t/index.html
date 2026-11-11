@@ -10,11 +10,13 @@
 <title>Notes</title>
 <style>
 :root{
-  --page:#FFFFFF;--label:#000;--sec:rgba(60,60,67,.6);--tint:#E3A900;--title:#000;--dimicon:#B8B8B8;
-  --glass:rgba(255,255,255,.74);--glassb:rgba(255,255,255,.95);--shadow:0 4px 16px rgba(0,0,0,.09);
+  --datec:#8A8A8E;
+  --page:#FFFFFF;--label:#000;--sec:rgba(60,60,67,.6);--tint:#E3A900;--title:#000;--dimicon:#A6A6A6;
+  --glass:#F8F8F8;--glassb:rgba(0,0,0,.07);--shadow:0 6px 18px rgba(0,0,0,.055),inset 0 .5px 0 #fff;
   color-scheme:light dark;
 }
 @media (prefers-color-scheme:dark){:root{
+  --datec:#97969B;
   --page:#000;--label:#FFF;--sec:rgba(235,235,245,.6);--tint:#DBB03D;--title:#DCDCDC;--dimicon:#5A5A5A;
   --glass:#1F1F1F;--glassb:rgba(255,255,255,.1);--shadow:inset 0 .5px 0 rgba(255,255,255,.1);
 }}
@@ -44,15 +46,19 @@ body{position:fixed;inset:0;overflow:hidden}
 svg{display:block}
 #scroll{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding:calc(max(env(safe-area-inset-top),12px) + 53px) 20px calc(env(safe-area-inset-bottom) + 120px) 26px}
-#date{text-align:center;font-size:16.5px;line-height:22px;font-weight:500;color:#97969B;padding:0 0 12px;margin-left:-6px;-webkit-user-select:none;user-select:none;letter-spacing:-.1px}
+#date{text-align:center;font-size:16.5px;line-height:22px;font-weight:500;color:var(--datec,#97969B);padding:0 0 12px;margin-left:-6px;-webkit-user-select:none;user-select:none;letter-spacing:-.1px}
 #note{min-height:60vh;outline:none;font-size:17px;line-height:23px;white-space:pre-wrap;word-wrap:break-word;caret-color:var(--tint);
   -webkit-user-select:text;user-select:text}
 #note::first-line{font-size:30px;line-height:40px;font-weight:800;letter-spacing:.2px;color:var(--title)}
 #note:empty{min-height:max(60vh,40px)}
 #note:empty::before{content:'';display:inline-block;height:40px}
-.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:14px 16px calc(env(safe-area-inset-bottom) + 8px);
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:14px 28px max(calc(env(safe-area-inset-bottom) - 7px),12px) 27px;
   display:flex;justify-content:space-between;align-items:center;background:linear-gradient(transparent,var(--page) 45%);pointer-events:none}
 .bar>*{pointer-events:auto}
+.bar .pill{width:180px;height:49px;padding:0 6px;justify-content:space-around}
+.bar .pill i{width:54px;height:49px}
+.bar #compose{width:49px;height:49px}
+#compose.empty{color:var(--dimicon)}
 .tint{color:var(--tint)}
 /* keyboard toolbar (shows above the keyboard while typing, like iOS 27 Notes) */
 #kbar{position:fixed;left:8px;right:9px;height:48px;bottom:8px;z-index:6;border-radius:24px;background:var(--glass);
@@ -117,12 +123,12 @@ svg{display:block}
 </div>
 <div class="bar">
   <div class="glass pill">
-    <i><svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="7" r="2.3"/><path d="m4.4 7 .8.8 1.5-1.6"/><circle cx="5.5" cy="16.5" r="2.3"/><path d="M11 7h9M11 16.5h9"/></svg></i>
-    <i><svg width="26" height="22" viewBox="0 0 28 22" fill="currentColor"><text x="1" y="17" font-family="-apple-system,system-ui" font-size="17" font-weight="500">Aa</text></svg></i>
-    <i><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m20 11.2-7.8 7.8a5 5 0 0 1-7.1-7.1l8.2-8.2a3.4 3.4 0 0 1 4.8 4.8l-8.1 8.1a1.7 1.7 0 0 1-2.4-2.4l7.4-7.4"/></svg></i>
-    <i id="penBtn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m14.8 5.2 4 4M4 20l1-4.5L16.2 4.3a2 2 0 0 1 2.8 0l.7.7a2 2 0 0 1 0 2.8L8.5 19z"/></svg></i>
+    <i><svg width="31" height="26" viewBox="0 0 30 26" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="4.3"/><path d="m3.6 6 1.5 1.5 2.6-2.8"/><circle cx="5.5" cy="19.5" r="4.3"/><path d="M14 6h13.5M14 19.5h13.5"/></svg></i>
+    <i><svg width="26" height="28" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m20.5 12.4-8.3 8.3a5.3 5.3 0 0 1-7.5-7.5l8.7-8.7a3.6 3.6 0 0 1 5.1 5.1l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></i>
+    <i id="penBtn"><svg width="30" height="30" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="14" r="11.8"/><path d="M9.6 25 13 9.5h2L18.4 25"/><path d="m12.4 12.4 1.6-6.5 1.6 6.5"/><path d="M11.3 18.6h5.4"/></svg></i>
   </div>
-  <div class="glass btn tint" id="compose"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
+  <div class="glass btn empty" id="compose"><svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
+</div>
 </div>
 <div id="kbar">
   <i><svg width="34" height="24" viewBox="0 0 34 24" fill="currentColor"><text x="1" y="20" font-family="-apple-system,system-ui" font-size="25" font-weight="500" letter-spacing="-.5">Aa</text></svg></i>
@@ -251,7 +257,7 @@ note.addEventListener('input',()=>{
 function editing(on){done.classList.toggle('hidden',!on);document.body.classList.toggle('editing',on);kbarPlace()}
 /* iOS 27 look: share icon is gray while the note is empty; the undo button shows when the note has text */
 let edited=false;
-function topIcons(){const has=!!note.innerText.trim();$('share').classList.toggle('empty',!has);$('undoBtn').classList.toggle('gone',!edited)}
+function topIcons(){const has=!!note.innerText.trim();$('share').classList.toggle('empty',!has);$('compose').classList.toggle('empty',!has);$('undoBtn').classList.toggle('gone',!edited)}
 note.addEventListener('input',()=>{edited=true;topIcons()});
 function newNote(){edited=false;topIcons()}
 /* keep the keyboard toolbar just above the keyboard */
