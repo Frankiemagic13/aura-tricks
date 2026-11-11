@@ -127,8 +127,8 @@ final class PeekModel: ObservableObject {
         Task {
             var code = 0
             var failure: String?
-            // 1st try: form field (value=…). 2nd try, only if Inject refuses the form: JSON {"value": "…"}.
-            for json in (injectPOST ? [false, true] : [false]) {
+            // 1st try: JSON {"value": "…"} (Inject accepts this). 2nd try, only if that is refused: form field (value=…).
+            for json in (injectPOST ? [true, false] : [false]) {
                 var req = URLRequest(url: url, timeoutInterval: 10)
                 if injectPOST {
                     req.httpMethod = "POST"

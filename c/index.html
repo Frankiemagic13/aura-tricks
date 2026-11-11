@@ -535,8 +535,11 @@ async function injSend(manual){
   injSent=v;injLastT=Date.now();
   const id=(S.injId||'13297').replace(/\D/g,'')||'13297';
   try{
-    await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',mode:'no-cors',keepalive:true,body:new URLSearchParams({value:v})});
-    st.textContent='Sent '+v;bleShow('Inject: '+v)}
+    /* Inject accepts JSON only (a form gives error 415) */
+    const r=await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({value:v})});
+    if(!r.ok){injSent='';st.textContent='Inject error '+r.status;bleShow('Inject error '+r.status);return}
+    st.textContent='Sent '+v+' ✓';bleShow('Inject: '+v)}
   catch(e){injSent='';st.textContent='Not sent (no internet?)';bleShow('Inject failed')}}
 
 /* proximity sensor: Safari has no proximity sensor for web pages, so this uses a sensor
