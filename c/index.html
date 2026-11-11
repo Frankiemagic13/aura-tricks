@@ -196,7 +196,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     </div>
     <div class="preview" id="prev"></div>
   </div>
-  <div class="note">Quick force: type a number on the calculator, then hold 1 for 1 second. "Saved" shows at the top.</div>
+  <div class="note">Quick force: type a number on the calculator, then hold 1 for 1 second. Battery: type 1–100, then hold 8. "Saved" shows at the top.</div>
   <div class="lbl">Status bar</div>
   <div class="grp">
     <div class="r">Show fake status bar<label><input type="checkbox" id="sbOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -474,6 +474,16 @@ function down(b){b.classList.add('down');
       unsnap(z);                                   // take back the held digit
       if(saveForce(z)){reset();}
       render()},700)}
+  /* hold 8 = the typed number (1–100) becomes the battery % of the fake status bar */
+  if(k==='8'&&force===null){
+    const z=snap();
+    clearTimeout(digT);digT=setTimeout(()=>{digT=null;b.classList.remove('down');
+      unsnap(z);
+      const n=parseInt(String(z.cur||'').replace(/\D/g,''),10);
+      if(z.result===null&&z.toks.length===0&&n>=1&&n<=100){
+        S.bat=n;saveS();drawSB();buzz();toast('Saved');try{bleShow('Battery: '+n+'%')}catch(e){}reset()}
+      else{try{bleShow('Battery: type 1-100')}catch(e){}}
+      render()},700)}
   press(k)}
 function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove('down'));
   clearTimeout(digT);digT=null;
@@ -687,7 +697,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v14. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v15. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
