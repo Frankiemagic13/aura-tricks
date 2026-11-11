@@ -377,6 +377,9 @@ function tick(){const d=new Date();let t=(d.getHours()%12||12)+':'+String(d.getM
   const el=document.getElementById('sbt');if(el&&el.textContent!==t)el.textContent=t}
 function drawSB(){const sb=document.getElementById('sb');sb.classList.toggle('hide',!S.sb);
   const w=19.5;document.getElementById('blev').setAttribute('width',(25*S.bat/100).toFixed(2));document.getElementById('btxt').textContent=S.bat;
+  /* iOS: at 20 % or below the fill turns red and the number turns white */
+  const low=S.bat<=20;document.getElementById('blev').setAttribute('fill',low?'#EB4D47':'#fff');
+  document.getElementById('btxt').setAttribute('fill',low?'#fff':'#000');
   document.querySelectorAll('#sig rect').forEach((r,i)=>r.setAttribute('fill',i<S.bars?'#fff':'rgba(255,255,255,.35)'));
   const net=document.getElementById('net'),wf=document.getElementById('wifi');
   if(S.net==='wifi'){net.style.display='none';wf.classList.remove('hide')}
@@ -709,7 +712,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v17. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v18. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
