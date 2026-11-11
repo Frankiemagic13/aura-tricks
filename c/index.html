@@ -232,7 +232,6 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
       <option value="none">Nothing</option>
       <option value="reset">Reset the calculator</option>
       <option value="url">Go to a web page</option>
-      <option value="calc">Clean (reset + clear history)</option>
     </select></div>
     <div class="r" id="lockUrlRow">Web page<input id="lockUrl" inputmode="url" autocapitalize="off" autocorrect="off" placeholder="https://www.google.com"></div>
   </div>
@@ -295,7 +294,7 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   a:Q.has('a')?(parseInt(Q.get('a'),10)||0):1,n:Math.max(1,parseInt(Q.get('n')??'3',10)||3),
   method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1',
   sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10),
-  onLock:Q.get('lock')||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com',
+  onLock:(Q.get('lock')==='calc'?'none':Q.get('lock'))||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com',
   inj:Q.get('inj')==='1',injWhat:Q.get('iw')||'force',injN:Math.min(9,Math.max(1,parseInt(Q.get('ip')??'1',10)||1)),
   injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,''),px:Q.get('px')!=='0'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
@@ -788,14 +787,12 @@ const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById
 function syncLock(){lockSel.value=S.onLock;lockUrl.value=S.lockUrl;document.getElementById('lockUrlRow').style.display=S.onLock==='url'?'':'none'}
 lockSel.onchange=()=>{S.onLock=lockSel.value;saveS();syncLock()};
 lockUrl.onchange=()=>{let u=lockUrl.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;S.lockUrl=u||'https://www.google.com';saveS();syncLock()};
+if(S.onLock==='calc'){S.onLock='none';saveS()}
 syncLock();
 function onLock(){
   if(document.body.classList.contains('open'))return;        // not while the secret menu is open
   if(S.onLock==='reset'){reset();psHist.length=0;psLast='';render()}
-  else if(S.onLock==='url'){reset();psHist.length=0;location.replace(S.lockUrl||'https://www.google.com')}
-  else if(S.onLock==='calc'){reset();psHist.length=0;psLast='';histSave([]);render()}}
-/* Aura blocks app links (calc:// = "unsupported URL"), so the page cannot open the real Calculator app.
-   "Clean" resets and clears the history: after unlock, it looks like a calculator that nobody used. */
+  else if(S.onLock==='url'){reset();psHist.length=0;location.replace(S.lockUrl||'https://www.google.com')}}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')onLock()});
 addEventListener('pagehide',()=>{if(S.onLock==='url')onLock()});
 
