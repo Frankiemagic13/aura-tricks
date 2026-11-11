@@ -180,7 +180,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Send when<select id="sInjWhen"><option value="code">The code is complete</option><option value="unlock">The phone unlocks</option><option value="button">PeekSmith side button (hold)</option></select></div>
     <div class="r">Which PIN<select id="sInjWhich"><option value="a">First (birthday passed)</option><option value="b">Second (birthday not passed)</option></select></div>
     <div class="r">Inject ID<input type="number" id="sInjId" inputmode="numeric" placeholder="13297"></div>
-    <div class="r"><button class="sbtn" id="sInjTest">Send now</button><span class="val" id="sInjSt"></span></div>
+    <div class="r"><button class="sbtn" id="sInjTest">Send now (test: 1234)</button><span class="val" id="sInjSt"></span></div>
   </div>
   <div class="snote">Sends the PIN to your Inject (needs internet). On by default. "Which PIN" is used when the PeekSmith shows two PINs or a range. The PeekSmith shows "Inject: 4821" when it is sent. You can also send it with the PeekSmith side button (hold) at any time.</div>
 
@@ -226,7 +226,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v12</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v13</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -490,7 +490,8 @@ function injValue(){
   const parts=lastPin.split(/[\/-]/).filter(Boolean);
   return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
 async function injSend(manual){
-  const st=$('sInjSt'),v=injValue();
+  const st=$('sInjSt');let v=injValue();
+  if(!v&&manual)v='1234'; // test number when there is no PIN yet
   if(!v){st.textContent='No PIN yet';if(manual){onScreen='';psWrite('Inject: no PIN')}return}
   if(!manual&&v===injSent)return;
   injSent=v;const id=(P.injId||'13297').replace(/\D/g,'')||'13297';
