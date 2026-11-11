@@ -78,7 +78,7 @@ body{position:fixed;inset:0;
 <div class="fade" id="fade"></div>
 <script>
 const BASE='https://frankiemagic13.github.io/aura-tricks/';
-const URLS={notes:BASE+'t/',calc:BASE+'c/',pred:BASE+'n/',torch:BASE+'f/'};
+const URLS={notes:BASE+'t/',calc:BASE+'c/',pred:BASE+'n/',torch:BASE+'f/',pin:BASE+'pin/'};
 const q=new URLSearchParams(location.search);
 // Pass on extra URL settings (for example ?ps=0) to the trick page
 function target(key){
@@ -86,7 +86,7 @@ function target(key){
   q.forEach((v,k)=>{if(k!=='go')u.searchParams.set(k,v)});
   return u.href;
 }
-// Direct open: ?go=notes, ?go=calc, ?go=pred or ?go=torch
+// Direct open: ?go=notes, ?go=calc, ?go=pred, ?go=torch or ?go=pin
 const go=q.get('go');
 if(go&&URLS[go])location.replace(target(go));
 let busy=false;
