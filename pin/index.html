@@ -148,6 +148,15 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
   <div class="snote">Hold the phone vertical (screen to you) to unlock to the home photo, with any code or no code. To go back: tap the home photo 3 times quickly.</div>
 
+  <div class="lbl">Shortcut after unlock</div>
+  <div class="grp">
+    <div class="r">Shortcut name<input type="text" id="sSc" placeholder="None" autocapitalize="off" autocorrect="off" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
+    <div class="r">Input<select id="sScIn"><option value="none">Nothing</option><option value="pin">The PIN</option><option value="all">PIN, total and time</option></select></div>
+    <div class="r">Delay<select id="sScMs"><option value="300">0.3 s</option><option value="800">0.8 s</option><option value="1500">1.5 s</option></select></div>
+    <div class="r"><button class="sbtn" id="sScTest">Test the shortcut</button></div>
+  </div>
+  <div class="snote">Runs the shortcut with this name (the same spelling as in the Shortcuts app) each time the phone unlocks: by tilt, or by the code when "After the code" is "Unlock". Leave it empty to run nothing. iOS opens the Shortcuts app to run it.</div>
+
   <div class="lbl">Wallpaper</div>
   <div class="grp">
     <div class="r">Wallpaper<span><button class="sbtn" id="sPick">Choose…</button> <button class="sbtn" id="sReset">Default</button></span></div>
@@ -184,7 +193,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'on',tiltMs:500,dim:.5,
-  batt:43,extra:false,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,extra:false,sc:'',scIn:'pin',scMs:300,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(P.tilt!=='off')P.tilt='on';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
@@ -236,7 +245,15 @@ function toLock(live){view='pass';B.classList.remove('unlocked');code='';locked=
 function unlock(){if(view==='home')return;view='home';clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
-  haptic('medium');B.classList.add('unlocked')}
+  haptic('medium');B.classList.add('unlocked');
+  if(P.sc)setTimeout(runShortcut,P.scMs)}
+let lastTotal='';
+function runShortcut(){
+  if(!P.sc)return;
+  let u='shortcuts://run-shortcut?name='+encodeURIComponent(P.sc);
+  const t=P.scIn==='pin'?lastPin:P.scIn==='all'?('PIN '+lastPin+'\nTotal '+lastTotal+'\nTime '+timeNum()):'';
+  if(P.scIn!=='none'&&t)u+='&input=text&text='+encodeURIComponent(t);
+  location.href=u}
 (function(){let n=0,t=0;$('home').addEventListener('click',()=>{const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
 
 /* ---------- passcode ---------- */
@@ -281,7 +298,7 @@ function calcPin(total){
   if(P.bday==='not')return b||('? '+total);
   if(a&&b)return a+'/'+b;return a||b||('? '+total)}
 function complete(){
-  waitT=null;const total=+code;lastPin=calcPin(total);
+  waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
   onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{});
   if(P.online){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
   if(P.after==='unlock'){unlock();return}
@@ -386,7 +403,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sExtra').checked=P.extra;$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sExtra').checked=P.extra;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -399,6 +416,10 @@ $('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
 $('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
 $('sWifi').onchange=e=>{P.wifi=e.target.checked;saveP();drawBatt()};
 $('sExtra').onchange=e=>{P.extra=e.target.checked;saveP()};
+$('sSc').oninput=e=>{P.sc=e.target.value.trim();saveP()};
+$('sScIn').onchange=e=>{P.scIn=e.target.value;saveP()};
+$('sScMs').onchange=e=>{P.scMs=+e.target.value;saveP()};
+$('sScTest').onclick=()=>{if(!P.sc){alert('Type the shortcut name first.');return}runShortcut()};
 $('sDim').onchange=e=>{P.dim=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
