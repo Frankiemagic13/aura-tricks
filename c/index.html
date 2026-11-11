@@ -64,6 +64,33 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .k .dot{width:calc(4.6 * var(--u));height:calc(4.6 * var(--u));margin-top:calc(21.4 * var(--u))}
 .k.ac{font-size:calc(37 * var(--u));letter-spacing:calc(-.3 * var(--u))}
 
+/* history sheet (tap the clock), iOS 27 look */
+#histBg{position:fixed;inset:0;z-index:7;background:rgba(0,0,0,.48);opacity:0;pointer-events:none;transition:opacity .3s}
+#hist{position:fixed;left:9px;right:9px;bottom:calc(env(safe-area-inset-bottom) * .25 + 9px);top:calc(max(env(safe-area-inset-top),20px) + 356 * var(--u));z-index:8;
+  border-radius:40px;background:rgba(48,48,48,.38);-webkit-backdrop-filter:blur(8px) saturate(150%);backdrop-filter:blur(8px) saturate(150%);
+  box-shadow:inset 0 .6px 0 rgba(255,255,255,.18),0 0 0 .5px rgba(255,255,255,.08);color:#fff;
+  transform:translateY(110%);transition:transform .42s cubic-bezier(.2,.9,.25,1);display:flex;flex-direction:column;overflow:hidden}
+.hopen #histBg{opacity:1;pointer-events:auto}.hopen #hist{transform:none}
+.hgrab{width:57px;height:5px;border-radius:3px;background:rgba(255,255,255,.32);margin:5px auto 0;flex:none}
+.hhead{display:flex;justify-content:space-between;align-items:center;padding:3px 13px 0 15px;flex:none}
+.hedit{height:41px;padding:0 16px;border-radius:21px;border:0;background:rgba(255,255,255,.17);color:#fff;font:600 17px -apple-system,system-ui;
+  box-shadow:inset 0 .6px 0 rgba(255,255,255,.2)}
+.hx{width:43px;height:43px;border-radius:50%;border:0;background:rgba(255,255,255,.17);display:flex;align-items:center;justify-content:center;box-shadow:inset 0 .6px 0 rgba(255,255,255,.25)}
+.hx svg{width:25px;height:25px}
+#hList{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 23px 30px 19px}
+.hsec{font:700 18px/22px -apple-system,system-ui;color:#7E7E7E;padding:33px 0 11px;border-bottom:.5px solid rgba(255,255,255,.14)}
+.hsec:first-child{padding-top:43px}
+.hrow{display:flex;align-items:center;border-bottom:.5px solid rgba(255,255,255,.14);min-height:84.5px}
+.hrow .ht{flex:1;min-width:0;padding:4px 0}
+.hrow .he{font:400 15px/20px -apple-system,system-ui;color:#ADAEB2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hrow .hr{font:600 20px/27px -apple-system,system-ui;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.hdel{display:none;width:24px;height:24px;border-radius:50%;background:#FF453A;border:0;margin-right:12px;flex:none;position:relative}
+.hdel::after{content:"";position:absolute;left:6px;right:6px;top:11px;height:2.2px;border-radius:1px;background:#fff}
+.hediting .hdel{display:block}
+.hempty{color:#8D8D92;font:400 17px -apple-system,system-ui;text-align:center;padding:60px 0}
+.hclear{display:none;margin:22px auto 0;background:none;border:0;color:#FF453A;font:400 17px -apple-system,system-ui}
+.hediting .hclear{display:block}
+
 /* fake iOS status bar (time on the left holds the tap-count peek) */
 .sb{position:fixed;left:0;right:0;z-index:5;top:calc(max(env(safe-area-inset-top),44px) - 40px);height:22px;pointer-events:none;color:#fff}
 .sb.hide{display:none}
@@ -113,7 +140,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 </div></div>
 <div id="app">
   <div class="top">
-    <div class="tb"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path id="hand" d="M13 6.8V13H8.6"/></svg></div>
+    <div class="tb" id="histBtn"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path id="hand" d="M13 6.8V13H8.6"/></svg></div>
     <div class="tb"><svg viewBox="0 0 26 26" fill="none"><rect x="5.6" y="2.4" width="14.8" height="21.2" rx="3.4" stroke="#fff" stroke-width="2.1"/><rect x="8.4" y="5.2" width="9.2" height="3.6" rx=".9" fill="#fff"/>
       <g fill="#fff"><circle cx="9.3" cy="12.2" r="1.25"/><circle cx="13" cy="12.2" r="1.25"/><circle cx="16.7" cy="12.2" r="1.25"/><circle cx="9.3" cy="15.6" r="1.25"/><circle cx="13" cy="15.6" r="1.25"/><circle cx="16.7" cy="15.6" r="1.25"/><circle cx="9.3" cy="19" r="1.25"/><circle cx="13" cy="19" r="1.25"/><circle cx="16.7" cy="19" r="1.25"/></g></svg></div>
   </div>
@@ -136,6 +163,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
 </div>
 
+<div id="histBg"></div>
+<div id="hist">
+  <div class="hgrab"></div>
+  <div class="hhead"><button class="hedit" id="hEdit">Edit</button><button class="hx" id="hClose"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round"><path d="M5.5 5.5l13 13M18.5 5.5l-13 13"/></svg></button></div>
+  <div id="hList"></div>
+</div>
 <div id="sheetBg"></div>
 <div id="sheet">
   <div class="grab"></div>
@@ -373,6 +406,7 @@ function press0(k){
     if(cur!=='')toks.push(cur);cur='';if(!toks.length)return render();
     if(isOp(toks.at(-1)))toks.pop();
     shownExpr=exprStr(toks);lastExpr=psExpr(toks);eqNums=toks.filter(t=>!isOp(t));result=evalToks(toks);toks=[];
+    try{histAdd(shownExpr,result)}catch(e){}
     render();try{injOnEq()}catch(e){}return}
 }
 
@@ -610,7 +644,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v9. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v10. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -673,6 +707,42 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 addEventListener('pagehide',()=>{if(S.onLock==='url')onLock()});
 
 document.addEventListener('gesturestart',e=>e.preventDefault());
+/* ---------- history (tap the clock): each = is saved on this phone ---------- */
+function histLoad(){try{return JSON.parse(localStorage.getItem('chist')||'[]')}catch(e){return[]}}
+function histSave(h){try{localStorage.setItem('chist',JSON.stringify(h.slice(0,200)))}catch(e){}}
+function histAdd(e,r){if(!isFinite(r))return;const h=histLoad();h.unshift({e,r,t:Date.now()});histSave(h)}
+function histGroup(t){
+  const d=new Date(t),now=new Date(),day=x=>new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();
+  const diff=Math.round((day(now)-day(d))/864e5);
+  if(diff<=0)return'Today';if(diff===1)return'Yesterday';if(diff<7)return'Previous 7 Days';if(diff<30)return'Previous 30 Days';
+  return d.toLocaleDateString('en-US',d.getFullYear()===now.getFullYear()?{month:'long'}:{month:'long',year:'numeric'})}
+function histDraw(){
+  const L=$('hList'),h=histLoad();L.innerHTML='';
+  if(!h.length){L.innerHTML='<div class="hempty">No History</div>';return}
+  let g='';
+  h.forEach((it,i)=>{
+    const gg=histGroup(it.t);
+    if(gg!==g){g=gg;const sec=document.createElement('div');sec.className='hsec';sec.textContent=g;L.appendChild(sec)}
+    const row=document.createElement('div');row.className='hrow';
+    row.innerHTML='<button class="hdel"></button><div class="ht"><div class="he"></div><div class="hr"></div></div>';
+    row.querySelector('.he').textContent=String(it.e).replace(/−/g,'-');row.querySelector('.hr').textContent=fmtNum(it.r);
+    row.querySelector('.hdel').onclick=ev=>{ev.stopPropagation();const hh=histLoad();hh.splice(i,1);histSave(hh);histDraw()};
+    row.onclick=()=>{if(document.body.classList.contains('hediting'))return;   // tap = use this result
+      reset();cur=String(+(+it.r).toPrecision(12));render();histClose()};
+    L.appendChild(row)});
+  const c=document.createElement('button');c.className='hclear';c.textContent='Clear History';
+  c.onclick=()=>{histSave([]);document.body.classList.remove('hediting');$('hEdit').textContent='Edit';histDraw()};L.appendChild(c)}
+function histOpen(){histDraw();document.body.classList.add('hopen')}
+function histClose(){document.body.classList.remove('hopen','hediting');$('hEdit').textContent='Edit'}
+$('histBtn').addEventListener('click',histOpen);
+$('hClose').onclick=histClose;$('histBg').onclick=histClose;
+$('hEdit').onclick=()=>{const on=document.body.classList.toggle('hediting');$('hEdit').textContent=on?'Done':'Edit'};
+/* drag the sheet down to close it */
+(function(){const el=$('hist');let y0=null,dy=0;
+  el.addEventListener('touchstart',e=>{if($('hList').scrollTop>0&&!e.target.closest('.hhead,.hgrab'))return;y0=e.touches[0].clientY;dy=0;el.style.transition='none'},{passive:true});
+  el.addEventListener('touchmove',e=>{if(y0===null)return;dy=Math.max(0,e.touches[0].clientY-y0);el.style.transform=dy?'translateY('+dy+'px)':''},{passive:true});
+  el.addEventListener('touchend',()=>{if(y0===null)return;el.style.transition='';el.style.transform='';if(dy>90)histClose();y0=null})})();
+
 drawSB();tick();
 addEventListener('resize',render);
 render();
