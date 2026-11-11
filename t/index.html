@@ -172,6 +172,7 @@ svg{display:block}
   </div>
   <div class="lbl">Proximity sensor</div>
   <div class="grp">
+    <div class="r">Use proximity sensor<input type="checkbox" id="pxOn"></div>
     <div class="r">Sensor<span id="pxSt" class="dim">—</span></div>
     <div class="r">Covered now<span id="pxNow" class="dim">—</span></div>
   </div>
@@ -416,9 +417,10 @@ async function drawToPS(force){
 document.addEventListener('gesturestart',e=>e.preventDefault());
 
 /* ================= Send to Inject (same as the calculator) ================= */
-Object.assign(P,Object.assign({inj:false,iWhat:'lastWord',iPos:1,iCust:'',iWhen:'prox',iId:'13297'},
-  Object.fromEntries(['inj','iWhat','iPos','iCust','iWhen','iId'].filter(k=>k in P).map(k=>[k,P[k]]))));
+Object.assign(P,Object.assign({inj:false,iWhat:'lastWord',iPos:1,iCust:'',iWhen:'prox',iId:'13297',px:true},
+  Object.fromEntries(['inj','iWhat','iPos','iCust','iWhen','iId','px'].filter(k=>k in P).map(k=>[k,P[k]]))));
 if(Q.get('inj')==='1')P.inj=true;
+if(Q.get('px')==='0')P.px=false;
 let iSent='';
 function noteWords(){return note.innerText.replace(/ /g,' ').split(/\s+/).filter(Boolean)}
 function noteLines(){return note.innerText.replace(/ /g,' ').split('\n').map(s=>s.trim()).filter(Boolean)}
@@ -470,11 +472,11 @@ async function iSend(manual){
 /* proximity sensor: Aura.proximity.start() replies with {"supported":true,"near":false}.
    Ask it 4 times each second (this also starts the sensor), so no tap on a start button is needed. */
 let pxNear=null,pxBusy=false,pxOk=false;
-function pxChange(n){$('pxNow').textContent=n?'Yes':'No';if(n===pxNear)return;const was=pxNear;pxNear=n;if(n&&was!==null)iTrigger('prox')}
+function pxChange(n){if(!P.px)return;$('pxNow').textContent=n?'Yes':'No';if(n===pxNear)return;const was=pxNear;pxNear=n;if(n&&was!==null)iTrigger('prox')}
 setInterval(async()=>{
   const A=window.Aura,Px=A&&A.proximity;
   if(!Px||typeof Px.start!=='function'){if(!pxOk)$('pxSt').textContent=A?'Not in Aura':'Only in Aura';return}
-  if(pxBusy||document.visibilityState!=='visible')return;
+  if(!P.px||pxBusy||document.visibilityState!=='visible')return;
   pxBusy=true;
   try{let r=Px.start();if(r&&typeof r.then==='function')r=await r;
     if(r&&typeof r==='object'){
@@ -482,6 +484,15 @@ setInterval(async()=>{
       else if('near' in r){if(!pxOk){pxOk=true;$('pxSt').textContent='On'}pxChange(!!r.near)}}}
   catch(e){$('pxSt').textContent='Error'}
   pxBusy=false},250);
+/* on/off toggle: off stops the sensor (the screen no longer turns off when covered) */
+function pxApply(){
+  $('pxOn').checked=!!P.px;
+  if(!P.px){const Px=window.Aura&&window.Aura.proximity;
+    try{if(Px&&typeof Px.stop==='function'){const r=Px.stop();if(r&&r.catch)r.catch(()=>{})}}catch(e){}
+    pxNear=null;pxOk=false;$('pxNow').textContent='Off';$('pxSt').textContent='Off'}
+  else{$('pxSt').textContent='Starting…';$('pxNow').textContent='—'}}
+$('pxOn').onchange=e=>{P.px=e.target.checked;saveP();pxApply()};
+pxApply();
 </script>
 </body>
 </html>

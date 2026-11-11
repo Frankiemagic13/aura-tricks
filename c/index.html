@@ -217,6 +217,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
   <div class="lbl">Proximity sensor</div>
   <div class="grp">
+    <div class="r">Use proximity sensor<label><input type="checkbox" id="pxOn" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r">Sensor<span id="pxSt" style="color:rgba(235,235,245,.6)">—</span></div>
     <div class="r">Covered now<span id="pxNow" style="color:rgba(235,235,245,.6)">—</span></div>
     <div class="r"><button class="done" id="pxStart" style="width:auto;text-align:left">Start sensor</button><span id="pxRes" style="color:rgba(235,235,245,.6)"></span></div>
@@ -250,7 +251,7 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10),
   onLock:Q.get('lock')||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com',
   inj:Q.get('inj')==='1',injWhat:Q.get('iw')||'force',injN:Math.min(9,Math.max(1,parseInt(Q.get('ip')??'1',10)||1)),
-  injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,'')};
+  injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,''),px:Q.get('px')!=='0'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -554,7 +555,7 @@ function pxRead(d){
   if(typeof d!=='object')return null;
   for(const k of ['near','covered','isNear','isCovered','proximity','proximityState','state','value','detected'])if(k in d)return pxRead(d[k]);
   return null}
-function pxChange(near){near=!!near;const n=$('pxNow');if(n)n.textContent=near?'Yes':'No';
+function pxChange(near){if(!S.px)return;near=!!near;const n=$('pxNow');if(n)n.textContent=near?'Yes':'No';
   if(near===pxNear)return;pxNear=near;if(near)injTrigger('prox')}
 /* details for a test: what Aura.proximity has, and the events that come in */
 const pxLog=[];let pxBase='';
@@ -598,10 +599,10 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v6. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v7. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
-    pxShowDbg();pxStart()}
+    pxShowDbg();if(S.px)pxStart()}
   if('ProximitySensor' in window)try{const s=new ProximitySensor();s.onreading=()=>pxChange(s.near);s.start();found.push('ProximitySensor')}catch(e){}
   addEventListener('userproximity',e=>{pxChange(e.near)});
   $('pxSt').textContent=found.length?found.join(', '):'Not available'}
@@ -611,6 +612,7 @@ $('pxStart').onclick=pxStart;
 let pxGot=false,pxTries=0,pxLastTry=0;
 {const o=pxHandle;pxHandle=function(d,src){if(pxRead(d)!==null)pxGot=true;return o(d,src)}}
 function pxAuto(force){
+  if(!S.px)return;
   if(!window.Aura||!window.Aura.proximity)return;
   if(!force&&(pxGot||pxTries>=40||Date.now()-pxLastTry<600))return;
   pxTries++;pxLastTry=Date.now();pxStart()}
@@ -628,13 +630,23 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 let pxPolls=0,pxBusy=false;
 setInterval(async()=>{
   const P=window.Aura&&window.Aura.proximity;
-  if(!P||typeof P.start!=='function'||pxBusy||document.visibilityState!=='visible')return;
+  if(!S.px||!P||typeof P.start!=='function'||pxBusy||document.visibilityState!=='visible')return;
   pxBusy=true;
   try{let r=P.start();if(r&&typeof r.then==='function')r=await r;
     if(r&&typeof r==='object'&&'near' in r){pxPolls++;pxGot=true;pxChange(!!r.near)}}
   catch(e){}
   pxBusy=false},250);
+/* on/off toggle: off stops the sensor (the screen no longer turns off when covered) */
+function pxApply(){
+  $('pxOn').checked=!!S.px;
+  const P=window.Aura&&window.Aura.proximity;
+  if(!S.px){try{if(P&&typeof P.stop==='function'){const r=P.stop();if(r&&r.catch)r.catch(()=>{})}}catch(e){}
+    pxNear=false;$('pxNow').textContent='Off';$('pxRes').textContent='Sensor off'}
+  else{pxGot=false;pxTries=0;pxAuto(true)}}
+$('pxOn').onchange=()=>{S.px=$('pxOn').checked;saveS();pxApply()};
+$('pxOn').checked=!!S.px;
 pxBoot();
+if(!S.px)setTimeout(pxApply,400);
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
