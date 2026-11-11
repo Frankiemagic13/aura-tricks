@@ -213,7 +213,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Search automatically<label><input type="checkbox" id="bleAuto" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r">Vibrate on each peek<label><input type="checkbox" id="bleVib" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
-    <div class="r" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready"></div>
+    <div class="r" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="CALC"></div>
     <div class="r">Birthday peek<select id="bdMode"><option value="mdy">Month + Day + Year</option><option value="dmy">Day + Month + Year</option><option value="off">Off</option></select></div>
   </div>
   <div class="note" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. The page must be open in Aura or AuraClip.</div>
@@ -617,7 +617,7 @@ document.getElementById('bleTest').onclick=()=>{if(bleConnected())aps.text('Test
 document.getElementById('bleAuto').onchange=e=>{S.bleAuto=e.target.checked;saveS()};
 document.getElementById('bleVib').onchange=e=>{S.bleVib=e.target.checked;saveS()};
 /* what the PeekSmith shows when it connects */
-if(!S.conMode)S.conMode='text';if(S.conText==null)S.conText='Ready';
+if(!S.conMode)S.conMode='text';if(S.conText==null||S.conText==='Ready')S.conText='CALC';
 function conShow(){if(!bleConnected())return;
   if(S.conMode==='text'&&S.conText)aps.text(String(S.conText),{raw:true}).catch(()=>{});
   else if(S.conMode==='blank')aps.clear().catch(()=>{})}
@@ -733,7 +733,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v20. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v21. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -836,6 +836,13 @@ $('hEdit').onclick=()=>{const on=document.body.classList.toggle('hediting');$('h
 drawSB();tick();
 addEventListener('resize',render);
 render();
+</script>
+<script>
+/* Disconnect the PeekSmith when the page closes or goes to another page.
+   If the page comes back (Back button / page cache), the automatic search connects again. */
+addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
+  try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
 </body>
 </html>

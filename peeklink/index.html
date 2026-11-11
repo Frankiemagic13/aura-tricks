@@ -42,7 +42,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
     <div class="row">Inject ID<input id="injId" inputmode="numeric" pattern="[0-9]*" placeholder="13297" style="width:40%"></div>
     <div class="row">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
-    <div class="row" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready" style="width:55%"></div>
+    <div class="row" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="PEEK" style="width:55%"></div>
     <div class="row">Card recognition (AH → A♥)<input type="checkbox" id="cards"></div>
     <div class="row">Audio peek (speak each peek)<input type="checkbox" id="aud"></div>
     <div class="row" id="audRateRow">Voice speed<select id="audRate"><option value="0.8">Slow</option><option value="1">Normal</option><option value="1.3">Fast</option></select></div>
@@ -83,7 +83,7 @@ function conShow(){const m=$('conMode').value,t=$('conText').value;
   if(m==='text'&&t){if(AURA)aps.text(t,{raw:true}).catch(()=>{});else writeCmd("'"+t+'\n')}
   else if(m==='blank'){if(AURA)aps.clear().catch(()=>{});else writeCmd('$\n')}}
 function conSync(){$('conTextRow').style.display=$('conMode').value==='text'?'':'none'}
-$('conMode').value=st.get('conMode','text');$('conText').value=st.get('conText','Ready');conSync();
+$('conMode').value=st.get('conMode','text');{const ct=st.get('conText','PEEK');$('conText').value=ct==='Ready'?'PEEK':ct}conSync();
 $('conMode').onchange=()=>{st.set('conMode',$('conMode').value);conSync();conShow()};
 $('conText').onchange=()=>{st.set('conText',$('conText').value);conShow()};$('vib').onchange=()=>st.set('vib',$('vib').checked?'1':'0');
 $('info').textContent='Channel: '+TOPIC+'. Open this page in Aura (add frankiemagic13.github.io to your Aura bookmarks), or in a Web Bluetooth browser such as Bluefy. Disconnect the PeekSmith app first: the PeekSmith accepts one connection at a time.';
@@ -244,6 +244,13 @@ PeekRelay.listen(TOPIC,t=>sendText(t),s=>setN(s,s==='Listening'?'on':'err'));
 let lock=null;async function keepOn(){if(!$('wake').checked||!('wakeLock' in navigator))return;try{lock=await navigator.wakeLock.request('screen')}catch(e){}}
 $('wake').onchange=()=>{if($('wake').checked)keepOn();else if(lock){lock.release();lock=null}};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepOn()});keepOn();
+</script>
+<script>
+/* Disconnect the PeekSmith when the page closes or goes to another page.
+   If the page comes back (Back button / page cache), the automatic search connects again. */
+addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
+  try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
 </body>
 </html>

@@ -71,7 +71,7 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
     <div class="r">Show light on / off<input type="checkbox" id="showSt"></div>
     <div class="r">Vibrate on each change<input type="checkbox" id="vib"></div>
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
-    <div class="r" id="conTextRow">Text<input class="tx" id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready"></div>
+    <div class="r" id="conTextRow">Text<input class="tx" id="conText" autocapitalize="off" autocorrect="off" placeholder="LIGHT"></div>
   </div>
 
   <div class="lbl">PeekSmith buttons</div>
@@ -90,10 +90,11 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
 <script>
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const DEF={tapAct:'none',showSt:true,vib:true,conMode:'text',conText:'Ready',
+const DEF={tapAct:'none',showSt:true,vib:true,conMode:'text',conText:'LIGHT',
   rLoop:false,routine:null,
   btns:{'1.click':'toggle','1.longpress':'off','2.click':'toggle','2.longpress':'off','0.click':'play','0.longpress':'rec'}};
 const P=Object.assign({},DEF,store.get('fset',{}));P.btns=Object.assign({},DEF.btns,P.btns||{});
+if(P.conText==='Ready')P.conText='LIGHT';
 const saveP=()=>store.set('fset',P);
 
 /* ---------- light (web camera torch: getUserMedia + applyConstraints torch) ---------- */
@@ -257,6 +258,13 @@ $('lTest').onclick=()=>toggleLight();
 if(AURA){bleSearch();setInterval(()=>{if(!bleOn()&&!bleBusy&&!bleOff)bleSearch()},5000)}
 else bleStatus('Only in Aura');
 sync();
+</script>
+<script>
+/* Disconnect the PeekSmith when the page closes or goes to another page.
+   If the page comes back (Back button / page cache), the automatic search connects again. */
+addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
+  try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
 </body>
 </html>

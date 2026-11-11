@@ -235,12 +235,14 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Peek only after the tilt<input type="checkbox" id="sPkTilt"></div>
     <div class="r">Show digits while typing<input type="checkbox" id="sPkLive"></div>
     <div class="r">Vibrate with the PIN<input type="checkbox" id="sVib"></div>
+    <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
+    <div class="r" id="conTextRow">Text<input type="text" id="conText" autocapitalize="characters" autocorrect="off" placeholder="PIN" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
   </div>
   <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = send to Inject. "Peek only after the tilt": codes typed before you tilt the phone up do not go to the PeekSmith or the online peeks; only the code typed after the tilt does (with "Tilt straight up" set to "Next code unlocks").</div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v17</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v18</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -263,6 +265,15 @@ if(Q.get('ble')==='0')P.auto=false;
 if(Q.get('ps')==='0')P.online=false;
 const TOPIC=Q.get('k')||'fvt-c-k27x9m4q8w';
 const saveP=()=>store.set('pinset',P);
+/* what the PeekSmith shows when it connects */
+if(!P.conMode)P.conMode='text';if(P.conText==null)P.conText='PIN';
+function conShow(){if(!bleOn())return;
+  if(P.conMode==='text'&&P.conText){onScreen='';psWrite(String(P.conText))}
+  else if(P.conMode==='blank'){aps.clear().catch(()=>{});onScreen=''}}
+function conSync(){$('conMode').value=P.conMode;$('conText').value=P.conText;$('conTextRow').style.display=P.conMode==='text'?'':'none'}
+setTimeout(()=>{try{conSync()}catch(e){}
+  $('conMode').onchange=e=>{P.conMode=e.target.value;saveP();conSync();conShow()};
+  $('conText').onchange=e=>{P.conText=e.target.value;saveP();conShow()}},0);
 const pad2=n=>String(n).padStart(2,'0');
 function haptic(s){try{if(window.Aura&&Aura.haptic)Aura.haptic('impact',{style:s||'light'}).catch(()=>{})}catch(e){}}
 
@@ -473,7 +484,7 @@ async function bleSearch(){
     if(state==='scanning')bleStatus('Searching…');if(state==='connecting')bleStatus('Connecting…');
     if(state==='connected')bleStatus(name||'Connected');if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');bleBtnText()});
-  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});onScreen='';bleBtnText()});
+  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});onScreen='';bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>{
     if(event==='click'&&button===1){onScreen='';psWrite(lastPin||'No PIN yet')}
     if(event==='longpress'&&button===2){aps.clear().catch(()=>{});onScreen=''}
@@ -559,6 +570,13 @@ $('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
 document.addEventListener('gesturestart',e=>e.preventDefault());
 /* test hook */
 window.__pin={calcPin,setCode:c=>{code=c},setLen:l=>{len=l},setFrozen:n=>{frozen={str:'',num:n}},P};
+</script>
+<script>
+/* Disconnect the PeekSmith when the page closes or goes to another page.
+   If the page comes back (Back button / page cache), the automatic search connects again. */
+addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
+  try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
 </body>
 </html>

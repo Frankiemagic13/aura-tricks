@@ -166,7 +166,7 @@ svg{display:block}
     <div class="r">Words on PeekSmith<select id="sWords"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="0">Whole note</option></select></div>
     <div class="r">Vibrate on each word<input type="checkbox" id="sVib"></div>
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
-    <div class="r" id="conTextRow">Text<input class="tx" id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready"></div>
+    <div class="r" id="conTextRow">Text<input class="tx" id="conText" autocapitalize="off" autocorrect="off" placeholder="NOTES"></div>
     <div class="r">Send drawings to PeekSmith<input type="checkbox" id="sDraw"></div>
     <div class="r">Drawing size on PeekSmith<select id="sDrawSize"><option value="0.35">Small</option><option value="0.55">Medium</option><option value="0.75">Large</option><option value="1">Fill screen</option></select></div>
   </div>
@@ -348,7 +348,7 @@ $('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 /* what the PeekSmith shows when it connects */
-if(!P.conMode)P.conMode='text';if(P.conText==null)P.conText='Ready';
+if(!P.conMode)P.conMode='text';if(P.conText==null||P.conText==='Ready')P.conText='NOTES';
 function conShow(){if(!bleOn())return;
   if(P.conMode==='text'&&P.conText){bleOnScreen='';bleWrite(String(P.conText))}
   else if(P.conMode==='blank'){aps.clear().catch(()=>{});bleOnScreen=''}}
@@ -549,6 +549,13 @@ function pxApply(){
   else{$('pxSt').textContent='Starting…';$('pxNow').textContent='—'}}
 $('pxOn').onchange=e=>{P.px=e.target.checked;saveP();pxApply()};
 pxApply();
+</script>
+<script>
+/* Disconnect the PeekSmith when the page closes or goes to another page.
+   If the page comes back (Back button / page cache), the automatic search connects again. */
+addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
+  try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
 </body>
 </html>
