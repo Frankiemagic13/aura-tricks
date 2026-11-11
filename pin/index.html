@@ -174,6 +174,16 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
   <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: tap the home photo 3 times quickly.</div>
 
+  <div class="lbl">Send to Inject</div>
+  <div class="grp">
+    <div class="r">Send to Inject<input type="checkbox" id="sInj"></div>
+    <div class="r">Send when<select id="sInjWhen"><option value="code">The code is complete</option><option value="unlock">The phone unlocks</option><option value="button">PeekSmith side button (hold)</option></select></div>
+    <div class="r">Which PIN<select id="sInjWhich"><option value="a">First (birthday passed)</option><option value="b">Second (birthday not passed)</option></select></div>
+    <div class="r">Inject ID<input type="number" id="sInjId" inputmode="numeric" placeholder="13297"></div>
+    <div class="r"><button class="sbtn" id="sInjTest">Send now</button><span class="val" id="sInjSt"></span></div>
+  </div>
+  <div class="snote">Sends the PIN to your Inject (needs internet). "Which PIN" is used when the PeekSmith shows two PINs or a range. The PeekSmith shows "Inject: 4821" when it is sent. You can also send it with the PeekSmith side button (hold) at any time.</div>
+
   <div class="lbl">Shortcut after unlock</div>
   <div class="grp">
     <div class="r">Shortcut name<input type="text" id="sSc" placeholder="None" autocapitalize="off" autocorrect="off" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
@@ -212,11 +222,11 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Show digits while typing<input type="checkbox" id="sPkLive"></div>
     <div class="r">Vibrate with the PIN<input type="checkbox" id="sVib"></div>
   </div>
-  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code).</div>
+  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = send to Inject.</div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v10</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v11</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -228,7 +238,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,copy:false,inj:false,injWhen:'code',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
@@ -285,11 +295,12 @@ function unfreeze(){frozen=null;haptic('light');drawClock()}
 
 /* ---------- screens ---------- */
 let view='pass';
-function toLock(live){view='pass';armed=false;B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
+function toLock(live){view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
 function unlock(){if(view==='home')return;view='home';clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
   haptic('medium');B.classList.add('unlocked');
+  if(P.inj&&P.injWhen==='unlock')injSend(false);
   if(P.sc)setTimeout(runShortcut,P.scMs)}
 let lastTotal='';
 function runShortcut(){
@@ -343,6 +354,7 @@ function complete(){
   waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
   onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{});
   if(P.online){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
+  if(P.inj&&P.injWhen==='code')injSend(false);
   if(armed||P.after==='unlock'){armed=false;unlock();return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
@@ -432,7 +444,8 @@ async function bleSearch(){
   aps.on('button',({button,event})=>{
     if(event==='click'&&button===1){onScreen='';psWrite(lastPin||'No PIN yet')}
     if(event==='longpress'&&button===2){aps.clear().catch(()=>{});onScreen=''}
-    if(event==='click'&&button===0){toLock(true);aps.vibrate('.').catch(()=>{})}});
+    if(event==='click'&&button===0){toLock(true);aps.vibrate('.').catch(()=>{})}
+    if(event==='longpress'&&button===0&&P.inj)injSend(true)});
   try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
   bleBusy=false;bleBtnText()}
 async function bleToggle(){
@@ -448,7 +461,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -464,6 +477,29 @@ $('sNet').onchange=e=>{P.net=e.target.value;saveP();drawBatt()};
 $('sBnum').onchange=e=>{P.bnum=e.target.checked;saveP();drawBatt()};
 $('sChg').onchange=e=>{P.chg=e.target.checked;saveP();drawBatt()};
 $('sCopy').onchange=e=>{P.copy=e.target.checked;saveP()};
+$('sInj').onchange=e=>{P.inj=e.target.checked;saveP()};
+$('sInjWhen').onchange=e=>{P.injWhen=e.target.value;saveP()};
+$('sInjWhich').onchange=e=>{P.injWhich=e.target.value;saveP()};
+$('sInjId').oninput=e=>{P.injId=e.target.value.replace(/\D/g,'');saveP()};
+$('sInjTest').onclick=()=>injSend(true);
+/* ---------- Send to Inject (same endpoint as the calculator) ---------- */
+let injSent='';
+function injValue(){
+  if(!lastPin||lastPin[0]==='?')return '';
+  const parts=lastPin.split(/[\/-]/).filter(Boolean);
+  return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
+async function injSend(manual){
+  const st=$('sInjSt'),v=injValue();
+  if(!v){st.textContent='No PIN yet';if(manual){onScreen='';psWrite('Inject: no PIN')}return}
+  if(!manual&&v===injSent)return;
+  injSent=v;const id=(P.injId||'13297').replace(/\D/g,'')||'13297';
+  try{
+    /* Inject accepts JSON only (a form gives error 415) */
+    const r=await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',keepalive:true,
+      headers:{'Content-Type':'application/json'},body:JSON.stringify({value:v})});
+    if(!r.ok){injSent='';st.textContent='Inject error '+r.status;onScreen='';psWrite('Inject error '+r.status);return}
+    st.textContent='Sent '+v+' ✓';if(manual){onScreen='';psWrite('Inject: '+v)}}
+  catch(e){injSent='';st.textContent='Not sent (no internet?)';onScreen='';psWrite('Inject failed')}}
 $('sSc').oninput=e=>{P.sc=e.target.value.trim();saveP()};
 $('sScIn').onchange=e=>{P.scIn=e.target.value;saveP()};
 $('sScMs').onchange=e=>{P.scMs=+e.target.value;saveP()};
