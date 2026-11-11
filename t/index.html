@@ -420,7 +420,7 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 Object.assign(P,Object.assign({inj:false,iWhat:'lastWord',iPos:1,iCust:'',iWhen:'prox',iId:'13297',px:true},
   Object.fromEntries(['inj','iWhat','iPos','iCust','iWhen','iId','px'].filter(k=>k in P).map(k=>[k,P[k]]))));
 if(Q.get('inj')==='1')P.inj=true;
-if(Q.get('px')==='0')P.px=false;
+P.px=Q.get('px')!=='0';   // the sensor toggle is not kept: each page load starts with the sensor on
 let iSent='';
 function noteWords(){return note.innerText.replace(/ /g,' ').split(/\s+/).filter(Boolean)}
 function noteLines(){return note.innerText.replace(/ /g,' ').split('\n').map(s=>s.trim()).filter(Boolean)}

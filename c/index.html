@@ -254,6 +254,7 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,''),px:Q.get('px')!=='0'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
+S.px=Q.get('px')!=='0';   // the sensor toggle is not kept: each page load starts with the sensor on
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
 
 const p2=v=>String(v).padStart(2,'0');
@@ -599,7 +600,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v7. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v8. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
