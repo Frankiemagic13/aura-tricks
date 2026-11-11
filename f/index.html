@@ -55,6 +55,15 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
   </div>
   <div class="note">The first tap on the black screen prepares the light (iOS asks for camera access one time). Then the PeekSmith buttons can turn it on and off. If the light stops working after the phone was locked, tap the screen one time.</div>
 
+  <div class="lbl">Routine</div>
+  <div class="grp">
+    <div class="r">Saved routine<span id="rInfo" class="dim">None</span></div>
+    <div class="r"><button class="btn" id="rRec">Record routine</button></div>
+    <div class="r"><button class="btn" id="rPlay">Play routine</button></div>
+    <div class="r">Repeat (loop)<input type="checkbox" id="rLoop"></div>
+  </div>
+  <div class="note">Record: tap Record routine (or the PeekSmith button set to Record). While recording, touch the screen = light on, lift your finger = light off. The PeekSmith buttons also work. Tap the screen with two fingers, or press the Record button again, to stop. The routine starts at the first light change. Play it with a PeekSmith button set to Play.</div>
+
   <div class="lbl">PeekSmith</div>
   <div class="grp">
     <div class="r">PeekSmith<span id="bleSt" class="dim">Not connected</span></div>
@@ -82,7 +91,8 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const DEF={tapAct:'none',showSt:true,vib:true,conMode:'text',conText:'Ready',
-  btns:{'1.click':'toggle','1.longpress':'off','2.click':'toggle','2.longpress':'off','0.click':'none','0.longpress':'none'}};
+  rLoop:false,routine:null,
+  btns:{'1.click':'toggle','1.longpress':'off','2.click':'toggle','2.longpress':'off','0.click':'play','0.longpress':'rec'}};
 const P=Object.assign({},DEF,store.get('fset',{}));P.btns=Object.assign({},DEF.btns,P.btns||{});
 const saveP=()=>store.set('fset',P);
 
@@ -105,11 +115,13 @@ async function openCamera(){
     catch(e){lStatus('Not ready');$('lPrepSt').textContent=e.name==='NotAllowedError'?'Camera access denied':'Error: '+e.name;return false}
     finally{opening=null}})();
   return opening}
-async function setLight(on){
+async function setLight(on,quiet){
+  if(recOn)recLog(on);
   if(!camAlive()&&!(await openCamera())){bleShow('Light: tap screen first');return}
   try{
     await track.applyConstraints({advanced:[{torch:on}]});
     lightOn=on;lStatus(on?'On':'Off');
+    if(quiet||recOn)return;
     if(P.showSt)bleShow(on?'Light on':'Light off');
     if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{})}
   catch(e){lStatus('Error: '+e.name);bleShow('Light error')}}
@@ -123,13 +135,17 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
   const end=async()=>{clearTimeout(t);if(held)return;
     const ready=camAlive();if(!ready)await openCamera();
     if(P.tapAct==='toggle'&&ready)toggleLight()};
-  pad.addEventListener('touchstart',e=>{e.preventDefault();const p=e.touches[0];start(p.clientX,p.clientY)},{passive:false});
+  pad.addEventListener('touchstart',e=>{e.preventDefault();
+    if(recOn){if(e.touches.length>=2){recStop();return}setLight(true);return}
+    const p=e.touches[0];start(p.clientX,p.clientY)},{passive:false});
   pad.addEventListener('touchmove',e=>{const p=e.touches[0];move(p.clientX,p.clientY)},{passive:true});
-  pad.addEventListener('touchend',e=>{e.preventDefault();end()},{passive:false});
+  pad.addEventListener('touchend',e=>{e.preventDefault();
+    if(recOn){if(e.touches.length===0&&lightOn)setLight(false);return}
+    end()},{passive:false});
   pad.addEventListener('touchcancel',()=>clearTimeout(t));
-  pad.addEventListener('mousedown',e=>start(e.clientX,e.clientY));
+  pad.addEventListener('mousedown',e=>{if(recOn){setLight(true);return}start(e.clientX,e.clientY)});
   pad.addEventListener('mousemove',e=>{if(e.buttons)move(e.clientX,e.clientY)});
-  pad.addEventListener('mouseup',end)})();
+  pad.addEventListener('mouseup',()=>{if(recOn){setLight(false);return}end()})})();
 document.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('gesturestart',e=>e.preventDefault());
 
@@ -163,12 +179,58 @@ function conShow(){if(!bleOn())return;
   else if(P.conMode==='blank')aps.clear().catch(()=>{})}
 
 /* PeekSmith buttons */
-const BACT={none:'Nothing',toggle:'Toggle light',on:'Light on',off:'Light off',clear:'Clear PeekSmith'};
+const BACT={none:'Nothing',toggle:'Toggle light',on:'Light on',off:'Light off',play:'Play / stop routine',rec:'Record / stop recording',clear:'Clear PeekSmith'};
 function bleButton(b,e){
   if(e!=='click'&&e!=='longpress')return;
   const a=P.btns[b+'.'+e]||'none';
+  if(a==='play'){playing?playStop(true):playStart();return}
+  if(a==='rec'){recOn?recStop():recStart();return}
+  if(playing)playStop(false);
   if(a==='toggle')toggleLight();else if(a==='on')setLight(true);else if(a==='off')setLight(false);
   else if(a==='clear')aps.clear().catch(()=>{})}
+
+/* ---------- routine: record light changes with their times, play them back ---------- */
+let recOn=false,recT0=0,recEv=[],playing=false,playTimers=[];
+function recLog(on){const now=performance.now();if(!recEv.length)recT0=now;
+  const t=Math.round(now-recT0);const last=recEv[recEv.length-1];if(last&&last.on===on)return;recEv.push({t,on})}
+function recStart(){
+  if(playing)playStop(false);closeSheet();
+  if(!camAlive())openCamera();
+  if(lightOn)setLight(false,true);
+  recOn=true;recEv=[];recT0=0;
+  bleShow('REC');if(bleOn())aps.vibrate('-').catch(()=>{});rSync()}
+function recStop(){
+  if(!recOn)return;recOn=false;
+  const end=recEv.length?Math.round(performance.now()-recT0):0;
+  if(lightOn)setLight(false,true);
+  if(recEv.length&&recEv[recEv.length-1].on)recEv.push({t:end,on:false});
+  if(recEv.length){P.routine={ev:recEv,len:Math.max(end,recEv[recEv.length-1].t),t:Date.now()};saveP();cloudSave()}
+  bleShow(recEv.length?'Saved '+Math.ceil(recEv.length/2)+' flashes':'Nothing recorded');
+  if(bleOn())aps.vibrate('..').catch(()=>{});rSync()}
+async function playStart(){
+  const R=P.routine;if(!R||!R.ev||!R.ev.length){bleShow('No routine');return}
+  if(recOn)return;
+  if(!camAlive()&&!(await openCamera())){bleShow('Light: tap screen first');return}
+  playStop(false);playing=true;bleShow('Playing');rSync();
+  const run=()=>{
+    for(const e of R.ev)playTimers.push(setTimeout(()=>setLight(e.on,true),e.t));
+    playTimers.push(setTimeout(()=>{playTimers=[];
+      if(playing&&P.rLoop)run();else{playing=false;setLight(false,true);bleShow('Done');rSync()}},R.len+(P.rLoop?400:30)))};
+  run()}
+function playStop(show){playTimers.forEach(clearTimeout);playTimers=[];
+  if(!playing)return;playing=false;setLight(false,true);if(show)bleShow('Stopped');rSync()}
+function rSync(){
+  const R=P.routine;$('rInfo').textContent=R&&R.ev&&R.ev.length?Math.ceil(R.ev.length/2)+' flashes, '+(R.len/1000).toFixed(1)+' s':'None';
+  $('rRec').textContent=recOn?'Stop recording':'Record routine';$('rPlay').textContent=playing?'Stop':'Play routine';$('rLoop').checked=!!P.rLoop}
+$('rRec').onclick=()=>recOn?recStop():recStart();
+$('rPlay').onclick=()=>{if(playing)playStop(true);else{closeSheet();setTimeout(playStart,400)}};
+$('rLoop').onchange=e=>{P.rLoop=e.target.checked;saveP();cloudSave()};
+/* the routine is also kept online (same Firebase as the peeks), so it stays after a refresh */
+const R_URL='https://peek-island-default-rtdb.firebaseio.com/peeks/'+encodeURIComponent((new URLSearchParams(location.search).get('pk')||'fvt-c-k27x9m4q8w')+'-routine')+'.json';
+function cloudSave(){try{fetch(R_URL,{method:'PUT',keepalive:true,body:JSON.stringify({routine:P.routine,rLoop:!!P.rLoop,t:(P.routine&&P.routine.t)||Date.now()})}).catch(()=>{})}catch(e){}}
+(async()=>{try{const d=await fetch(R_URL,{cache:'no-store'}).then(r=>r.json());
+  if(d&&d.routine&&d.routine.ev&&(!P.routine||(d.t||0)>(P.routine.t||0))){P.routine=d.routine;P.rLoop=!!d.rLoop;saveP();rSync()}
+  else if(P.routine&&(!d||(P.routine.t||0)>(d.t||0)))cloudSave()}catch(e){}})();
 
 /* ---------- settings sheet ---------- */
 function openSheet(){sync();document.body.classList.add('open')}
@@ -177,7 +239,7 @@ function sync(){
   $('tapAct').value=P.tapAct;$('showSt').checked=!!P.showSt;$('vib').checked=!!P.vib;
   $('conMode').value=P.conMode;$('conText').value=P.conText;$('conTextRow').style.display=P.conMode==='text'?'':'none';
   document.querySelectorAll('#sheet select[data-k]').forEach(s=>s.value=P.btns[s.dataset.k]||'none');
-  if(!AURA)bleStatus('Only in Aura');bleBtnText()}
+  if(!AURA)bleStatus('Only in Aura');bleBtnText();rSync()}
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
   for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
   s.onchange=()=>{P.btns[s.dataset.k]=s.value;saveP()}});
