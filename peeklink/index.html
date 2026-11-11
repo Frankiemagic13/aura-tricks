@@ -44,6 +44,10 @@ small{color:#636366;font-size:12px;line-height:1.5}
     <div class="row">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
     <div class="row" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="Ready" style="width:55%"></div>
     <div class="row">Card recognition (AH → A♥)<input type="checkbox" id="cards"></div>
+    <div class="row">Audio peek (speak each peek)<input type="checkbox" id="aud"></div>
+    <div class="row" id="audRateRow">Voice speed<select id="audRate"><option value="0.8">Slow</option><option value="1">Normal</option><option value="1.3">Fast</option></select></div>
+    <div class="row" id="audVolRow">Voice volume<select id="audVol"><option value="0.3">Low</option><option value="0.6">Medium</option><option value="1">High</option></select></div>
+    <small id="audNote">Use AirPods or one earbud. The phone speaks each peek. Tap the screen once after you open the page, so iOS lets the page speak.</small>
     <div class="row">Keep screen on<input type="checkbox" id="wake" checked></div>
   </div>
   <div class="card" id="btnCard">
@@ -119,7 +123,7 @@ const psReady=()=>AURA?!!(aps&&aps.connected):!!chr;
 
 /* show text on the PeekSmith (no history) */
 function show(t){
-  $('last').textContent=t;
+  $('last').textContent=t;speak(t);
   if(!psReady()){log('Not sent (PeekSmith not connected): '+t);return}
   if(AURA){aps.text(t,{raw:!$('cards').checked}).catch(e=>log(e.message));if($('vib').checked)aps.vibrate('.').catch(()=>{})}
   else{writeCmd(($('cards').checked?$('pre').value:"'")+t.replace(/\n/g,'\r')+'\n');if($('vib').checked)writeCmd('~.\n')}
@@ -206,7 +210,31 @@ $('conn').onclick=()=>AURA?connectAura():connect(false);$('connAll').onclick=()=
 if(AURA){$('auraBox').style.display='';$('connAll').style.display='none';$('pre').closest('.row').style.display='none';setB('Ready – tap Connect')}
 else if(!navigator.bluetooth){$('nobt').style.display='';setB('No Bluetooth in this browser','err')}
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(location.href);$('copy').textContent='Copied'}catch(e){$('copy').textContent=location.href}};
-$('test').onclick=()=>show('Test 123');
+$('test').onclick=()=>{show('Test 123');if($('aud').checked)speak('Test 1 2 3')};
+
+/* ---------- audio peek (speech) ---------- */
+const TTS='speechSynthesis' in window;
+$('aud').checked=st.get('aud','0')==='1';$('audRate').value=st.get('audRate','1');$('audVol').value=st.get('audVol','0.6');
+function audSync(){const on=$('aud').checked;$('audRateRow').style.display=on?'':'none';$('audVolRow').style.display=on?'':'none';$('audNote').style.display=on?'':'none'}
+audSync();
+$('aud').onchange=()=>{st.set('aud',$('aud').checked?'1':'0');audSync();if($('aud').checked){audUnlock();speak('Audio on')}};
+$('audRate').onchange=()=>{st.set('audRate',$('audRate').value);speak('Speed')};
+$('audVol').onchange=()=>{st.set('audVol',$('audVol').value);speak('Volume')};
+if(!TTS){$('aud').disabled=true;$('audNote').textContent='Speech is not available in this browser.';$('audNote').style.display=''}
+/* iOS lets a page speak only after a tap: speak a silent word on the first touch */
+let audOk=false;
+function audUnlock(){if(!TTS||audOk)return;try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);audOk=true}catch(e){}}
+addEventListener('touchend',audUnlock,{passive:true});addEventListener('click',audUnlock);
+const RANK={A:'Ace',K:'King',Q:'Queen',J:'Jack',T:'Ten','10':'Ten'},SUIT={H:'hearts',S:'spades',D:'diamonds',C:'clubs'};
+function sayable(t){
+  t=String(t||'').replace(/\n/g,'. ');
+  if($('cards').checked)t=t.replace(/\b(10|[2-9AKQJT])([HSDC])\b/gi,(m,r,su)=>(RANK[r.toUpperCase()]||r)+' of '+SUIT[su.toUpperCase()]);
+  return t.replace(/ x /g,' times ').replace(/ \/ /g,' divided by ').replace(/ - /g,' minus ').replace(/ \+ /g,' plus ').replace(/\(\+\)/g,' plus').replace(/\(-\)/g,' minus')}
+function speak(t){
+  if(!TTS||!$('aud').checked||!t)return;
+  try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(sayable(t));
+    u.rate=+$('audRate').value||1;u.volume=+$('audVol').value||0.6;u.lang='en-US';
+    speechSynthesis.speak(u)}catch(e){log('Speech error: '+e.message)}}
 
 /* ---------- channel from the calculator ---------- */
 setN('Connecting…');
