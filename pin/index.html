@@ -27,14 +27,15 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .v{position:absolute;inset:0;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1)}
 
 /* ---------- status bar (the time here is the one that freezes) ---------- */
-#sb{position:absolute;left:0;right:0;top:calc(25.5 * var(--u));height:calc(26 * var(--u));z-index:3}
-#stime{position:absolute;left:calc(10 * var(--u));width:calc(88 * var(--u));text-align:center;font-size:calc(17.5 * var(--u));font-weight:600;
+#sb{position:absolute;left:0;right:0;top:calc(19.6 * var(--u));height:calc(26 * var(--u));z-index:3}
+#stime{position:absolute;left:calc(10 * var(--u));width:calc(88 * var(--u));text-align:center;font-size:calc(16.6 * var(--u));font-weight:650;
   line-height:calc(26 * var(--u));letter-spacing:calc(-.2 * var(--u));font-variant-numeric:tabular-nums}
-#sicons{position:absolute;right:calc(14 * var(--u));width:calc(84 * var(--u));height:100%;display:flex;align-items:center;justify-content:center;gap:calc(6 * var(--u))}
+#sicons{position:absolute;right:calc(33 * var(--u));height:100%;display:flex;align-items:center;gap:calc(6 * var(--u))}
+#wifi.off{display:none}
 #sicons svg{display:block}
 /* ---------- passcode screen (matches the iOS screenshot) ---------- */
 #pill{position:absolute;left:50%;top:calc(12 * var(--u));height:calc(53 * var(--u));width:calc(126 * var(--u));transform:translateX(-50%);
-  border-radius:calc(27 * var(--u));background:#000;box-shadow:0 0 0 1px rgba(255,255,255,.13)}
+  border-radius:calc(27 * var(--u));background:#000;box-shadow:0 0 0 calc(1.3 * var(--u)) rgba(255,255,255,.2)}
 #pill{width:calc(206 * var(--u))}
 #pill svg{position:absolute;top:50%;transform:translateY(-50%)}
 #pill .pl{left:calc(17 * var(--u));width:calc(18 * var(--u))}
@@ -94,14 +95,19 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div id="sb">
       <div id="stime"></div>
       <div id="sicons">
-        <svg style="width:calc(19 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 19 12" fill="#fff"><rect x="0" y="8" width="3.4" height="4" rx="1"/><rect x="5" y="5.5" width="3.4" height="6.5" rx="1"/><rect x="10" y="3" width="3.4" height="9" rx="1"/><rect x="15" y="0" width="3.4" height="12" rx="1"/></svg>
-        <svg style="width:calc(17 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.3c2.5 0 4.8 1 6.5 2.6l1.3-1.3A11 11 0 0 0 8.5.4 11 11 0 0 0 .7 3.6L2 4.9a9.2 9.2 0 0 1 6.5-2.6Z"/><path d="M8.5 5.8c1.5 0 2.9.6 4 1.6l1.3-1.3a7.6 7.6 0 0 0-10.6 0l1.3 1.3a5.7 5.7 0 0 1 4-1.6Z"/><path d="M8.5 9.2c.6 0 1.1.2 1.5.6L8.5 11.3 7 9.8c.4-.4.9-.6 1.5-.6Z"/></svg>
-        <svg style="width:calc(27 * var(--u));height:calc(13 * var(--u))" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="#fff" stroke-opacity=".4"/><rect x="2" y="2" width="16" height="9" rx="2.4" fill="#fff"/><path d="M25 4.3v4.4c.9-.3 1.5-1.2 1.5-2.2s-.6-1.9-1.5-2.2Z" fill="#fff" fill-opacity=".45"/></svg>
+        <svg style="width:calc(17.7 * var(--u));height:calc(12.2 * var(--u))" viewBox="0 0 17.7 12.2" fill="#fff"><rect x="0" y="8.2" width="3.3" height="4" rx="1.1"/><rect x="4.8" y="5.6" width="3.3" height="6.6" rx="1.1"/><rect x="9.6" y="2.9" width="3.3" height="9.3" rx="1.1"/><rect x="14.4" y="0" width="3.3" height="12.2" rx="1.1"/></svg>
+        <svg id="wifi" style="width:calc(16.5 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.3c2.5 0 4.8 1 6.5 2.6l1.3-1.3A11 11 0 0 0 8.5.4 11 11 0 0 0 .7 3.6L2 4.9a9.2 9.2 0 0 1 6.5-2.6Z"/><path d="M8.5 5.8c1.5 0 2.9.6 4 1.6l1.3-1.3a7.6 7.6 0 0 0-10.6 0l1.3 1.3a5.7 5.7 0 0 1 4-1.6Z"/><path d="M8.5 9.2c.6 0 1.1.2 1.5.6L8.5 11.3 7 9.8c.4-.4.9-.6 1.5-.6Z"/></svg>
+        <svg id="batt" style="width:calc(26.5 * var(--u));height:calc(13.4 * var(--u))" viewBox="0 0 26.5 13.4">
+          <defs><clipPath id="bclip"><rect x="0" y="0" width="24" height="13.4" rx="4.3"/></clipPath></defs>
+          <g clip-path="url(#bclip)"><rect width="24" height="13.4" fill="rgba(255,255,255,.38)"/><rect id="bfill" width="10.3" height="13.4" fill="#fff"/></g>
+          <path d="M25.1 4.6v4.2c.8-.3 1.4-1.1 1.4-2.1s-.6-1.8-1.4-2.1Z" fill="rgba(255,255,255,.4)"/>
+          <text id="btext" x="12" y="10.3" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#000" letter-spacing="-.2">43</text>
+        </svg>
       </div>
     </div>
     <div id="pill">
       <svg class="pl" viewBox="0 0 18 24" fill="#d8d8dc"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
-      <svg class="fid" viewBox="0 0 24 24" fill="none" stroke="#7ee08a" stroke-width="1.7" stroke-linecap="round"><path d="M2.5 7.5V5A2.5 2.5 0 0 1 5 2.5h2.5M16.5 2.5H19A2.5 2.5 0 0 1 21.5 5v2.5M21.5 16.5V19a2.5 2.5 0 0 1-2.5 2.5h-2.5M7.5 21.5H5A2.5 2.5 0 0 1 2.5 19v-2.5M8 8.5v1.5M16 8.5v1.5M12.2 8.5v4.3h-1M9 16.2a4.4 4.4 0 0 0 6 0"/></svg>
+      <svg class="fid" viewBox="0 0 24 24" fill="none" stroke="#a6e8a6" stroke-width="1.45" stroke-linecap="round"><path d="M2.5 7.5V5A2.5 2.5 0 0 1 5 2.5h2.5M16.5 2.5H19A2.5 2.5 0 0 1 21.5 5v2.5M21.5 16.5V19a2.5 2.5 0 0 1-2.5 2.5h-2.5M7.5 21.5H5A2.5 2.5 0 0 1 2.5 19v-2.5M8 8.5v1.5M16 8.5v1.5M12.2 8.5v4.3h-1M9 16.2a4.4 4.4 0 0 0 6 0"/></svg>
     </div>
     <div id="title">Enter Passcode</div>
     <div id="dots"></div>
@@ -144,6 +150,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Wallpaper</div>
   <div class="grp">
     <div class="r">Wallpaper<span><button class="sbtn" id="sPick">Choose…</button> <button class="sbtn" id="sReset">Default</button></span></div>
+    <div class="r">Battery %<input type="number" id="sBatt" inputmode="numeric" min="1" max="100"></div>
+    <div class="r">Wi-Fi icon<input type="checkbox" id="sWifi"></div>
     <div class="r">Passcode dim<select id="sDim"><option value=".3">Light</option><option value=".5">iOS</option><option value=".65">Dark</option></select></div>
     <div class="r">Home photo<span><button class="sbtn" id="sPickHome">Choose…</button> <button class="sbtn" id="sResetHome">Wallpaper</button></span></div>
   </div>
@@ -175,7 +183,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'on',tiltMs:500,dim:.5,
-  auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
+  batt:43,wifi:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true},store.get('pinset',{}));
 if(P.tilt!=='off')P.tilt='on';
 if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
 if(Q.has('year'))P.year=Q.get('year');
@@ -188,7 +196,9 @@ function haptic(s){try{if(window.Aura&&Aura.haptic)Aura.haptic('impact',{style:s
 
 /* ---------- wallpaper and home photo ---------- */
 function img(key){try{return localStorage.getItem(key)}catch(e){return null}}
-function applyBg(){
+function drawBatt(){const b=Math.max(1,Math.min(100,+P.batt||43));$('bfill').setAttribute('width',(24*b/100).toFixed(2));
+  $('bfill').setAttribute('fill',b<=20?'#ff3b30':'#fff');$('btext').textContent=b;$('btext').setAttribute('fill',b<=20?'#fff':'#000');$('wifi').classList.toggle('off',!P.wifi)}
+function applyBg(){drawBatt();
   const bg=$('bg'),i=img('pinbg');
   if(i){bg.classList.remove('gradient');bg.style.backgroundImage='url("'+i+'")'}else{bg.classList.add('gradient');bg.style.backgroundImage=''}
   document.documentElement.style.setProperty('--dim',P.dim)}
@@ -371,7 +381,7 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
-  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sBatt').value=P.batt;$('sWifi').checked=P.wifi;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -381,6 +391,8 @@ $('sLen').onchange=e=>{P.len=+e.target.value;len=P.len;saveP();code='';drawDots(
 $('sAfter').onchange=e=>{P.after=e.target.value;saveP()};
 $('sTilt').onchange=e=>{P.tilt=e.target.value;saveP()};
 $('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
+$('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
+$('sWifi').onchange=e=>{P.wifi=e.target.checked;saveP();drawBatt()};
 $('sDim').onchange=e=>{P.dim=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
