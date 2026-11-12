@@ -78,7 +78,7 @@ body{position:fixed;inset:0;
 <div class="fade" id="fade"></div>
 <script>
 const BASE='https://frankiemagic13.github.io/aura-tricks/';
-const URLS={notes:BASE+'t/',calc:BASE+'c/',pred:BASE+'n/',torch:BASE+'f/?as=spect',pin:BASE+'pin/'};
+const URLS={notes:BASE+'t/',calc:BASE+'c/',torch:BASE+'f/?as=spect',pin:BASE+'pin/'};
 const q=new URLSearchParams(location.search);
 // Pass on extra URL settings (for example ?ps=0) to the trick page
 function target(key){
@@ -86,7 +86,7 @@ function target(key){
   q.forEach((v,k)=>{if(k!=='go')u.searchParams.set(k,v)});
   return u.href;
 }
-// Direct open: ?go=notes, ?go=calc, ?go=pred, ?go=torch or ?go=pin
+// Direct open: ?go=notes, ?go=calc, ?go=torch or ?go=pin
 const go=q.get('go');
 if(go&&URLS[go])location.replace(target(go));
 let busy=false;
@@ -94,15 +94,14 @@ function launch(key,el){
   if(busy)return;busy=true;
   if(navigator.vibrate)navigator.vibrate(8);
   const f=document.getElementById('fade'),r=el.querySelector('.icon').getBoundingClientRect();
-  f.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${key==='pred'?'#fff':el.dataset.bg}`;
+  f.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${el.dataset.bg}`;
   requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('on')));
   setTimeout(()=>location.replace(target(key)),230);
 }
-// Tap = open. Hold Notes for 1 s = Notes prediction.
+// Tap = open.
 document.querySelectorAll('.app').forEach(el=>{
   let t=null,held=false;
   el.addEventListener('touchstart',()=>{held=false;el.classList.add('down');
-    if(el.id==='nApp')t=setTimeout(()=>{held=true;el.classList.remove('down');launch('pred',el)},1000);
   },{passive:true});
   const end=()=>{clearTimeout(t);el.classList.remove('down')};
   el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go,el)});
@@ -116,7 +115,7 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 <script src="../hui.js"></script>
 <script>
 /* Help panel */
-addEventListener("load",()=>{const help=HUI.helpPanel("Launcher","<h4>Open the tricks</h4>\n<ul><li>Tap <b>Notes</b>: the typing Notes (peeks, mirror, prediction).</li>\n<li>Hold <b>Notes</b> 1 second: the Notes prediction.</li>\n<li>Tap <b>Calculator</b>: the calculator force.</li>\n<li>Tap <b>Flashlight</b>: the flashlight page as a <b>Spectator</b> phone (it does what your control phone sends).</li></ul>\n<h4>Direct links</h4>\n<p>Add <b>?go=notes</b>, <b>calc</b>, <b>pred</b>, <b>torch</b> or <b>pin</b> to open a trick with no home screen. Other link settings (for example ?ps=0) go on to the trick.</p>\n<h4>This help</h4>\n<p>Hold the wallpaper (not an icon) for 1.5 seconds.</p>");
+addEventListener("load",()=>{const help=HUI.helpPanel("Launcher","<h4>Open the tricks</h4>\n<ul><li>Tap <b>Notes</b>: the typing Notes (peeks, mirror, prediction).</li>\n<li>Tap <b>Calculator</b>: the calculator force.</li>\n<li>Tap <b>Flashlight</b>: the flashlight page as a <b>Spectator</b> phone (it does what your control phone sends).</li></ul>\n<h4>Direct links</h4>\n<p>Add <b>?go=notes</b>, <b>calc</b>, <b>torch</b> or <b>pin</b> to open a trick with no home screen. Other link settings (for example ?ps=0) go on to the trick.</p>\n<h4>This help</h4>\n<p>Hold the wallpaper (not an icon) for 1.5 seconds.</p>");
 let ht=null;const hs=e=>{clearTimeout(ht);if(!e.target.closest('.app'))ht=setTimeout(help.open,1500)},hx=()=>clearTimeout(ht);document.addEventListener('touchstart',hs,{passive:true,capture:true});document.addEventListener('mousedown',hs,true);['touchend','touchmove','touchcancel','mouseup'].forEach(n=>document.addEventListener(n,hx,{passive:true,capture:true}));});
 </script>
 </body>
