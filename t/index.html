@@ -746,11 +746,14 @@ setInterval(()=>predSend(),200);
 let acroMode=false,acroRaw='',acroT=null,acroBase=null;
 function acroShow(all){let v;
   if(P.predType==='acro'){note.classList.add('plain');v=acroText(acroRaw,all)}
-  else{note.classList.remove('plain');const w=String(acroRaw||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();v=w?predPrefix()+caseFor(w):''}
+  else{note.classList.remove('plain');const w=String(acroRaw||'').replace(/\u00a0/g,' ').replace(/\s+/g,' ').trim();
+    const c=w?caseFor(w):'';v=c?predPrefix()+c.charAt(0).toLowerCase()+c.slice(1):''}   // the first letter is always small (iOS makes it a capital)
   if(v!==note.innerText){note.innerText=v;edited=!!v;topIcons()}}
 /* case of the shown words, from the setting (opposite / same as the spectator's typing, swap, as typed) */
 function caseFor(w){const m=P.predCase;if(m==='asis')return w;if(m==='swap')return swapCase(w);
-  const c=caseOf(w);if(!c)return w;return (m==='opp'?c==='low':c==='up')?w.toUpperCase():w.toLowerCase()}
+  /* the first letter is not counted: iOS makes it a capital */
+  const c=caseOf(w.slice(1))||caseOf(w);
+ if(!c)return w;return (m==='opp'?c==='low':c==='up')?w.toUpperCase():w.toLowerCase()}
 function acroIn(h){h=String(h??'');
   /* only the text typed after you started the Acrostic counts */
   if(acroBase===undefined){acroBase=h;return}
