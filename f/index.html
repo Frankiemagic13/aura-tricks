@@ -293,7 +293,7 @@ body.studio #studio{display:flex}
   <li>Each phone gets a number (1, 2, 3…) in the order it connects.</li>
   <li><b>"Needs 1 tap"</b>: the spectator taps the black screen one time (iOS rule for the flash). Then the tile shows <b>Ready</b>. Tap your <b>M</b> tile one time too.</li>
   <li>Same room on all phones (default fvt-calc). Keep all pages on screen.</li>
-  <li><b>No phones yet?</b> You can still record: tap the tiles 1, 2, 3 (they show "Waiting…") and record as normal. Tap <b>+ Add phone</b> for more layers (up to 9). Hold the last empty tile to remove it. When the phones connect later, the routine plays on them by their numbers.</li></ol>
+  <li><b>No phones yet?</b> You can still record: tap the tiles 1, 2, 3 (they show "Waiting…") and record as normal. Tap <b>+ Add phone</b> for more layers (up to 9). Hold the last empty tile (0.7 s) to remove it, for example to start with 2 phones. When the phones connect later, the routine plays on them by their numbers.</li></ol>
   <h4>2. Buttons</h4>
   <div class="glist">
     <div><span class="g g2" data-g="#cOn"></span><span><b>On</b>: tap = the selected phones stay on · hold = on while you hold</span></div>
@@ -623,7 +623,7 @@ $('tiles').addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t)
   const k=t.dataset.t;if(k==='M'&&!camAlive())openCamera().then(drawTiles);   // the tap is the user action iOS needs for the camera
   sel.has(k)?sel.delete(k):sel.add(k);hap('light');drawTiles()});
 {let ht=null;$('tiles').addEventListener('touchstart',e=>{const t=e.target.closest('.tile.empty[data-t]');if(!t||sRec)return;
-  ht=setTimeout(()=>{const n=+t.dataset.t;if(n===slotsN()&&n>3&&!gOf(n)){P.nSlots=n-1;sel.delete(String(n));saveP();drawTiles();stToast('Phone '+n+' removed')}},700)},{passive:true});
+  ht=setTimeout(()=>{const n=+t.dataset.t;if(n===slotsN()&&n>1&&!gOf(n)){P.nSlots=n-1;sel.delete(String(n));saveP();drawTiles();stToast('Phone '+n+' removed')}},700)},{passive:true});
   ['touchend','touchmove','touchcancel'].forEach(n=>$('tiles').addEventListener(n,()=>clearTimeout(ht),{passive:true}))}
 /* light buttons: On (tap = stays on, hold = on while held), Flash, Off (no phone selected = all off) */
 function selected(){return [...sel]}
