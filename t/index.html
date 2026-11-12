@@ -643,7 +643,7 @@ if(P.peerRole!=='mirror')P.peerRole='spect';
 if(Q.has('mirror'))roleSave(P.peerRole);
 if(P.peerRoom==null)P.peerRoom='';
 saveP();
-let peerTx=0,peerRx=0,peerOk=false,peerBusy=false,peerHooked=false,hosting=false,peerLastErr='',lastNote=null,lastDraw='';const guests=new Map(),peerEv=[];
+let peerGen=0,peerTx=0,peerRx=0,peerOk=false,peerBusy=false,peerHooked=false,hosting=false,peerLastErr='',lastNote=null,lastDraw='';const guests=new Map(),peerEv=[];
 const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
 function peerStatus(t){$('peerSt').textContent=t;peerDbgShow()}
 function peerErr(e){let m=(e&&(e.message||e.code||e.name))||e;try{if(typeof m==='object')m=JSON.stringify(m)}catch(x){}peerLastErr=String(m).slice(0,120);peerDbgShow()}
@@ -809,23 +809,25 @@ if(!(+P.predStop>0))P.predStop=5;   // a prediction always stops by itself$('pre
 $('predText').value=P.predText;
 /* quick change of the prediction type: the checklist button (bottom bar and keyboard bar) */
 /* double tap the checklist: next prediction type -> this phone becomes the Magician -> mirror off -> the prediction starts */
-let typeBusy=false;
-async function typeSwap(){if(typeBusy)return;typeBusy=true;
+let typeBusy=false,typeBusyT=null;
+async function typeSwap(){if(typeBusy){qtoast('Wait…');return}typeBusy=true;clearTimeout(typeBusyT);typeBusyT=setTimeout(()=>{typeBusy=false},20000);
   try{
     if(predMode)predToggle();else if(acroMode)acroToggle();   // a running prediction stops first
     P.predType=P.predType==='acro'?'text':'acro';saveP();$('predType').value=P.predType;
     const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();
     await beMagician(t);
+    if(!(P.peerRole==='mirror'&&hosting&&guests.size))qtoast(t+' · connecting…');
     if(!await waitLink(15000)){qtoast(t+' · not connected');return}
     mirrorOff();predToggle()}
-  finally{typeBusy=false}}
-async function predStart(){if(typeBusy)return;typeBusy=true;
+  finally{typeBusy=false;clearTimeout(typeBusyT)}}
+async function predStart(){if(typeBusy){qtoast('Wait…');return}typeBusy=true;clearTimeout(typeBusyT);typeBusyT=setTimeout(()=>{typeBusy=false},20000);
   try{if(predMode)predToggle();else if(acroMode)acroToggle();
     const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();
     await beMagician(t);
+    if(!(P.peerRole==='mirror'&&hosting&&guests.size))qtoast(t+' · connecting…');
     if(!await waitLink(15000)){qtoast(t+' · not connected');return}
     mirrorOff();predToggle()}
-  finally{typeBusy=false}}
+  finally{typeBusy=false;clearTimeout(typeBusyT)}}
 /* the link to the Spectator device is ready (this phone hosts and the other device joined) */
 async function waitLink(ms){const end=Date.now()+ms;while(Date.now()<end){if(P.peerRole==='mirror'&&hosting&&guests.size)return true;await new Promise(z=>setTimeout(z,250))}return false}
 function mirrorOff(){if(P.mirr===false)return;setMirr(false);peerOut({cmd:'mirr',on:false})}
@@ -846,9 +848,9 @@ async function swapRole(){predMode=false;acroMode=false;predOn=false;note.setAtt
 function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
 async function peerHostStart(){
   const Pp=peerApi();if(!Pp||typeof Pp.host!=='function'){peerStatus('Only in Aura');return}
-  peerHook();if(hosting||peerBusy)return;peerBusy=true;
-  try{const o={name:'Magician'};if(P.peerRoom)o.room=P.peerRoom;await Pp.host(o);hosting=true;hostShow()}
-  catch(e){peerStatus('Error');peerErr(e)}
+  peerHook();if(hosting||peerBusy)return;peerBusy=true;const g=peerGen;
+  try{const o={name:'Magician'};if(P.peerRoom)o.room=P.peerRoom;await Pp.host(o);if(g!==peerGen)return;hosting=true;hostShow()}
+  catch(e){if(g!==peerGen)return;peerStatus('Error');peerErr(e)}
   peerBusy=false}
 async function peerJoin(manual){
   if(!P.peer){peerStatus('Off');return}
@@ -856,12 +858,14 @@ async function peerJoin(manual){
   const Pp=peerApi();if(!Pp){peerStatus('Only in Aura');return}
   peerHook();
   if(peerOk||peerBusy||(!manual&&document.visibilityState!=='visible'))return;
-  peerBusy=true;peerStatus('Searching…');
+  peerBusy=true;peerStatus('Searching…');const g=peerGen;   // a search that was started before a role swap is ignored
   try{const o={name:'Notes',timeout:6};if(P.peerRoom)o.room=P.peerRoom;
-    const h=await Pp.join(o);peerOk=true;peerStatus('Connected'+(h&&h.name?' to '+h.name:''));peerSync(true)}
-  catch(e){peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
+    const h=await Pp.join(o);if(g!==peerGen)return;peerOk=true;peerStatus('Connected'+(h&&h.name?' to '+h.name:''));peerSync(true)}
+  catch(e){if(g!==peerGen)return;peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
   peerBusy=false}
-async function peerLeave(){const Pp=peerApi();peerOk=false;hosting=false;guests.clear();lastNote=null;lastDraw='';if(Pp)try{await Pp.leave()}catch(e){}peerStatus(P.peer?'Not connected':'Off')}
+async function peerLeave(){const Pp=peerApi();peerGen++;peerBusy=false;peerOk=false;hosting=false;guests.clear();lastNote=null;lastDraw='';
+  if(Pp)try{await Promise.race([Pp.leave(),new Promise(z=>setTimeout(z,1500))])}catch(e){}   // do not wait for ever
+  peerStatus(P.peer?'Not connected':'Off')}
 function peerUI(){$('peerOn').checked=!!P.peer;$('peerRoom').value=P.peerRoom||'';$('peerRole').value=P.peerRole}
 $('peerRole').onchange=async()=>{P.peerRole=$('peerRole').value;roleSave(P.peerRole);saveP();await peerLeave();peerJoin(true)};
 $('peerOn').onchange=()=>{P.peer=$('peerOn').checked;saveP();if(P.peer)peerJoin(true);else peerLeave()};

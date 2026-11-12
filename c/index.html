@@ -299,7 +299,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v35</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v36</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -785,7 +785,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v35. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v36. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -933,7 +933,7 @@ async function peerJoin(manual){
     peerStatus('Connected'+(peerHost?' to '+peerHost:''));peerRaw(peerState());peerDisp(true)}
   catch(e){if(g!==peerGen)return;peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
   peerBusy=false}
-async function peerLeave(){const P=peerApi();peerGen++;peerBusy=false;peerOk=false;hosting=false;guests.clear();lastDisp='';if(P)try{await P.leave()}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
+async function peerLeave(){const P=peerApi();peerGen++;peerBusy=false;peerOk=false;hosting=false;guests.clear();lastDisp='';if(P)try{await Promise.race([P.leave(),new Promise(z=>setTimeout(z,1500))])}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
 function peerSync(){$('peerOn').checked=!!S.peer;$('peerRoom').value=S.peerRoom||'';$('peerRole').value=S.peerRole}
 $('peerRole').onchange=async()=>{S.peerRole=$('peerRole').value;roleSave(S.peerRole);saveS();mirrorD=null;await peerLeave();render();peerJoin(true)};
 $('peerOn').onchange=()=>{S.peer=$('peerOn').checked;saveS();if(S.peer)peerJoin(true);else peerLeave()};
