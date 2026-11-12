@@ -85,6 +85,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 #home{position:fixed;inset:0;background:#000 center/cover no-repeat;opacity:0;transform:scale(1.12);pointer-events:none;
   transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1);z-index:5}
 .unlocked #home{opacity:1;transform:none;pointer-events:auto}
+/* iOS-like app launch: the icon grows from the tap point to full screen */
+#launch{position:fixed;inset:0;z-index:20;pointer-events:none;display:none;will-change:clip-path}
+#launch.on{display:block;pointer-events:auto}
+#launch .ph{position:absolute;inset:0;background:#000 center/cover no-repeat;will-change:transform,opacity}
+#launch .col{position:absolute;inset:0;opacity:0;will-change:opacity}
+.launching #home{transform:scale(1.12);filter:brightness(.8);transition:transform .45s cubic-bezier(.3,.8,.2,1),filter .45s}
 /* PIN peek as an iOS notification badge on the home photo */
 #badge{position:absolute;display:none;transform:translate(-50%,-50%) scale(0);height:6.4vw;min-width:6.4vw;padding:0 1.8vw;
   border-radius:3.2vw;background:#ff3b30;color:#fff;font:700 4.4vw/6.4vw -apple-system,system-ui,"SF Pro Text",sans-serif;
@@ -149,6 +155,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   </div>
 </div>
 <div id="home"><div id="badge"></div></div>
+<div id="launch"><div class="ph"></div><div class="col"></div></div>
 
 <div id="sheetBg"></div>
 <div id="sheet">
@@ -204,6 +211,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Action<select id="sUAct"><option value="none">Nothing</option><option value="app">Open an app</option></select></div>
     <div class="r" id="rowUApp">App<select id="sUApp"><option value="notes">Notes</option><option value="photos">Photos</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="custom">Other (app link)</option></select></div>
     <div class="r" id="rowUUrl">App link<input type="text" id="sUUrl" placeholder="app://" autocapitalize="off" autocorrect="off" inputmode="url" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
+    <div class="r">Open animation<select id="sUAnim"><option value="ios">iOS (icon zooms open)</option><option value="none">None</option></select></div>
+    <div class="r">Launch color<select id="sUCol"><option value="auto">Auto</option><option value="#ffffff">White</option><option value="#000000">Black</option><option value="#1c1c1e">Dark gray</option></select></div>
     <div class="r"><button class="sbtn" id="sUTest">Test: open the app</button></div>
   </div>
   <div class="snote">After the phone unlocks, one tap on the home photo opens this app. When this is on, 3 quick taps do not go back; use the PeekSmith side button (tap) to reset. "Other": type the app's link (URL scheme), for example fb:// .</div>
@@ -251,7 +260,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v19</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v20</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -263,7 +272,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:''},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto'},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
@@ -331,7 +340,7 @@ function unfreeze(){frozen=null;haptic('light');drawClock()}
 
 /* ---------- screens ---------- */
 let view='pass';
-function toLock(live){placing=false;showBadge('');view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
+function toLock(live){placing=false;launchReset();showBadge('');view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
 function unlock(){if(view==='home')return;view='home';unlockT=Date.now();clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
@@ -366,10 +375,43 @@ function appLink(){return P.uApp==='custom'?String(P.uUrl||'').trim():APP_LINK[P
 function openApp(){const u=appLink();if(!u)return false;
   try{const a=document.createElement('a');a.href=u;a.style.display='none';document.body.appendChild(a);a.click();a.remove()}catch(e){location.href=u}
   return true}
-function homeTap(){if(P.uAct!=='app'||placing||view!=='home')return false;
-  if(Date.now()-unlockT<700)return true;   // the finger from the last digit: not a tap on the photo
-  return openApp()}
-(function(){let n=0,t=0;$('home').addEventListener('click',()=>{if(homeTap())return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
+/* launch color: the app's first screen (white in light mode, black in dark mode; some apps are always dark) */
+function launchColor(){
+  if(P.uCol&&P.uCol!=='auto')return P.uCol;
+  if(['spotify','shortcuts'].includes(P.uApp))return '#000000';
+  return matchMedia('(prefers-color-scheme: dark)').matches?'#000000':'#ffffff'}
+let launching=false;
+function launchAnim(x,y,done){
+  const L=$('launch'),ph=L.querySelector('.ph'),col=L.querySelector('.col'),W=innerWidth,H=innerHeight;
+  const sz=W*0.155,r=sz*0.225,ix=Math.max(0,x-sz/2),iy=Math.max(0,y-sz/2);
+  ph.style.backgroundImage=$('home').style.backgroundImage;ph.style.backgroundColor=getComputedStyle($('home')).backgroundColor;
+  ph.style.transformOrigin=x+'px '+y+'px';col.style.background=launchColor();
+  const from='inset('+iy+'px '+(W-ix-sz)+'px '+(H-iy-sz)+'px '+ix+'px round '+r+'px)',to='inset(0px 0px 0px 0px round '+(W*0.11)+'px)';
+  L.classList.add('on');B.classList.add('launching');
+  const ease='cubic-bezier(.32,.72,0,1)',D=430;
+  try{
+    L.animate([{clipPath:from},{clipPath:to}],{duration:D,easing:ease,fill:'forwards'});
+    ph.animate([{transform:'scale(1)',opacity:1},{transform:'scale(2.2)',opacity:0,offset:.55},{transform:'scale(3)',opacity:0}],{duration:D,easing:ease,fill:'forwards'});
+    col.animate([{opacity:0},{opacity:1,offset:.45},{opacity:1}],{duration:D,easing:'linear',fill:'forwards'});
+  }catch(e){L.style.clipPath=to;col.style.opacity=1}
+  setTimeout(done,D-40)}
+function launchReset(){launching=false;const L=$('launch');
+  if(!L.classList.contains('on'))return;
+  try{L.getAnimations({subtree:true}).forEach(a=>a.cancel())}catch(e){}
+  L.style.clipPath='';L.querySelector('.col').style.opacity='';L.classList.remove('on');B.classList.remove('launching')}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')setTimeout(launchReset,250)});
+function homeTap(e){if(P.uAct!=='app'||placing||view!=='home')return false;
+  if(Date.now()-unlockT<700||launching)return true;   // the finger from the last digit: not a tap on the photo
+  if(!appLink())return false;
+  if(P.uAnim==='none')return openApp();
+  launching=true;
+  const x=e&&e.clientX!=null?e.clientX:innerWidth/2,y=e&&e.clientY!=null?e.clientY:innerHeight/2;
+  launchAnim(x,y,()=>{openApp();
+    /* if no app opened (wrong link), go back to the home photo */
+    setTimeout(()=>{if(document.visibilityState==='visible')launchReset()},2500)});
+  return true}
+(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
 
 /* ---------- passcode ---------- */
 const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
@@ -526,7 +568,7 @@ function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
-  $('sUAct').value=P.uAct;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
+  $('sUAct').value=P.uAct;$('sUAnim').value=P.uAnim;$('sUCol').value=P.uCol;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
 $('sH24').onchange=e=>{P.h24=e.target.value==='1';saveP();if(frozen){const f=frozen;frozen=null;/* keep the same moment, new format */const h=Math.floor(f.num/100),m=f.num%100;frozen={str:(P.h24?pad2(h):h)+':'+pad2(m),num:f.num}}drawClock()};
@@ -582,6 +624,8 @@ $('sBadgePos').onclick=placeBadge;
 $('sPkTilt').onchange=e=>{P.pkTilt=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
+$('sUAnim').onchange=e=>{P.uAnim=e.target.value;saveP()};
+$('sUCol').onchange=e=>{P.uCol=e.target.value;saveP()};
 $('sUAct').onchange=e=>{P.uAct=e.target.value;saveP();syncSheet()};
 $('sUApp').onchange=e=>{P.uApp=e.target.value;saveP();syncSheet()};
 $('sUUrl').onchange=e=>{P.uUrl=e.target.value.trim();saveP()};
