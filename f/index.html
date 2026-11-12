@@ -527,9 +527,10 @@ function roleSave(r){try{localStorage.setItem('fvtRole',r)}catch(e){}}
 try{const r=localStorage.getItem('fvtRole');if(r==='mirror'||r==='spect')P.peerRole=r}catch(e){}
 if(Qf.get('mirror')==='1')P.peerRole='mirror';else if(Qf.get('mirror')==='0')P.peerRole='spect';
 if(P.peerRole!=='mirror')P.peerRole='spect';if(Qf.has('mirror'))roleSave(P.peerRole);
+let roleOnce=false;if(Qf.get('as')==='spect'){P.peerRole='spect';roleOnce=true}   // from the launcher: Spectator for this visit only (the saved role does not change)
 if(P.peerRoom==null)P.peerRoom='fvt-calc';if(Qf.has('room'))P.peerRoom=Qf.get('room');
 if(!Array.isArray(P.routines))P.routines=[];
-saveP();
+{const r=P.peerRole;if(roleOnce)try{P.peerRole=localStorage.getItem('fvtRole')||'spect'}catch(e){}saveP();P.peerRole=r}
 const isMag=()=>P.peerRole==='mirror';
 const now=()=>performance.now();
 const FLASH_MS=200;
