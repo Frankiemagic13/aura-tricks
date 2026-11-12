@@ -206,6 +206,7 @@ svg{display:block}
     <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop, or set <b>Stop prediction after</b>.</li>
     <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
     <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
+    <li>Mirror and prediction exclude each other: mirror on stops the prediction, a prediction turns the mirror off (it stays off until you double tap Table).</li>
     <li>Checklist button: <b>double tap</b> = change the prediction type and start it. This phone becomes the Magician, and the mirror goes off. More in the Help tab.</li>
   </ul></div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
@@ -789,10 +790,10 @@ function predToggle(){
     if(!peerOut({cmd:'pred',on:true,pre:predPrefix()})){qtoast('Not connected');return}
     acroCache.clear();
     predSpecCase=caseOf(note.innerText);   // this phone shows the spectator's note (mirror)
+    mirrorOff();   // prediction on: the mirror goes off
     predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast(P.predType==='acro'?'Acrostic':'Prediction');qbuzz();
     setTimeout(()=>{note.focus();placeEnd()},50)}
-  else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz();
-    setMirr(true);peerOut({cmd:'mirr',on:true})}}   // the normal mirror starts again on the two devices
+  else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}   // the mirror stays off: double tap Table to turn it on
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
 if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP();setTimeout(async()=>{await beMagician('');if(await waitLink(15000))mirrorOff()},0)};
@@ -859,7 +860,7 @@ peerUI();
 let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
 function qbuzz(){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
-function mirrorToggle(){if(predMode){predToggle();qtoast('Mirror on');return}   // stopping the prediction turns the mirror on
+function mirrorToggle(){if(predMode){predToggle();setMirr(true);peerOut({cmd:'mirr',on:true});qtoast('Mirror on');qbuzz();return}   // mirror on stops the prediction
   if(acroMode){acroToggle();P.mirr=false}
   const on=P.mirr===false;
   if(on&&P.peerRole!=='mirror'){if(!P.peer){P.peer=true;saveP();peerUI()}beMagician('Mirror on');return}   // mirror on: this phone becomes the Magician
