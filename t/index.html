@@ -192,12 +192,12 @@ svg{display:block}
     <div class="r">Use Aura peer<input type="checkbox" id="peerOn"></div>
     <div class="r">Status<span id="peerSt" class="dim">—</span></div>
     <div class="r">Prediction text<input class="tx" id="predText" autocapitalize="sentences" autocorrect="off" placeholder="My prediction is"></div>
-    <div class="r">Prediction case<select id="predCase"><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
+    <div class="r">Prediction case<select id="predCase"><option value="opp">Opposite of spectator</option><option value="same">Same as spectator</option><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
     <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
     <div class="r"><button class="sbtn" id="peerBtn">Connect now</button><button class="sbtn" id="peerTest">Test</button></div>
   </div>
   <div class="snote">Bluetooth from the spectator's phone directly to your iPhone. No internet is necessary. Your iPhone: open this page in Aura Browser and set "This phone" to "My phone (mirror)" (or add ?mirror=1 to the link). Your Notes then shows the spectator's note and drawings live, and the peeks go to your PeekSmith from your phone. The spectator's phone stays "Spectator". Use the same room on the two phones (default fvt-calc, the same as the calculator and PeekLink). Keep the two pages open and on screen.</div>
-  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case "Swap": each capital letter you type shows as a small letter on the spectator's phone, and each small letter as a capital.</div>
+  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case: "Opposite of spectator" looks at the spectator's note before the prediction: if they typed in capitals, your text shows in small letters, and if they typed in small letters, your text shows in capitals. "Same as spectator" uses their case. "Swap" changes each letter you type (A ↔ a).</div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
@@ -651,17 +651,26 @@ function predRemote(d){
   else{predOn=false;peerSync(true)}}
 /* magician side */
 const swapCase=t=>String(t).replace(/\p{L}/gu,c=>{const u=c.toUpperCase(),l=c.toLowerCase();return c===u?l:u});
-function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;predLast=h;peerOut({type:'predtext',h:P.predCase==='asis'?h:swapCase(h)})}
+/* case of the spectator's note before the prediction: 'up' (mostly capitals), 'low' (mostly small letters) or '' (no letters) */
+let predSpecCase='';
+function caseOf(t){const up=(String(t).match(/\p{Lu}/gu)||[]).length,lo=(String(t).match(/\p{Ll}/gu)||[]).length;return up+lo?(up>lo?'up':'low'):''}
+function predCase(h){const m=P.predCase;
+  if(m==='asis')return h;if(m==='swap')return swapCase(h);
+  const c=predSpecCase;if(!c)return h;   // the spectator typed no letters: as typed
+  const up=(m==='opp')?(c==='low'):(c==='up');return up?h.toUpperCase():h.toLowerCase()}
+function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;predLast=h;peerOut({type:'predtext',h:predCase(h)})}
 note.addEventListener('input',()=>predSend());
 setInterval(()=>predSend(),200);
 function predToggle(){
   if(P.peerRole!=='mirror'){qtoast('Prediction: only on the Magician phone');return}
   if(!predMode){
     if(!peerOut({cmd:'pred',on:true,pre:predPrefix()})){qtoast('Not connected');return}
+    predSpecCase=caseOf(note.innerText);   // this phone shows the spectator's note (mirror)
     predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast('Prediction');qbuzz();
     setTimeout(()=>{note.focus();placeEnd()},50)}
   else{predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}
-if(P.predCase!=='asis')P.predCase='swap';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
+if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
+if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
 $('predText').value=P.predText;$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
 async function swapRole(){predMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
