@@ -282,8 +282,15 @@ note.addEventListener('input',()=>{edited=true;topIcons()});
 function newNote(){edited=false;note.classList.remove('plain');topIcons()}
 /* keep the keyboard toolbar just above the keyboard */
 function kbarPlace(){const v=window.visualViewport,k=document.getElementById('kbar');if(!k)return;
-  const kb=v?Math.max(0,innerHeight-(v.offsetTop+v.height)):0;k.style.bottom=(kb>40?kb+9:8+0)+'px'}
+  /* place the bar by its top edge: 9 px above the bottom of the visible area (the keyboard top).
+     This works when the browser shrinks the page for the keyboard and when it does not. */
+  const vh=v?v.height:innerHeight,vt=v?v.offsetTop:0;
+  let top=vt+vh-k.offsetHeight-9;if(!(top>vt+vh*0.25))top=vt+vh-(k.offsetHeight||48)-9;
+  k.style.bottom='auto';k.style.top=Math.round(top)+'px'}
 if(window.visualViewport){visualViewport.addEventListener('resize',kbarPlace);visualViewport.addEventListener('scroll',kbarPlace)}
+/* the keyboard opens with an animation: place the bar again while the note is being edited */
+setInterval(()=>{if(document.body.classList.contains('editing'))kbarPlace()},300);
+note.addEventListener('focus',()=>[60,250,600].forEach(ms=>setTimeout(kbarPlace,ms)));
 /* taps on the toolbar and undo do not close the keyboard */
 ['kbar','undoBtn'].forEach(id=>{const el=document.getElementById(id);
   el.addEventListener('mousedown',e=>e.preventDefault());el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}))})});
