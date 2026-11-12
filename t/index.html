@@ -106,6 +106,7 @@ body:not(.drawing) #colorPop{display:none}
 .cdot{width:30px;height:30px;border-radius:50%;border:2px solid transparent;box-shadow:0 0 0 1px rgba(255,255,255,.18) inset;transition:transform .15s}
 .cdot.on{border-color:#fff;box-shadow:0 0 0 2px rgba(44,44,46,1) inset;transform:scale(1.12)}
 .dis{opacity:.35;pointer-events:none}
+.drawing.w2p #note{visibility:hidden}   /* Magician on the drawing page: their words become pictures, not text */
 /* secret settings sheet (hold the share button) */
 #qtoast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%) scale(.9);opacity:0;pointer-events:none;z-index:20;
   padding:9px 18px;border-radius:999px;background:#212121;color:#fff;font:600 16px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.09);transition:opacity .25s,transform .25s}
@@ -262,8 +263,8 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
   <div class="snote">• <b>Peer to peer</b>: the spectator types on the second phone (as before).<br>• <b>Inject</b>: no second phone. It uses the Inject ID on the Inject tab.<br>• <b>Wait for a new one</b>: your phone waits for the next word that comes into Inject (up to 5 minutes).<br>• <b>Last word sent</b>: the word that is in Inject now. The prediction shows at once. The Acrostic list shows 2 s after the start; each swipe gives 2 s more.<br>• The PeekSmith shows "Inject: word".</div>
   <div class="lbl">Drawings</div>
-  <div class="grp"><div class="r">Their drawing on my phone<select id="drawMode"><option value="alter">Slightly changed</option><option value="exact">Exact copy</option></select></div></div>
-  <div class="snote">Slightly changed: your phone shows the spectator's drawing a little turned, moved, smaller or larger, and with a slightly different line, as if a different hand drew it. The PeekSmith gets the same drawing.</div>
+  <div class="grp"><div class="r">Typed word → picture<input type="checkbox" id="w2p"></div><div class="r">Their drawing on my phone<select id="drawMode"><option value="random">Random style</option><option value="exact">Exact copy</option><option value="slight">Slightly changed</option><option value="sketch">Sketch</option><option value="doodle">Simple doodle</option><option value="mirror">Mirror image</option><option value="bold">Marker</option><option value="small">Small sketch</option><option value="redraw">Redrawn by hand</option><option value="ball">Blue ballpoint</option><option value="cpen">Colored pencils</option><option value="crayon">Crayon</option><option value="felt">Felt-tip + highlighter</option><option value="chalk">Chalk</option><option value="mirrorc">Mirror + colored pencils</option></select></div></div>
+  <div class="snote">Your phone shows the spectator's drawing as if a different hand drew it. <b>Random style</b>: each new drawing gets one of 13 styles (sketch, crayon, colored pencils, ballpoint, chalk, mirror…). Or select one style, or <b>Exact copy</b>. Colors: each closed shape gets its own color. The PeekSmith gets the same drawing.<br><b>Typed word → picture</b>: while your phone (Magician) is on the drawing page, a word they type (house, cat, heart, car, star… about 70 words) is drawn on your canvas line by line, in the drawing style. Your note does not show their text.</div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
     <div class="r">Send to Inject<input type="checkbox" id="iOn"></div>
@@ -504,7 +505,9 @@ else{
 const cv=$('draw'),cx=cv.getContext('2d');
 const ink=()=>getComputedStyle(document.documentElement).getPropertyValue('--label').trim()||'#000';
 let strokes=[],redoStack=[],cur=null,tool='pen',color='ink';
-const TOOLS={pen:{w:3,a:1},mono:{w:1.5,a:1},marker:{w:16,a:.45},pencil:{w:2.6,a:.9},eraser:{w:26,a:1}};
+const TOOLS={pen:{w:3,a:1},mono:{w:1.5,a:1},marker:{w:16,a:.45},pencil:{w:2.6,a:.9},eraser:{w:26,a:1},
+  /* only for the changed copy of a spectator drawing (Magician phone) */
+  pen2:{w:2.4,a:1},bold:{w:6,a:.92},ball:{w:2.2,a:.9},cpen:{w:2.2,a:.8},crayon:{w:6,a:.85},felt:{w:4.5,a:.95},chalk:{w:5,a:.8}};
 /* the finished lines are kept in a second canvas, so a new line draws fast (only the new line is drawn on each frame) */
 const base=document.createElement('canvas'),bx=base.getContext('2d');let liveRaf=0;
 function sizeCanvas(){const d=devicePixelRatio||1;cv.width=base.width=innerWidth*d;cv.height=base.height=innerHeight*d;cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';cx.setTransform(d,0,0,d,0,0);bx.setTransform(d,0,0,d,0,0);redraw()}
@@ -522,7 +525,21 @@ function paint(c,s,map){
   c.globalAlpha=T.a;c.strokeStyle=s.color==='ink'?ink():s.color;c.lineCap='round';c.lineJoin='round';
   c.lineWidth=map?Math.max(map.minW,T.w*map.k):T.w;
   const P=map?s.points.map(p=>[(p[0]-map.x)*map.k+map.ox,(p[1]-map.y)*map.k+map.oy]):s.points;
-  if(s.tool==='pencil'&&!map){   // pencil: soft core and 3 thin grainy lines, like graphite (same look on every redraw)
+  const seed0=Math.round(P[0][0]*7+P[0][1]*13);
+  if(s.fill&&!map&&P.length>2){   // the inside of a closed shape: pencil shading, crayon scribble or highlighter
+    c.save();path(c,P);c.closePath();c.clip();c.strokeStyle=c.fillStyle=s.fill;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const [x,y] of P){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+    if(s.tool==='cpen'){c.globalAlpha=.35;c.lineWidth=1.3;for(let k=-(y1-y0);k<x1-x0;k+=4.5){c.beginPath();c.moveTo(x0+k,y1+2);c.lineTo(x0+k+(y1-y0)+4,y0-2);c.stroke()}}
+    else if(s.tool==='crayon'){c.globalAlpha=.32;c.lineWidth=4;c.beginPath();for(let k=0;k<20;k++)c.lineTo((k%2?x1+6:x0-6)+grain(seed0,k,1)*8,y0+k*(y1-y0)/19+grain(seed0,k,2)*3);c.stroke()}
+    else{c.globalAlpha=.28;c.fillRect(x0-4,y0-4,x1-x0+8,y1-y0+8)}
+    c.restore();c.globalAlpha=T.a}
+  if(!map&&s.tool==='ball'){   // ballpoint: heavier where the hand is slow, lighter on fast lines
+    for(let i=1;i<P.length;i++){const d=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);c.lineWidth=Math.max(1.3,3-d*.25);c.beginPath();c.moveTo(P[i-1][0],P[i-1][1]);c.lineTo(P[i][0],P[i][1]);c.stroke()}}
+  else if(!map&&(s.tool==='crayon'||s.tool==='chalk')){   // wax / chalk: grainy dots along the line
+    c.fillStyle=c.strokeStyle;const w=T.w,z=s.tool==='chalk'?1.8:1.5,skip=s.tool==='chalk'?.2:.25;let n=0;
+    for(let i=1;i<P.length;i++){const a=P[i-1],b=P[i],m=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])/1.2));
+      for(let q=0;q<m;q++){const x=a[0]+(b[0]-a[0])*q/m,y=a[1]+(b[1]-a[1])*q/m;for(let k=0;k<3;k++){n++;if(grain(seed0,n,7)+.5<skip)continue;c.fillRect(x+grain(seed0,n,8)*w,y+grain(seed0,n,9)*w,z,z)}}}}
+  else if(!map&&s.tool==='cpen'){c.globalAlpha=.75;path(c,P);c.stroke();c.lineWidth=1;c.globalAlpha=.5;c.save();c.translate(.8,.6);path(c,P);c.stroke();c.restore()}
+  else if(s.tool==='pencil'&&!map){   // pencil: soft core and 3 thin grainy lines, like graphite (same look on every redraw)
     const seed=Math.round(P[0][0]*7+P[0][1]*13);c.globalAlpha=T.a*.5;path(c,P);c.stroke();
     c.lineWidth=Math.max(.6,T.w*.45);
     for(let k=0;k<3;k++){c.globalAlpha=T.a*(.4+grain(seed,k,99)*.3);path(c,P.map((p,i)=>[p[0]+grain(seed,k,i*2)*T.w*.8,p[1]+grain(seed,k,i*2+1)*T.w*.8]));c.stroke()}}
@@ -552,7 +569,7 @@ $('cWheel').onclick=e=>{e.stopPropagation();colorPop.classList.toggle('open')};
 colorPop.addEventListener('click',e=>{if(e.target.classList.contains('cdot'))setTimeout(()=>colorPop.classList.remove('open'),120)});
 document.addEventListener('pointerdown',e=>{if(colorPop.classList.contains('open')&&!e.target.closest('#colorPop,#cWheel'))colorPop.classList.remove('open')});
 document.querySelectorAll('.cdot').forEach(d=>{if(d.dataset.c==='ink')d.style.background=ink();d.onclick=()=>{document.querySelectorAll('.cdot').forEach(x=>x.classList.remove('on'));d.classList.add('on');color=d.dataset.c;tintTools()}});
-function startDraw(){note.blur();document.body.classList.add('drawing');undoState();tintTools()}
+function startDraw(){note.blur();document.body.classList.add('drawing');document.body.classList.toggle('w2p',!!P.w2p&&P.peerRole==='mirror');undoState();tintTools()}
 function endDraw(){document.body.classList.remove('drawing');drawToPS(true)}
 $('penBtn').onclick=startDraw;$('drawDone').onclick=endDraw;
 addEventListener('resize',sizeCanvas);sizeCanvas();
@@ -743,25 +760,165 @@ setInterval(()=>peerSync(),250);
 /* mirror: show what comes from the spectator, then the normal peeks run on this phone (PeekSmith, live peek, drawing) */
 function mirrorNote(h){h=String(h??'');note.classList.remove('plain');if(h===note.innerText)return;
   note.innerText=h;edited=!!h;topIcons();if(!h.trim()){last='';lastBle='';iSent=''}
-  try{bleLive()}catch(e){}const ch=h.slice(-1);if(ch===' '||ch==='\n')now();else soon()}
-/* "Slightly changed": the whole drawing is turned, moved and scaled a little, and each line wobbles a little,
-   as if a different hand drew it. The change stays the same while the drawing grows (seeded random). */
-let altSeed=0;
+  try{bleLive()}catch(e){}const ch=h.slice(-1);if(ch===' '||ch==='\n')now();else soon();try{wordPic(h)}catch(e){}}
+/* Their drawing on the Magician phone: an exact copy, or a changed copy in one of 13 styles (or a random style for each new drawing).
+   The change stays the same while the drawing grows (seeded random). The PeekSmith gets the same shapes. */
+let altSeed=0,altStyle='';
+const ALT_STYLES=['slight','sketch','doodle','mirror','bold','small','redraw','ball','cpen','crayon','felt','chalk','mirrorc'];
 function rnd(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
-function alterStrokes(list){
-  if(!list.length){altSeed=0;return list}
-  if(!altSeed)altSeed=(Math.random()*1e9)|0;
-  const R=rnd(altSeed),ang=(R()*2-1)*4*Math.PI/180,sc=0.92+R()*0.12,dx=(R()*2-1)*14,dy=(R()*2-1)*14;
-  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const st of list)for(const [x,y] of st.points){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
-  const cx=(x0+x1)/2,cy=(y0+y1)/2,ca=Math.cos(ang),sa=Math.sin(ang);
+function bboxOf(list){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const st of list)for(const [x,y] of st.points){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}return{x0,y0,x1,y1,cx:(x0+x1)/2,cy:(y0+y1)/2,w:x1-x0,h:y1-y0}}
+const mapPts=(list,f)=>list.map(st=>({...st,points:st.points.map(f)}));
+function altSlight(list){const R=rnd(altSeed),ang=(R()*2-1)*4*Math.PI/180,sc=0.92+R()*0.12,dx=(R()*2-1)*14,dy=(R()*2-1)*14,b=bboxOf(list),ca=Math.cos(ang),sa=Math.sin(ang);
   return list.map((st,si)=>{const r=rnd(altSeed+si*7919),ph1=r()*6.3,ph2=r()*6.3,f1=0.05+r()*0.05,f2=0.04+r()*0.05,amp=1.6+r()*1.6;
     return{tool:st.tool==='pen'?'pencil':st.tool,color:st.color,points:st.points.map(([x,y],i)=>{
-      x+=amp*Math.sin(i*f1+ph1);y+=amp*Math.sin(i*f2+ph2);
-      const X=(x-cx)*sc,Y=(y-cy)*sc;return[cx+X*ca-Y*sa+dx,cy+X*sa+Y*ca+dy]})}})}
+      x+=amp*Math.sin(i*f1+ph1);y+=amp*Math.sin(i*f2+ph2);const X=(x-b.cx)*sc,Y=(y-b.cy)*sc;return[b.cx+X*ca-Y*sa+dx,b.cy+X*sa+Y*ca+dy]})}})}
+const isInk=t=>t!=='eraser';
+const PALS={cpen:['#ff6b5e','#ffd23f','#5ac8fa','#7ed957'],crayon:['#ff3b30','#ffcc00','#34c759','#0a84ff'],felt:['#ff453a','#ffd60a','#30d158','#64d2ff'],chalk:['#ffc2d1','#fff2a8','#bfefff','#cfffc4'],ball:['#4d7dff']};
+/* colors: each closed shape gets its own color; a short line takes the color of the nearest shape; a part inside a shape gets another color */
+function colorize(list,tool){const P=PALS[tool],B=list.map(st=>bboxOf([st]));
+  const closed=list.map((st,i)=>isInk(st.tool)&&st.points.length>8&&Math.hypot(st.points[0][0]-st.points.at(-1)[0],st.points[0][1]-st.points.at(-1)[1])<Math.max(12,.2*Math.hypot(B[i].w,B[i].h)));
+  const shapes=list.map((_,i)=>i).filter(i=>closed[i]);
+  return list.map((st,i)=>{if(!isInk(st.tool))return st;let g=i,inner=false;
+    if(!closed[i]&&shapes.length){let bd=1e9;for(const j of shapes){const d=Math.hypot(B[i].cx-B[j].cx,B[i].cy-B[j].cy)-Math.max(B[j].w,B[j].h)/2;if(d<bd){bd=d;g=j}}
+      inner=Math.abs(B[i].cx-B[g].cx)<B[g].w/2&&Math.abs(B[i].cy-B[g].cy)<B[g].h/2}
+    const k=Math.max(0,shapes.indexOf(g)),col=P[(k+(inner?2:0))%P.length];
+    return{...st,tool,color:col,fill:closed[i]&&tool!=='chalk'&&tool!=='ball'?col:undefined}})}
+function altRedraw(list){const R=rnd(altSeed+5),b=bboxOf(list),sx=1.06,sy=.95;
+  return list.flatMap(st=>{const pts=st.points.map(([x,y])=>[b.cx+(x-b.cx)*sx,b.cy+(y-b.cy)*sy]);if(!isInk(st.tool)||pts.length<8)return[{...st,points:pts}];
+    const cut=[0];for(let i=3;i<pts.length-3;i++){const a=Math.atan2(pts[i][1]-pts[i-3][1],pts[i][0]-pts[i-3][0]),c=Math.atan2(pts[i+3][1]-pts[i][1],pts[i+3][0]-pts[i][0]);let d=Math.abs(a-c);if(d>Math.PI)d=2*Math.PI-d;if(d>.7&&i-cut.at(-1)>5)cut.push(i)}cut.push(pts.length-1);
+    const out=[];for(let k=0;k<cut.length-1;k++){let seg=pts.slice(cut[k],cut[k+1]+1);if(seg.length<2)continue;const A=seg[0],B2=seg.at(-1),ln=Math.hypot(B2[0]-A[0],B2[1]-A[1])||1,ux=(B2[0]-A[0])/ln,uy=(B2[1]-A[1])/ln,o1=2+R()*5,o2=-1+R()*7;
+      seg=[[A[0]-ux*o1,A[1]-uy*o1],...seg,[B2[0]+ux*o2,B2[1]+uy*o2]].map(([x,y],i,a)=>[x+Math.sin(i/a.length*3.1)*(R()*2.4-1.2),y+(R()-.5)*.8]);out.push({tool:'pen2',color:st.color,points:seg})}return out})}
+function alterStrokes(list){
+  if(!list.length){altSeed=0;altStyle='';return list}
+  if(!altSeed){altSeed=(Math.random()*1e9)|0;altStyle=ALT_STYLES.includes(P.drawMode)?P.drawMode:ALT_STYLES[altSeed%ALT_STYLES.length]}   // a new drawing: a new style (Random)
+  const b=bboxOf(list),R=rnd(altSeed+11);
+  switch(altStyle){
+    case 'sketch':return list.flatMap((st,si)=>!isInk(st.tool)?[st]:[0,1].map(k=>{const r=rnd(altSeed+si*31+k),ox=(r()-.5)*5,oy=(r()-.5)*5;const pts=st.points.map(([x,y],i)=>[x+ox+Math.sin(i*.3+k)*1.4,y+oy+Math.cos(i*.27+k)*1.4]);return{tool:'pencil',color:st.color,points:k?pts.slice(2,-1):pts}}).filter(x=>x.points.length>1));
+    case 'doodle':return list.map(st=>{if(!isInk(st.tool)||st.points.length<4)return st;const o=[st.points[0]];for(let i=6;i<st.points.length;i+=6)o.push(st.points[i]);o.push(st.points.at(-1));return{...st,tool:'pen',points:o.map(([x,y])=>[Math.round(x/9)*9,Math.round(y/9)*9])}});
+    case 'mirror':return mapPts(list,([x,y])=>[2*b.cx-x,y]);
+    case 'bold':{const ang=(R()*2-1)*6*Math.PI/180,ca=Math.cos(ang),sa=Math.sin(ang);return mapPts(list,([x,y])=>{const X=(x-b.cx)*1.08,Y=(y-b.cy)*1.08;return[b.cx+X*ca-Y*sa,b.cy+X*sa+Y*ca+6]}).map(st=>isInk(st.tool)?{...st,tool:'bold'}:st)}
+    case 'small':{const tx=b.cx+(R()*2-1)*b.w*.25,ty=b.cy-b.h*.2;return mapPts(list,([x,y])=>[tx+(x-b.cx)*.55,ty+(y-b.cy)*.55])}
+    case 'redraw':return altRedraw(list);
+    case 'ball':return colorize(altSlight(list).map(st=>({...st,tool:st.tool==='pencil'?'pen':st.tool})),'ball');
+    case 'cpen':return colorize(list,'cpen');
+    case 'crayon':return colorize(mapPts(list,([x,y])=>[b.cx+(x-b.cx)*1.04,b.cy+(y-b.cy)*1.04+4]),'crayon');
+    case 'felt':return colorize(altSlight(list).map(st=>({...st,tool:st.tool==='pencil'?'pen':st.tool})),'felt');
+    case 'chalk':return colorize(mapPts(list,([x,y])=>[b.cx+(x-b.cx)*1.1,b.cy+(y-b.cy)*1.1]),'chalk');
+    case 'mirrorc':return colorize(mapPts(list,([x,y])=>[2*b.cx-x,y]),'cpen');
+    default:return altSlight(list)}}
 function mirrorDraw(d){const k=innerWidth/(+d.w||innerWidth);
+  if(!(d.s||[]).length&&strokes.some(s=>s.pic))return;   // keep a picture drawn from a typed word
   strokes=(d.s||[]).filter(st=>TOOLS[st.t]).map(st=>({tool:st.t,color:st.c,points:(st.p||[]).map(q=>[q[0]*k,q[1]*k])}));
   if(P.drawMode!=='exact')strokes=alterStrokes(strokes);else if(!strokes.length)altSeed=0;
   redoStack=[];redraw();undoState();drawToPS()}
+/* ---------- typed word → drawing (Magician phone on the drawing page) ----------
+   The spectator types a word; if it is in this list, your canvas draws a picture of it, line by line, in the drawing style. */
+const PICS=(()=>{const L=(a,b,c,d)=>['L',a,b,c,d],P=(...p)=>['P',p],C=(x,y,r)=>['E',x,y,r,r,0,360],E=(x,y,rx,ry)=>['E',x,y,rx,ry,0,360],A=(x,y,r,a0,a1)=>['E',x,y,r,r,a0,a1],
+  Q=(a,b,c,d,e,f)=>['Q',a,b,c,d,e,f],F=(fn,n=60)=>['F',fn,n];
+  const rays=(cx,cy,r0,r1,n=8)=>[...Array(n)].map((_,i)=>{const a=i/n*Math.PI*2;return L(cx+r0*Math.cos(a),cy+r0*Math.sin(a),cx+r1*Math.cos(a),cy+r1*Math.sin(a))});
+  const D={
+  house:[P([15,90],[15,50],[50,18],[85,50],[85,90],[15,90]),P([42,90],[42,65],[58,65],[58,90]),P([22,58],[34,58],[34,70],[22,70],[22,58]),P([68,38],[68,22],[76,22],[76,45])],
+  sun:[C(50,50,20),...rays(50,50,27,42)],
+  moon:[F(t=>{const a=(50+t*260)*Math.PI/180;return[50+35*Math.cos(a),50+35*Math.sin(a)]},50),F(t=>{const a=(310-t*260)*Math.PI/180;return[64+27*Math.cos(a),46+27*Math.sin(a)]},40)],
+  star:[F(t=>{const k=Math.round(t*10)%10,a=-Math.PI/2+k*Math.PI/5,r=k%2?17:42;return[50+r*Math.cos(a),55+r*Math.sin(a)]},11)],
+  heart:[F(t=>{const a=t*Math.PI*2;return[50+2.4*16*Math.pow(Math.sin(a),3),48-2.4*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a))]},70)],
+  tree:[P([44,95],[44,66],[56,66],[56,95]),F(t=>{const a=t*Math.PI*2;const r=26+4*Math.sin(a*7);return[50+r*Math.cos(a),40+r*.9*Math.sin(a)]},80)],
+  flower:[C(50,38,7),...[...Array(6)].map((_,i)=>{const a=i/6*Math.PI*2;return E(50+15*Math.cos(a),38+15*Math.sin(a),8,8)}),Q(50,53,44,72,50,95),Q(48,78,32,66,30,74),Q(30,74,42,82,48,78)],
+  cat:[C(50,58,25),P([31,44],[32,20],[45,34]),P([55,34],[68,20],[69,44]),C(41,55,3),C(59,55,3),P([47,63],[53,63],[50,67],[47,63]),L(42,66,22,62),L(42,69,22,72),L(58,66,78,62),L(58,69,78,72)],
+  dog:[E(50,55,22,24),E(26,50,8,17),E(74,50,8,17),C(42,50,3),C(58,50,3),E(50,63,5,3.5),Q(42,70,50,77,58,70)],
+  fish:[E(44,50,30,17),P([72,50],[92,34],[92,66],[72,50]),C(28,46,3),Q(40,34,48,24,56,35),Q(34,58,38,52,44,58)],
+  bird:[E(50,58,22,14),C(72,42,10),P([81,39],[93,43],[81,47]),C(74,40,1.8),Q(36,56,50,38,62,54),L(46,71,44,82),L(54,71,56,82)],
+  car:[P([8,70],[8,55],[24,52],[35,35],[68,35],[80,52],[94,56],[94,70],[8,70]),C(28,72,9),C(76,72,9),P([38,40],[50,40],[50,52],[30,52],[38,40]),P([54,40],[66,40],[74,52],[54,52],[54,40])],
+  boat:[P([10,64],[90,64],[78,82],[22,82],[10,64]),L(50,64,50,14),P([53,17],[53,60],[83,60],[53,17]),Q(8,90,18,85,28,90),Q(28,90,38,95,48,90),Q(52,90,62,85,72,90)],
+  cloud:[F(t=>{const a=t*Math.PI*2;const r=1+.18*Math.max(0,Math.sin(a*5));return[50+36*r*Math.cos(a),55+19*r*Math.sin(a)]},90)],
+  umbrella:[A(50,52,40,180,360),Q(10,52,23,44,36,52),Q(36,52,50,44,64,52),Q(64,52,77,44,90,52),L(50,52,50,86),A(44,86,6,0,180)],
+  apple:[F(t=>{const a=t*Math.PI*2,d=Math.atan2(Math.sin(a),Math.cos(a));return[50+30*Math.sin(a),58-27*Math.cos(a)+7*Math.exp(-d*d/.12)]},70),L(50,38,54,18),Q(55,24,66,14,72,22),Q(72,22,62,30,55,24)],
+  icecream:[P([34,50],[50,93],[66,50]),A(50,48,17,180,360),L(33,48,67,48),L(40,58,58,66),L(44,70,55,76),L(58,56,42,64)],
+  cup:[P([24,35],[30,86],[70,86],[76,35]),E(50,35,26,5),A(76,58,11,-90,90),Q(42,26,36,18,42,10),Q(56,26,50,18,56,10)],
+  key:[C(24,50,14),C(24,50,5),L(38,50,90,50),L(80,50,80,63),L(70,50,70,60)],
+  clock:[C(50,50,38),L(50,50,50,25),L(50,50,67,58),...[...Array(12)].map((_,i)=>{const a=i/12*Math.PI*2;return L(50+32*Math.cos(a),50+32*Math.sin(a),50+36*Math.cos(a),50+36*Math.sin(a))})],
+  eye:[Q(8,50,50,14,92,50),Q(8,50,50,86,92,50),C(50,50,15),C(50,50,6)],
+  face:[C(50,50,38),C(37,40,4),C(63,40,4),A(50,52,22,25,155)],
+  hat:[E(50,78,40,7),P([28,77],[30,25],[70,25],[72,77]),E(50,25,20,4),L(29,66,71,66)],
+  crown:[P([15,75],[15,35],[32,55],[50,24],[68,55],[85,35],[85,75],[15,75]),C(50,64,4),C(30,66,3),C(70,66,3)],
+  diamond:[P([18,40],[34,20],[66,20],[82,40],[50,86],[18,40]),L(18,40,82,40),L(34,20,42,40),L(66,20,58,40),L(42,40,50,86),L(58,40,50,86)],
+  ring:[C(50,64,24),C(50,64,18),P([41,40],[50,28],[59,40],[50,46],[41,40])],
+  book:[P([10,28],[50,36],[90,28],[90,80],[50,88],[10,80],[10,28]),L(50,36,50,88),L(18,42,42,47),L(18,52,42,57),L(58,47,82,42),L(58,57,82,52)],
+  bulb:[F(t=>{const a=(130+t*280)*Math.PI/180;return[50+24*Math.cos(a),40+24*Math.sin(a)]},50),P([40,58],[40,78],[60,78],[60,58]),L(40,66,60,66),L(40,72,60,72),P([44,58],[46,44],[50,50],[54,44],[56,58])],
+  rocket:[P([50,8],[64,30],[64,72],[36,72],[36,30],[50,8]),C(50,40,7),P([36,54],[24,78],[36,72]),P([64,54],[76,78],[64,72]),P([42,74],[50,95],[58,74])],
+  plane:[E(50,50,42,7),P([46,47],[32,14],[41,14],[62,47]),P([46,53],[32,86],[41,86],[62,53]),P([13,47],[7,33],[14,33],[22,47])],
+  guitar:[F(t=>{const a=t*Math.PI*2;const r=t<.5?1:1;return[40+18*Math.cos(a)+(Math.sin(a)>0?0:0),68+16*Math.sin(a)]},50),C(55,48,12),C(42,64,5),P([60,42],[86,14],[90,18],[64,46])],
+  balloon:[E(50,38,22,27),P([46,65],[50,71],[54,65]),Q(50,71,42,85,52,97)],
+  cake:[P([18,56],[18,86],[82,86],[82,56]),E(50,56,32,6),L(35,49,35,36),L(50,49,50,34),L(65,49,65,36),E(35,32,2.5,4),E(50,30,2.5,4),E(65,32,2.5,4),Q(18,70,34,76,50,70),Q(50,70,66,76,82,70)],
+  pizza:[P([18,22],[82,22],[50,92],[18,22]),Q(18,22,50,10,82,22),C(40,36,5),C(60,38,5),C(50,58,5)],
+  ball:[C(50,50,35),Q(15,50,50,38,85,50),Q(50,15,38,50,50,85),Q(26,25,50,48,74,75)],
+  snowman:[C(50,78,19),C(50,46,14),C(50,22,10),C(46,20,1.5),C(54,20,1.5),P([50,23],[60,25],[50,26]),L(37,44,18,34),L(63,44,82,34),C(50,42,1.5),C(50,50,1.5)],
+  mountain:[P([5,85],[35,30],[50,55],[65,24],[95,85],[5,85]),P([27,45],[35,30],[43,45],[38,41],[33,46],[27,45])],
+  lightning:[P([55,8],[30,52],[48,52],[38,92],[72,40],[54,40],[66,8],[55,8])],
+  rainbow:[A(50,80,40,180,360),A(50,80,33,180,360),A(50,80,26,180,360),L(10,80,24,80),L(76,80,90,80)],
+  butterfly:[E(33,40,16,20),E(67,40,16,20),E(36,68,12,14),E(64,68,12,14),E(50,55,3,22),Q(49,34,44,20,38,16),Q(51,34,56,20,62,16)],
+  spider:[C(50,58,12),C(50,40,7),...[-1,1].flatMap(s=>[0,1,2,3].map(i=>P([50+s*10,52+i*4],[50+s*24,42+i*8],[50+s*34,54+i*9])))],
+  snake:[F(t=>[12+t*70,60+12*Math.sin(t*Math.PI*3)],60),E(86,57,8,6),C(88,55,1.3),P([94,57],[99,55],[97,57],[99,59])],
+  ghost:[F(t=>{if(t<.45){const a=Math.PI+t/.45*Math.PI;return[50+28*Math.cos(a),45+28*Math.sin(a)]}const u=(t-.45)/.55;return u<.15?[78,45+u/.15*40]:u<.85?[78-(u-.15)/.7*56,85-5*Math.abs(Math.sin((u-.15)/.7*Math.PI*3))]:[22,85-(u-.85)/.15*40]},90),E(40,45,4,6),E(60,45,4,6)],
+  bell:[Q(30,74,28,28,50,24),Q(50,24,72,28,70,74),L(22,74,78,74),C(50,80,5),A(50,20,4,180,360)],
+  candle:[P([38,40],[38,90],[62,90],[62,40],[38,40]),L(50,40,50,33),F(t=>{const a=t*Math.PI*2;return[50+5*Math.sin(a),24+9*Math.cos(a)*(Math.cos(a)>0?1:1.3)]},40)],
+  letter:[P([10,25],[90,25],[90,75],[10,75],[10,25]),P([10,25],[50,55],[90,25])],
+  phone:[P([30,10],[70,10],[70,90],[30,90],[30,10]),P([34,18],[66,18],[66,76],[34,76],[34,18]),C(50,83,3)],
+  glasses:[C(30,55,15),C(70,55,15),Q(45,53,50,47,55,53),L(15,52,6,46),L(85,52,94,46)],
+  anchor:[L(50,18,50,86),C(50,12,6),L(36,30,64,30),A(50,58,28,10,170),P([16,68],[22,62],[28,70]),P([84,68],[78,62],[72,70])],
+  kite:[P([50,8],[76,38],[50,72],[24,38],[50,8]),L(50,8,50,72),L(24,38,76,38),F(t=>[50+8*Math.sin(t*Math.PI*4),72+t*24],30)],
+  tv:[P([12,30],[88,30],[88,82],[12,82],[12,30]),P([20,38],[72,38],[72,74],[20,74],[20,38]),L(50,30,36,12),L(50,30,64,14),C(80,46,3),C(80,58,3)],
+  music:[E(30,74,9,6),E(68,66,9,6),L(39,74,39,24),L(77,66,77,16),P([39,24],[77,16],[77,26],[39,34])],
+  duck:[E(56,64,28,16),C(32,40,12),P([20,40],[8,44],[20,46]),C(30,37,1.8),Q(48,62,60,50,74,62)],
+  rabbit:[C(50,64,20),E(42,28,6,18),E(58,28,6,18),C(43,60,2.5),C(57,60,2.5),P([47,68],[53,68],[50,71],[47,68]),L(44,72,30,70),L(56,72,70,70)],
+  bone:[L(28,46,72,46),L(28,54,72,54),C(24,42,7),C(24,58,7),C(76,42,7),C(76,58,7)],
+  carrot:[P([40,32],[60,32],[50,92],[40,32]),L(45,48,52,46),L(46,62,52,60),L(48,32,40,14),L(50,32,50,12),L(52,32,60,14)],
+  cherry:[C(35,72,12),C(65,72,12),Q(35,60,44,32,56,14),Q(65,60,58,36,56,14),Q(56,14,70,10,76,18),Q(76,18,64,22,56,14)],
+  leaf:[Q(18,82,28,22,82,18),Q(82,18,72,78,18,82),L(18,82,82,18)],
+  mushroom:[A(50,55,35,180,360),L(15,55,85,55),P([40,55],[38,86],[62,86],[60,55]),C(38,40,4),C(56,32,5),C(66,46,3)],
+  sword:[P([48,8],[52,8],[53,64],[47,64],[48,8]),L(32,64,68,64),L(50,64,50,84),C(50,88,4)],
+  arrow:[L(10,50,86,50),P([70,38],[90,50],[70,62]),L(12,50,4,42),L(12,50,4,58),L(20,50,12,42),L(20,50,12,58)],
+  dice:[P([18,18],[82,18],[82,82],[18,82],[18,18]),C(32,32,4),C(50,50,4),C(68,68,4),C(68,32,4),C(32,68,4)],
+  bicycle:[C(24,66,17),C(76,66,17),P([24,66],[42,40],[66,40],[76,66]),P([42,40],[52,66],[24,66]),L(52,66,66,40),L(40,34,48,34),L(66,40,64,30),L(60,30,70,30)],
+  pencil:[P([22,78],[70,30],[80,40],[32,88],[22,78]),P([22,78],[12,96],[32,88]),L(62,38,72,48)],
+  dollar:[P([66,28],[58,22],[44,22],[36,30],[38,40],[50,48],[62,56],[64,66],[56,76],[42,76],[34,70]),L(50,12,50,88)],
+  heartbreak:[F(t=>{const a=t*Math.PI*2;return[50+2.4*16*Math.pow(Math.sin(a),3),48-2.4*(13*Math.cos(a)-5*Math.cos(2*a)-2*Math.cos(3*a)-Math.cos(4*a))]},70),P([50,28],[44,44],[56,56],[48,70],[50,84])],
+  };
+  const SYN={home:'house',sunshine:'sun',love:'heart',kitten:'cat',kitty:'cat',puppy:'dog',automobile:'car',ship:'boat',sailboat:'boat',rose:'flower',tulip:'flower',daisy:'flower',
+    coffee:'cup',tea:'cup',mug:'cup',smile:'face',smiley:'face',emoji:'face',lightbulb:'bulb',light:'bulb',idea:'bulb',airplane:'plane',jet:'plane','ice cream':'icecream',icecream:'icecream',cone:'icecream',
+    birthday:'cake',football:'ball',soccer:'ball',basketball:'ball',mountains:'mountain',hill:'mountain',thunder:'lightning',bolt:'lightning',mail:'letter',envelope:'letter',iphone:'phone',cellphone:'phone',mobile:'phone',
+    note:'music',song:'music',bunny:'rabbit',bike:'bicycle',money:'dollar',cash:'dollar',gem:'diamond',jewel:'diamond',king:'crown',queen:'crown',watch:'clock',time:'clock',television:'tv',
+    spaceship:'rocket',storm:'lightning',sea:'boat',ocean:'boat',pet:'dog',chick:'bird',goldfish:'fish',fruit:'apple',broken:'heartbreak'};
+  return {D,SYN}})();
+function picFind(w){w=String(w||'').toLowerCase().replace(/[^a-z]/g,'');if(!w)return null;
+  for(const c of [w,w.replace(/es$/,''),w.replace(/s$/,'')]){if(PICS.D[c])return c;if(PICS.SYN[c])return PICS.SYN[c]}return null}
+/* picture → finger-like strokes on the screen (centre of the canvas), with a small hand wobble */
+function picStrokes(key){const S=PICS.D[key],sz=Math.min(innerWidth*.72,320),ox=innerWidth/2-sz/2,oy=innerHeight*.4-sz/2,k=sz/100;
+  const R=rnd((Math.random()*1e9)|0),out=[];
+  const dense=pts=>{const o=[];for(let i=0;i<pts.length-1;i++){const [a,b]=[pts[i],pts[i+1]],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])*k/3));for(let j=0;j<n;j++)o.push([a[0]+(b[0]-a[0])*j/n,a[1]+(b[1]-a[1])*j/n])}o.push(pts.at(-1));return o};
+  for(const s of S){let pts;
+    if(s[0]==='L')pts=dense([[s[1],s[2]],[s[3],s[4]]]);
+    else if(s[0]==='P')pts=dense(s[1]);
+    else if(s[0]==='Q'){pts=[];const n=Math.max(8,Math.ceil(Math.hypot(s[5]-s[1],s[6]-s[2])*k/3));for(let i=0;i<=n;i++){const t=i/n,u=1-t;pts.push([u*u*s[1]+2*u*t*s[3]+t*t*s[5],u*u*s[2]+2*u*t*s[4]+t*t*s[6]])}}
+    else if(s[0]==='E'){const [,x,y,rx,ry,a0,a1]=s,n=Math.max(10,Math.ceil(Math.abs(a1-a0)/360*2*Math.PI*Math.max(rx,ry)*k/3));pts=[];for(let i=0;i<=n;i++){const a=(a0+(a1-a0)*i/n)*Math.PI/180;pts.push([x+rx*Math.cos(a),y+ry*Math.sin(a)])}}
+    else if(s[0]==='F'){pts=[];const n=s[2];for(let i=0;i<=n;i++)pts.push(s[1](i/n));pts=dense(pts)}
+    const ph=R()*6,am=.35+R()*.35;
+    out.push({tool:'pen',color:'ink',pic:true,points:pts.map(([x,y],i)=>[ox+(x+am*Math.sin(i*.21+ph))*k,oy+(y+am*Math.cos(i*.17+ph))*k])})}
+  return out}
+let picAnimT=null,picWord='',picWait=null;
+/* draw the strokes one after another, like a hand (about 2 s) */
+function picDraw(key){clearInterval(picAnimT);
+  let fin=picStrokes(key);if(P.drawMode!=='exact'){altSeed=0;altStyle='';fin=alterStrokes(fin).map(s=>({...s,pic:true}))}
+  strokes=strokes.filter(s=>!s.pic);const keep=strokes.slice();const total=fin.reduce((a,s)=>a+s.points.length,0),per=Math.max(4,Math.ceil(total/110));
+  let si=0,pi=0;picAnimT=setInterval(()=>{let n=per;while(n>0&&si<fin.length){const s=fin[si];pi=Math.min(s.points.length,pi+n);n-=per;if(pi>=s.points.length){si++;pi=0}}
+    strokes=keep.concat(fin.slice(0,si),si<fin.length&&pi>0?[{...fin[si],points:fin[si].points.slice(0,pi)}]:[]);redraw();
+    if(si>=fin.length){clearInterval(picAnimT);picAnimT=null;strokes=keep.concat(fin);redraw();undoState();drawToPS();try{qbuzz('light')}catch(e){}}},18)}
+/* a typed word from the spectator while this phone (Magician) is on the drawing page */
+function wordPic(h){if(!P.w2p||P.peerRole!=='mirror'||!document.body.classList.contains('drawing'))return;
+  const t=String(h||'').replace(/ /g,' '),done=/\s$/.test(t),words=t.trim().split(/\s+/).filter(Boolean);clearTimeout(picWait);
+  if(!words.length){picWord='';return}
+  const go=w=>{const k=picFind(w);if(!k||w.toLowerCase()===picWord)return;picWord=w.toLowerCase();picDraw(k)};
+  if(done)go(words.at(-1));else picWait=setTimeout(()=>go(words.at(-1)),1200)}
 function hostShow(){if(!P.peer){peerStatus('Off');return}if(!hosting)return;
   peerStatus(guests.size?'Mirroring '+[...guests.values()].join(', '):'Waiting for spectator…')}
 function peerHook(){
@@ -994,7 +1151,9 @@ function presetsDraw(){const L=$('presetList');L.innerHTML='';
 $('presetAdd').onclick=()=>{const t=$('presetNew').value.trim();if(!t)return;P.presets.push(t.slice(0,80));$('presetNew').value='';saveP();presetsDraw()};
 $('presetNew').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('presetAdd').click()}});
 presetsDraw();
-if(P.drawMode!=='exact')P.drawMode='alter';$('drawMode').value=P.drawMode;$('drawMode').onchange=e=>{P.drawMode=e.target.value;saveP()};
+if(!P.drawModeV){if(P.drawMode!=='exact')P.drawMode='random';P.drawModeV=1;saveP()}   // all the styles, at random (new default)
+if(P.drawMode!=='exact'&&P.drawMode!=='random'&&!ALT_STYLES.includes(P.drawMode))P.drawMode='random';$('drawMode').value=P.drawMode;$('drawMode').onchange=e=>{P.drawMode=e.target.value;saveP();altSeed=0;altStyle=''};
+if(P.w2p===undefined)P.w2p=true;$('w2p').checked=!!P.w2p;$('w2p').onchange=e=>{P.w2p=e.target.checked;saveP()};
 /* Aa: double tap = prediction with the selected preset; while it runs = next preset */
 function aaPred(){
   if(acroMode&&P.predType==='text'){P.presetIdx=(P.presetIdx+1)%P.presets.length;P.predText=P.presets[P.presetIdx];saveP();presetsDraw();
