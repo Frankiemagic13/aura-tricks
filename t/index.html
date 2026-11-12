@@ -714,6 +714,7 @@ function peerHook(){
   A.on('peer.message',({kind,data})=>{
     let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
     if((kind!=='json'&&kind!=='text')||!d||typeof d!=='object')return;
+    if(d&&typeof d==='object'&&echoIn(d))return;
     if(d.cmd==='mirr'||d.cmd==='swap'){peerRemote(d);return}
     if(P.peerRole==='mirror'&&predMode&&(d.type==='note'||d.type==='draw'))return;   // the magician is writing a prediction
     if(P.peerRole==='spect'){if(d.cmd==='pred'){predRemote(d);return}if(d.type==='predtext'){predShow(d.h);return}}
@@ -932,7 +933,20 @@ $('peerRole').onchange=async()=>{P.peerRole=$('peerRole').value;roleSave(P.peerR
 $('peerOn').onchange=()=>{P.peer=$('peerOn').checked;saveP();if(P.peer)peerJoin(true);else peerLeave()};
 $('peerRoom').onchange=async()=>{P.peerRoom=$('peerRoom').value.trim().slice(0,64);saveP();await peerLeave();peerJoin(true)};
 $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};
-$('peerTest').onclick=()=>{if(P.peerRole==='mirror'){hostShow();return}if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
+/* connection test (Test button): a message goes to the other device and comes back; the time is shown */
+let echoT=null,echoAt=0;
+function echoCheck(){
+  const api=peerApi();if(!api){peerStatus('Test: no Aura peer on this device');return}
+  const linked=P.peerRole==='mirror'?(hosting&&guests.size>0):peerOk;
+  if(!linked){peerStatus(P.peerRole==='mirror'?(hosting?'Test: waiting – the other device is not connected':'Test: not hosting yet'):'Test: not connected – searching');return}
+  echoAt=Date.now();peerOut({cmd:'echo',t:echoAt});peerStatus('Test: sent, waiting…');
+  clearTimeout(echoT);echoT=setTimeout(()=>peerStatus('Test: no answer in 4 s ✗'),4000)}
+function echoIn(d){
+  if(d.cmd==='echo'){peerOut({type:'echoback',t:d.t,role:P.peerRole,page:location.pathname.split('/').filter(Boolean).pop()||''});return true}
+  if(d.type==='echoback'){if(d.t!==echoAt)return true;clearTimeout(echoT);
+    peerStatus('Test OK ✓ '+(Date.now()-d.t)+' ms · other device: '+(d.role==='mirror'?'Magician':'Spectator')+' ('+(d.page==='c'?'Calculator':d.page==='t'?'Notes':d.page)+')');return true}
+  return false}
+$('peerTest').onclick=echoCheck;
 peerUI();
 /* quick controls on the keyboard bar (shows while you type):
    Aa: double tap = Spectator <-> Magician.  Table: double tap = mirror on / off. A prediction starts from the checklist (double tap) or the settings.

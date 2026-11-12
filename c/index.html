@@ -299,7 +299,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v37</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v38</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -786,7 +786,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v37. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v38. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -902,6 +902,7 @@ function peerHook(){
   A.on('peer.message',({kind,data})=>{
     let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
     if(kind!=='json'&&kind!=='text')return;
+    if(d&&typeof d==='object'&&echoIn(d))return;
     if(S.peerRole==='mirror'){if(!d||typeof d!=='object')return;
       if(d.cmd){peerRemote(d);return}
       if(d.type==='disp'){mirrorD=d;render()}
@@ -940,7 +941,20 @@ $('peerRole').onchange=async()=>{S.peerRole=$('peerRole').value;roleSave(S.peerR
 $('peerOn').onchange=()=>{S.peer=$('peerOn').checked;saveS();if(S.peer)peerJoin(true);else peerLeave()};
 $('peerRoom').onchange=async()=>{S.peerRoom=$('peerRoom').value.trim().slice(0,64);saveS();if(peerOk||peerBusy)await peerLeave();peerJoin(true)};
 $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};
-$('peerTest').onclick=()=>{if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
+/* connection test (Test button): a message goes to the other device and comes back; the time is shown */
+let echoT=null,echoAt=0;
+function echoCheck(){
+  const api=peerApi();if(!api){peerStatus('Test: no Aura peer on this device');return}
+  const linked=S.peerRole==='mirror'?(hosting&&guests.size>0):peerOk;
+  if(!linked){peerStatus(S.peerRole==='mirror'?(hosting?'Test: waiting – the other device is not connected':'Test: not hosting yet'):'Test: not connected – searching');return}
+  echoAt=Date.now();peerOut({cmd:'echo',t:echoAt});peerStatus('Test: sent, waiting…');
+  clearTimeout(echoT);echoT=setTimeout(()=>peerStatus('Test: no answer in 4 s ✗'),4000)}
+function echoIn(d){
+  if(d.cmd==='echo'){peerOut({type:'echoback',t:d.t,role:S.peerRole,page:location.pathname.split('/').filter(Boolean).pop()||''});return true}
+  if(d.type==='echoback'){if(d.t!==echoAt)return true;clearTimeout(echoT);
+    peerStatus('Test OK ✓ '+(Date.now()-d.t)+' ms · other device: '+(d.role==='mirror'?'Magician':'Spectator')+' ('+(d.page==='c'?'Calculator':d.page==='t'?'Notes':d.page)+')');return true}
+  return false}
+$('peerTest').onclick=echoCheck;
 peerSync();
 /* quick toggle on the top right button:
    tap = mirror on / off,  double tap = Spectator <-> Magician. The other device does the same. */
