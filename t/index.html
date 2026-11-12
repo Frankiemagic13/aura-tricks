@@ -619,6 +619,7 @@ pxApply();
 
 /* ================= Aura peer: spectator (guest) sends the note and the drawing, the mirror (host) shows them ================= */
 if(P.peer===undefined)P.peer=true;
+P.mirr=true;   // the mirror is not kept: each page load starts with the mirror on
 if(!P.peerRoomV){P.peerRoom=P.peerRoom||'fvt-calc';P.peerRoomV=1}
 if(Q.get('peer')==='0')P.peer=false;else if(Q.get('peer')==='1')P.peer=true;
 if(Q.has('room'))P.peerRoom=Q.get('room');
@@ -696,7 +697,7 @@ function predPrefix(){let t=String(P.predText||'');if(t&&!/[\s]$/.test(t))t+=' '
 function predShow(h){const v=predPre+String(h||'');if(v===note.innerText)return;note.innerText=v;edited=!!v.trim();topIcons()}
 function predRemote(d){
   if(d.on){predOn=true;predPre=String(d.pre||'');try{note.blur()}catch(e){}predShow('')}
-  else{predOn=false;peerSync(true)}}
+  else{predOn=false;lastNote=null;peerSync(true)}}
 /* magician side */
 const swapCase=t=>String(t).replace(/\p{L}/gu,c=>{const u=c.toUpperCase(),l=c.toLowerCase();return c===u?l:u});
 /* case of the spectator's note before the prediction: 'up' (mostly capitals), 'low' (mostly small letters) or '' (no letters) */
@@ -790,7 +791,8 @@ function predToggle(){
     predSpecCase=caseOf(note.innerText);   // this phone shows the spectator's note (mirror)
     predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast(P.predType==='acro'?'Acrostic':'Prediction');qbuzz();
     setTimeout(()=>{note.focus();placeEnd()},50)}
-  else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}
+  else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz();
+    setMirr(true);peerOut({cmd:'mirr',on:true})}}   // the normal mirror starts again on the two devices
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
 if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP();setTimeout(async()=>{await beMagician('');if(await waitLink(15000))mirrorOff()},0)};
@@ -857,7 +859,9 @@ peerUI();
 let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
 function qbuzz(){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
-function mirrorToggle(){const on=P.mirr===false;
+function mirrorToggle(){if(predMode){predToggle();qtoast('Mirror on');return}   // stopping the prediction turns the mirror on
+  if(acroMode){acroToggle();P.mirr=false}
+  const on=P.mirr===false;
   if(on&&P.peerRole!=='mirror'){if(!P.peer){P.peer=true;saveP();peerUI()}beMagician('Mirror on');return}   // mirror on: this phone becomes the Magician
   if(!P.peer){P.peer=true;saveP();peerUI();peerJoin(true)}
   setMirr(on);const both=peerOut({cmd:'mirr',on});

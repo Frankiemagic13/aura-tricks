@@ -299,7 +299,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v34</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v35</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -785,7 +785,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v34. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v35. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -838,6 +838,7 @@ if(!S.px)setTimeout(pxApply,400);
    Sends: {type:'peek',m} for each peek, {type:'ack',...} after a command.
    Gets from PeekLink: {cmd:'force',n} (set the force), {cmd:'reset'}, {cmd:'inject'}, {cmd:'ping'}. */
 if(S.peer===undefined)S.peer=true;
+S.mirr=true;   // the mirror is not kept: each page load starts with the mirror on
 if(Q.get('peer')==='0')S.peer=false;else if(Q.get('peer')==='1')S.peer=true;
 if(Q.has('room'))S.peerRoom=Q.get('room');
 if(!S.peerRoomV){S.peerRoom=S.peerRoom||'fvt-calc';S.peerRoomV=1;saveS()}
