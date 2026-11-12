@@ -185,7 +185,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Hold time<select id="sTiltMs"><option value="300">0.3 s</option><option value="500">0.5 s</option><option value="800">0.8 s</option></select></div>
     <div class="r">Motion<span><span class="val" id="sMotion">Not allowed yet</span> <button class="sbtn" id="sMotionBtn">Allow</button></span></div>
   </div>
-  <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: tap the home photo 3 times quickly.</div>
+  <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: hold the home photo for 1.5 s, or tap it 3 times quickly.</div>
 
   <div class="lbl">Send to Inject</div>
   <div class="grp">
@@ -215,7 +215,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Launch color<select id="sUCol"><option value="auto">Auto</option><option value="#ffffff">White</option><option value="#000000">Black</option><option value="#1c1c1e">Dark gray</option></select></div>
     <div class="r"><button class="sbtn" id="sUTest">Test: open the app</button></div>
   </div>
-  <div class="snote">After the phone unlocks, one tap on the home photo opens this app. When this is on, 3 quick taps do not go back; use the PeekSmith side button (tap) to reset. "Other": type the app's link (URL scheme), for example fb:// .</div>
+  <div class="snote">After the phone unlocks, one tap on the home photo opens this app. When this is on, 3 quick taps do not go back; hold the home photo for 1.5 s, or tap the PeekSmith side button. "Other": type the app's link (URL scheme), for example fb:// .</div>
 
   <div class="lbl">Look</div>
   <div class="grp">
@@ -260,7 +260,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v20</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v21</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -411,7 +411,16 @@ function homeTap(e){if(P.uAct!=='app'||placing||view!=='home')return false;
     /* if no app opened (wrong link), go back to the home photo */
     setTimeout(()=>{if(document.visibilityState==='visible')launchReset()},2500)});
   return true}
-(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
+/* hold the home photo 1.5 s = back to the PIN screen (always works, also when a tap opens an app) */
+let homeHeld=false;
+(function(){const h=$('home');let tm=null,x0=0,y0=0;
+  const go=(x,y)=>{homeHeld=false;x0=x;y0=y;clearTimeout(tm);tm=setTimeout(()=>{if(view==='home'&&!placing&&!launching){homeHeld=true;haptic('medium');toLock(true)}},1500)};
+  const stop=()=>clearTimeout(tm);
+  h.addEventListener('touchstart',e=>{const t=e.touches[0];go(t.clientX,t.clientY)},{passive:true});
+  h.addEventListener('touchmove',e=>{const t=e.touches[0];if(Math.hypot(t.clientX-x0,t.clientY-y0)>12)stop()},{passive:true});
+  h.addEventListener('touchend',stop);h.addEventListener('touchcancel',stop);
+  h.addEventListener('mousedown',e=>go(e.clientX,e.clientY));h.addEventListener('mouseup',stop)})();
+(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeHeld){homeHeld=false;return}if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
 
 /* ---------- passcode ---------- */
 const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
