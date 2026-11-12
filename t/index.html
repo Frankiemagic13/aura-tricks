@@ -780,7 +780,7 @@ function acroHintShow(){const el=$('acroHint');el.classList.toggle('on',acroMode
   addEventListener('touchmove',e=>{if(on&&e.cancelable)e.preventDefault()},{passive:false,capture:true});   // no page scroll while you count
   addEventListener('touchend',e=>{if(!on)return;on=false;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;
     if(Math.abs(dy)>30&&Math.abs(dy)>Math.abs(dx)){
-      acroSwipes=Math.min(ACRO_MAX,acroSwipes+1);acroPos=acroSwipes;acroCache.clear();qbuzz();acroHintShow();
+      acroSwipes=Math.min(ACRO_MAX,acroSwipes+1);acroPos=acroSwipes;acroCache.clear();qbuzz('heavy');acroHintShow();
       try{bleShow('Letter '+acroPos)}catch(x){}
       if(acroRaw)acroShow(false)}},{passive:true,capture:true})})();
 function acroToggle(){
@@ -878,7 +878,8 @@ peerUI();
    The other device does the same. The back button has no secret function. */
 let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
-function qbuzz(){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
+/* Aura haptic: the same call as the PIN page (impact, with a style: light, medium or heavy) */
+function qbuzz(st){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('impact',{style:st||'medium'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
 function mirrorToggle(){if(predMode){predToggle();setMirr(true);peerOut({cmd:'mirr',on:true});qtoast('Mirror on');qbuzz();return}   // mirror on stops the prediction
   if(acroMode){acroToggle();P.mirr=false}
   const on=P.mirr===false;

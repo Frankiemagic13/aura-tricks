@@ -299,7 +299,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v36</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v37</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -518,7 +518,8 @@ function snap(){return{toks:toks.slice(),cur,result,shownExpr,armed,force,fi,bef
 function unsnap(z){toks=z.toks;cur=z.cur;result=z.result;shownExpr=z.shownExpr;armed=z.armed;force=z.force;fi=z.fi;before=z.before;fOp=z.fOp;forceTarget=z.forceTarget;eqNums=z.eqNums}
 /* quick force: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
    "Saved" shows at the top. The force is also kept online, so it stays after a refresh. */
-function buzz(){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
+/* Aura haptic: the same call as the PIN page (impact, with a style: light, medium or heavy) */
+function buzz(st){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('impact',{style:st||'medium'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
 function saveForce(z){
   let n=z.result!==null&&isFinite(z.result)?String(Math.round(Math.abs(z.result))):String(z.cur||'').replace(/\D/g,'');
   n=n.replace(/^0+(?=\d)/,'');
@@ -785,7 +786,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v36. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v37. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
