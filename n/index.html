@@ -260,5 +260,11 @@ if(start!=='folders'){push(listScreen(),true);stack[0].classList.add('off-left')
 if(start==='note'){push(noteScreen(notes.find(x=>x.id==='pred')),true);stack[1].classList.add('off-left')}
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
+<script src="../hui.js"></script>
+<script>
+/* Help panel */
+addEventListener("load",()=>{const help=HUI.helpPanel("Notes prediction","<h4>The trick</h4>\n<p>A copy of the iOS Notes app. One old note (\"Note to self\", from some days ago) holds your prediction.</p>\n<h4>Set the prediction</h4>\n<ul><li>Hold the <b>Notes</b> title or the <b>\"N Notes\"</b> count (bottom) for 0.7 second. A hidden keyboard opens. Type the prediction, then tap Return.</li>\n<li>Or send it from your phone with the remote page (<b>n/r.html</b>). The note gets the last value sent in the past 20 minutes (needs internet).</li></ul>\n<h4>Show it</h4>\n<p>Ask the spectator to open the \"Note to self\" note. Swipe from the left edge to go back.</p>\n<h4>Link settings</h4>\n<p><b>?p=</b> prediction, <b>?title=</b> note title, <b>?lead=</b> first line, <b>?d=</b> days ago, <b>?start=note</b> or <b>folders</b>, <b>?k=</b> channel.</p>\n<h4>This help</h4>\n<p>Hold the search bar for 1.5 seconds.</p>");
+let ht=null;const hs=e=>{clearTimeout(ht);if(e.target.closest('.search'))ht=setTimeout(help.open,1500)},hx=()=>clearTimeout(ht);document.addEventListener('touchstart',hs,{passive:true,capture:true});document.addEventListener('mousedown',hs,true);['touchend','touchmove','touchcancel','mouseup'].forEach(n=>document.addEventListener(n,hx,{passive:true,capture:true}));});
+</script>
 </body>
 </html>

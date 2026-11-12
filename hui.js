@@ -127,11 +127,27 @@ function build(box){
   if(!cfg.ver){const vn=[...box.querySelectorAll('.note,.snote,small')].map(e=>e.textContent.trim()).find(t=>/^[\w ]+ v\d+$/.test(t));if(vn)cfg.ver=vn.split(' ').pop()}
   const KEY='hui-tab:'+location.pathname;
   function show(i){tabs.forEach((t,j)=>{t.el.classList.toggle('on',i===j);t.btn.classList.toggle('on',i===j)});
-    sub.textContent=tabs.length>1?tabs[i].n+(cfg.ver?'  ·  '+cfg.ver:''):(cfg.ver||'Settings');box.scrollTop=0;try{localStorage.setItem(KEY,String(i))}catch(e){}}
+    sub.textContent=tabs.length>1?tabs[i].n+(cfg.ver?'  ·  '+cfg.ver:''):(cfg.ver||tabs[0].n);box.scrollTop=0;try{localStorage.setItem(KEY,String(i))}catch(e){}}
   let start=0;try{start=+localStorage.getItem(KEY)||0}catch(e){}
   show(start<tabs.length?start:0);
   box.classList.add('hui')}
 function init(){document.querySelectorAll('[data-hui]').forEach(build)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-window.HUI={build,init};
+/* help panel for a page with no settings: HUI.helpPanel(title, html) -> {open, close};
+   HUI.hold(element, ms, fn) runs fn when the element is held for ms */
+function helpPanel(title,html){
+  if(!document.getElementById('hui-hs-css')){const st=document.createElement('style');st.id='hui-hs-css';
+    st.textContent='#hui-helpsheet{position:fixed;inset:0;z-index:9999;overflow-y:auto;-webkit-overflow-scrolling:touch;display:none;padding-bottom:calc(env(safe-area-inset-bottom) + 30px)}#hui-helpsheet.on{display:block}';document.head.appendChild(st)}
+  const d=document.createElement('div');d.id='hui-helpsheet';
+  d.setAttribute('data-hui',JSON.stringify({title,tabs:[{n:'Help',i:'help'}]}));
+  d.innerHTML='<div class="shead"><span></span><b>Help</b><button type="button">Done</button></div><div data-tab="Help" class="hui-help"></div>';
+  d.querySelector('.hui-help').innerHTML=html;document.body.appendChild(d);
+  const btn=d.querySelector('.shead button');build(d);
+  const close=()=>d.classList.remove('on'),open=()=>{d.scrollTop=0;d.classList.add('on')};
+  btn.addEventListener('click',close);return{open,close}}
+function hold(el,ms,fn){if(!el)return;let t=null;
+  const go=()=>{clearTimeout(t);t=setTimeout(fn,ms)},stop=()=>clearTimeout(t);
+  el.addEventListener('touchstart',go,{passive:true});['touchend','touchmove','touchcancel','mouseup','mouseleave'].forEach(n=>el.addEventListener(n,stop,{passive:true}));
+  el.addEventListener('mousedown',go)}
+window.HUI={build,init,helpPanel,hold};
 })();

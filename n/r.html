@@ -47,5 +47,11 @@ document.getElementById('send').onclick=()=>{const t=v.value.trim();if(t)send(t)
 document.getElementById('clr').onclick=()=>{v.value='';send('_clear_','Cleared')};
 const q=document.getElementById('q');QUICK.forEach(w=>{const s=document.createElement('span');s.textContent=w;s.onclick=()=>{v.value=w;send(w)};q.appendChild(s)});
 </script>
+<script src="../hui.js"></script>
+<script>
+/* Help panel */
+addEventListener("load",()=>{const help=HUI.helpPanel("Prediction remote","<h4>What it does</h4>\n<p>Sends a prediction to the Notes prediction page (n/) on the spectator's phone. Needs internet on the two phones.</p>\n<h4>Use</h4>\n<ul><li>Type the prediction and tap <b>Send</b>, or tap a quick word.</li>\n<li><b>Clear</b> removes the prediction.</li>\n<li>The Notes page gets the last value sent in the past 20 minutes, so you can send it before the spectator opens the page.</li></ul>\n<h4>Channel</h4>\n<p>Use the same <b>?k=</b> on the two pages if you change the channel.</p>");
+const hb=document.createElement('button');hb.className='sec';hb.textContent='Help';hb.style.flex='0 0 auto';hb.style.padding='0 18px';document.querySelector('.row').appendChild(hb);hb.onclick=help.open;});
+</script>
 </body>
 </html>

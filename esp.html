@@ -378,5 +378,11 @@ micBtn.addEventListener("click", () => {
   else if (rec) { try { rec.stop(); } catch (e) {} }
 });
 </script>
+<script src="hui.js"></script>
+<script>
+/* Help panel */
+addEventListener("load",()=>{const help=HUI.helpPanel("ESP drawings","<h4>The trick</h4>\n<p>A note with a list of drawings. Each drawing has a key word. When you say a key word, the page marks that drawing and sends a peek (emoji + name) to Peek Island. Use it outside Aura (Safari).</p>\n<h4>Use</h4>\n<ul><li>Tap the <b>\u2022\u2022\u2022</b> button (top right) to start listening. Allow the microphone one time. Tap again to stop.</li>\n<li>Say a key word in a normal sentence, for example \"that is <b>wonderful</b>\" (circle).</li>\n<li>Tap <b>\u2039 Notes</b> to hide or show the list (<b>?h=1</b> starts with it hidden).</li>\n<li>Draw with the Markup button. Hold the date for 1 second to clear the drawing.</li></ul>\n<h4>Link settings</h4>\n<p><b>?pk=0</b> stops the peeks, <b>?ch=</b> changes the channel.</p>\n<h4>This help</h4>\n<p>Hold the <b>Drawings</b> title for 1.5 seconds.</p>");
+HUI.hold(document.querySelector('main h1'),1500,help.open);});
+</script>
 </body>
 </html>
