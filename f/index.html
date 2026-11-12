@@ -189,6 +189,8 @@ body.studio #studio{display:flex}
     <div class="rhd"><h1>PeekSmith</h1></div>
     <div class="pks">
       <div class="pkc"><div class="pr">PeekSmith<span id="pkSt" style="color:#8e8e93">—</span></div></div>
+      <div class="pkc" id="pkLights"></div>
+      <div class="pkn">Light buttons: select a phone for a PeekSmith button. <b>Tap</b> = its light on / off. <b>Hold</b> = on while you hold, off when you let go. <b>Tap during a routine</b> = pause, tap again = go on. A light button does not do its tap / hold action below.</div>
       <div class="pkc" id="pkBtns"></div>
       <div class="pkn">Select a routine for a button: that button runs it (the screen goes black, the countdown buzzes, then the routine plays). Press it again to stop.</div>
     </div>
@@ -319,6 +321,11 @@ body.studio #studio{display:flex}
   <p>Ready-made routines (Ping-pong, Heartbeat, Wave, Countdown 3-2-1, Lightning storm, Morse: MAGIC, Chase finale, Strobe party) are in the list. They use phones 1–3 and M; a phone that is not connected is skipped. Edit or delete them like your own.</p>
   <h4>5. From the PeekSmith</h4>
   <p>PeekSmith tab: select a routine for a button (or set it in the Save sheet). Press the button to run it from your pocket. Press it again to stop.</p>
+  <h4>Light buttons (PeekSmith)</h4>
+  <ul><li>PeekSmith tab → <b>Left / Right / Side button light</b>: select a phone (or All phones, or M).</li>
+  <li><b>Tap</b> the button = that light on / off. <b>Hold</b> = on while you hold, off when you let go.</li>
+  <li><b>Tap during a routine</b> = pause (the lights stay as they are). Tap again = the routine goes on from that point. The PeekSmith shows "Paused" / "Playing".</li>
+  <li>While you record, light buttons are recorded too.</li></ul>
   <h4>6. Problems</h4>
   <ul><li>Tile shows "Waiting…": that phone is not connected. Open the page on it and keep it on screen.</li>
   <li>"Needs 1 tap" after the phone was locked: tap its black screen one time again.</li>
@@ -590,6 +597,7 @@ function guestIn(d){
   if(d.cmd==='run'){gClear();const w=Math.max(0,d.in||0);for(const [t,on] of d.ev)gTimers.push(setTimeout(()=>gLight(!!on),w+t));
     gTimers.push(setTimeout(()=>gLight(false),w+(d.len||0)+20));return}
   if(d.cmd==='stop'){gClear();gLight(false);return}
+  if(d.cmd==='pause'){gClear();return}   // the light stays as it is until the routine goes on
   if(d.cmd==='state'){report();return}}
 /* the first tap on the black screen prepares the light: tell the Magician */
 {const o=openCamera;openCamera=async function(){const r=await o();try{report()}catch(e){}return r}}
@@ -768,13 +776,22 @@ function runRoutine(r){if(!r)return;if(running){runStop(true);return}
   const n=+r.cd||0,gap=+r.gap||1000,lead=650;
   for(let i=0;i<n;i++)runTimers.push(setTimeout(()=>{hap('heavy');if(bleOn())aps.vibrate('.').catch(()=>{})},lead+i*gap));
   runTimers.push(setTimeout(()=>loopRun(r),lead+n*gap))}
-function loopRun(r){if(running!==r)return;
-  const T0=now()+250;   // every phone starts at T0: each one gets its delay minus half its Bluetooth round trip
-  const per={};for(const [t,tg,on] of r.ev)(per[tg]=per[tg]||[]).push([t,on]);
+let runT0=0,runOff=0,paused=-1;   // paused: the time in the routine where it stopped (-1 = not paused)
+function loopRun(r,off){if(running!==r)return;off=off||0;paused=-1;
+  const T0=now()+250;runT0=T0;runOff=off;   // every phone starts at T0: each one gets its delay minus half its Bluetooth round trip
+  const per={};for(const [t,tg,on] of r.ev){(per[tg]=per[tg]||[])}
+  for(const tg in per){const st=stateAt(r.ev.filter(e=>e[1]===tg),off-1)[tg];per[tg].push([0,st?1:0])}   // the state at the restart point
+  for(const [t,tg,on] of r.ev)if(t>=off)per[tg].push([t-off,on]);
+  const len=r.len-off;
   for(const tg in per){if(tg==='M'){for(const [t,on] of per.M)runTimers.push(setTimeout(()=>{mOn=!!on;if(camAlive())setLight(!!on,true)},T0-now()+t));continue}
-    const id=idOf(+tg);if(!id)continue;const g=guests.get(id);send({cmd:'run',ev:per[tg],len:r.len,in:Math.round(T0-now()-(g.rtt||120)/2)},id)}
-  runTimers.push(setTimeout(()=>{if(running!==r)return;if(r.loop)loopRun(r);else runEnd()},T0-now()+r.len+60))}
-function runEnd(){running=null;runTimers.forEach(clearTimeout);runTimers=[];if(camAlive())setLight(false,true);mOn=false;
+    const id=idOf(+tg);if(!id)continue;const g=guests.get(id);send({cmd:'run',ev:per[tg],len,in:Math.round(T0-now()-(g.rtt||120)/2)},id)}
+  runTimers.push(setTimeout(()=>{if(running!==r)return;if(r.loop)loopRun(r,0);else runEnd()},T0-now()+len+60))}
+/* pause / go on (PeekSmith light button during a routine) */
+function runPause(){if(!running)return;
+  if(paused<0){paused=Math.max(0,Math.min(running.len,Math.round(now()-runT0+runOff)));runTimers.forEach(clearTimeout);runTimers=[];
+    guests.forEach((g,id)=>send({cmd:'pause'},id));hap('medium');bleShow('Paused');return}
+  const at=paused;paused=-1;hap('light');bleShow('Playing');loopRun(running,at)}
+function runEnd(){running=null;paused=-1;runTimers.forEach(clearTimeout);runTimers=[];if(camAlive())setLight(false,true);mOn=false;
   setTimeout(()=>{$('runBlack').classList.remove('on');drawTiles()},350)}
 function runStop(show){if(!running)return;guests.forEach((g,id)=>send({cmd:'stop'},id));runEnd();if(show)hap('medium')}
 $('runBlack').addEventListener('click',()=>runStop(true));   // tap the black screen = stop
@@ -792,8 +809,27 @@ function refreshBtnOptions(){
   document.querySelectorAll('#sheet select[data-k],#pkBtns select').forEach(fill)}
 $('pkBtns').innerHTML=Object.entries({'1.click':'Left – tap','1.longpress':'Left – hold','2.click':'Right – tap','2.longpress':'Right – hold','0.click':'Side – tap','0.longpress':'Side – hold'})
   .map(([k,n])=>`<div class="pr">${n}<select data-k="${k}"></select></div>`).join('');
+function drawLightBtns(){const opts=[['','None'],['all','All phones']].concat(allT().map(t=>[t,t==='M'?'M (this phone)':'Phone '+t]));
+  const v=P.lightBtn;$('pkLights').innerHTML=[['1','Left button'],['2','Right button'],['0','Side button']].map(([b,n])=>
+    `<div class="pr">${n} light<select data-lb="${b}">${opts.map(([k,l])=>`<option value="${k}"${(v[b]||'')===k?' selected':''}>${l}</option>`).join('')}${v[b]&&!opts.some(o=>o[0]===v[b])?`<option value="${v[b]}" selected>Phone ${v[b]}</option>`:''}</select></div>`).join('')}
+/* a button that is a light button: its tap / hold rows are grey (not used) */
+function dimUsedRows(){document.querySelectorAll('#pkBtns select').forEach(x=>{const b=x.dataset.k.split('.')[0],on=!!P.lightBtn[b];x.disabled=on;x.closest('.pr').style.opacity=on?.35:1})}
+$('pkLights').addEventListener('change',e=>{const s=e.target.closest('select');if(!s)return;P.lightBtn[s.dataset.lb]=s.value;saveP();dimUsedRows();hap('light')});
 $('pkBtns').addEventListener('change',e=>{const s=e.target.closest('select');if(!s)return;P.btns[s.dataset.k]=s.value;saveP();refreshBtnOptions();drawRoutines()});
-{const o=bleButton;bleButton=function(b,e){const a=P.btns[b+'.'+e]||'none';
+/* light buttons: a PeekSmith button can be one phone's light.
+   tap = light on / off · hold = on while you hold, off when you let go · tap during a routine = pause / go on */
+if(!P.lightBtn||typeof P.lightBtn!=='object')P.lightBtn={};
+const lbDown={},lbSeenPress={};
+function lbTargets(v){return v==='all'?allT():[v]}
+function lbLight(v,on){lbTargets(v).forEach(t=>{act(t,on);sAdd(t,on?1:0)});if(!on)sGrp++}
+function lbIsOn(v){return lbTargets(v).some(t=>t==='M'?mOn:(gOf(+t)?gOf(+t).on:vOn[t]))}
+function lbTap(v){if(running){runPause();return}lbLight(v,!lbIsOn(v));hap('light')}
+function lightButton(b,e){const v=P.lightBtn[b];if(!v)return false;
+  if(e==='press'){lbSeenPress[b]=true;const d=lbDown[b]={held:false};d.t=setTimeout(()=>{d.held=true;lbLight(v,true);hap('light')},300);return true}
+  if(e==='release'){const d=lbDown[b];delete lbDown[b];if(!d)return true;clearTimeout(d.t);if(d.held)lbLight(v,false);else lbTap(v);return true}
+  if(e==='click'||e==='longpress'){if(!lbSeenPress[b]&&e==='click')lbTap(v);return true}   // (a PeekSmith that sends no press/release: tap only)
+  return true}
+{const o=bleButton;bleButton=function(b,e){if(lightButton(b,e))return;const a=P.btns[b+'.'+e]||'none';
   if(a.startsWith&&a.startsWith('r:')){const r=P.routines.find(x=>'r:'+x.id===a);if(running)runStop(true);else if(r)runRoutine(r);return}
   if(a==='stop'){runStop(true);return}
   return o(b,e)}}
@@ -809,7 +845,7 @@ function rCloudSave(){try{fetch(RS_URL,{method:'PUT',keepalive:true,body:JSON.st
 /* ---------- pages, settings rows, start ---------- */
 function showPg(id){document.querySelectorAll('#studio .pg').forEach(p=>p.classList.toggle('on',p.id===id));
   document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.pg===id));
-  if(id==='pgRoutines')drawRoutines();if(id==='pgPeek')refreshBtnOptions();drawTiles()}
+  if(id==='pgRoutines')drawRoutines();if(id==='pgPeek'){refreshBtnOptions();drawLightBtns();dimUsedRows()}drawTiles()}
 document.querySelector('.tabbar').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showPg(b.dataset.pg)});
 $('stGear').addEventListener('click',()=>openSheet());
 $('stHelp').addEventListener('click',()=>{openSheet();const b=[...document.querySelectorAll('#sheet .hui-tabs button')].find(x=>x.textContent.trim()==='Help');if(b)b.click()});
