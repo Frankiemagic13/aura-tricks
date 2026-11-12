@@ -198,8 +198,15 @@ svg{display:block}
     <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
     <div class="r"><button class="sbtn" id="peerBtn">Connect now</button><button class="sbtn" id="peerTest">Test</button></div>
   </div>
-  <div class="snote">Bluetooth from the spectator's phone directly to your iPhone. No internet is necessary. Your iPhone: open this page in Aura Browser and set "This phone" to "My phone (mirror)" (or add ?mirror=1 to the link). Your Notes then shows the spectator's note and drawings live, and the peeks go to your PeekSmith from your phone. The spectator's phone stays "Spectator". Use the same room on the two phones (default fvt-calc, the same as the calculator and PeekLink). Keep the two pages open and on screen.</div>
-  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case: "Opposite of spectator" looks at the spectator's note before the prediction: if they typed in capitals, your text shows in small letters, and if they typed in small letters, your text shows in capitals. "Same as spectator" uses their case. "Swap" changes each letter you type (A ↔ a). Acrostic: hold the back button on your phone. While the spectator types, YOUR note shows common words, one on each line; their first letters spell each word that the spectator typed (after a space, or 1.5 s with no typing). The spectator's phone does not change, and the PeekSmith still gets the real words. It turns off by itself when the list is made: the words stay on your screen and the mirror stops on your phone (tap back to start it again). Quick change of the prediction type: tap the checklist button (bottom bar, or the bar above the keyboard).</div>
+  <div class="snote"><ul style="margin:0;padding-left:18px">
+    <li>Your iPhone: Aura Browser, <b>My phone (mirror)</b>. Spectator: AuraClip, <b>Spectator</b>.</li>
+    <li>Same room on both (default fvt-calc). Keep both pages on screen.</li>
+    <li>Back button: <b>tap</b> = mirror on/off, <b>double tap</b> = swap roles, <b>hold</b> = prediction.</li>
+    <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop.</li>
+    <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
+    <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
+    <li>Checklist button: quick change of the prediction type. More in the Help tab.</li>
+  </ul></div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
