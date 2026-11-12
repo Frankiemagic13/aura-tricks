@@ -36,14 +36,189 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
 .dim{color:rgba(235,235,245,.6)}
 .btn{background:none;border:0;color:#FF9F0A;font:17px -apple-system,system-ui;padding:0;text-align:left}
 .note{color:rgba(235,235,245,.6);font-size:13px;line-height:18px;margin:7px 4px 0}
+/* ===== Studio (Magician phone): connect phones, live control, record routines, run them ===== */
+#studio{position:fixed;inset:0;z-index:4;display:none;flex-direction:column;color:#fff;
+  background:radial-gradient(120% 70% at 50% 0%,#24242a 0%,#121215 55%,#09090b 100%);
+  padding-top:max(env(safe-area-inset-top),20px);-webkit-user-select:none;user-select:none}
+body.studio #studio{display:flex}
+.st-top{position:relative;height:74px;flex:none}
+.st-time{position:absolute;left:0;right:0;top:6px;text-align:center;font:800 54px/1 -apple-system,system-ui;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.st-rec{position:absolute;right:62px;top:22px;display:none;align-items:center;gap:6px;font:700 13px -apple-system;color:#ff453a}
+.st-rec i{width:9px;height:9px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a}
+.recording .st-rec{display:flex}
+.recording .st-time{font-size:40px;top:16px}
+.st-ic{position:absolute;top:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center}
+.st-ic svg{width:20px;height:20px}
+#stGear{right:14px}#stCancel{left:14px;display:none;width:auto;padding:0 14px;border-radius:20px;color:#fff;font:600 15px -apple-system}
+.recording #stCancel{display:flex}
+#stSub{flex:none;text-align:center;color:#8e8e93;font:500 13px -apple-system;margin:4px 16px 0;min-height:18px}
+.pg{display:none;flex:1;min-height:0;flex-direction:column}.pg.on{display:flex}
+.tiles{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;padding:16px 12px 0;flex:none}
+.tile{width:74px;height:124px;border-radius:21px;position:relative;background:linear-gradient(160deg,#26262a,#18181b);
+  box-shadow:0 8px 18px rgba(0,0,0,.5),inset 0 0 0 1.5px rgba(255,255,255,.07);transition:box-shadow .15s}
+.tile .cm{position:absolute;left:9px;top:9px;width:25px;height:25px;border-radius:8px;background:#111;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:.08s}
+.tile .ts{position:absolute;top:42px;left:0;right:0;text-align:center;font:600 10px -apple-system;color:#8e8e93}
+.tile .tn{position:absolute;bottom:8px;left:0;right:0;text-align:center;font:800 27px -apple-system;color:rgba(255,255,255,.14)}
+.tile.ready .ts{color:#30d158}.tile.tap .ts{color:#ffd60a}
+.tile.empty{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12)}.tile.empty .cm{opacity:.25}
+.tile.m{background:linear-gradient(160deg,#3a3a40,#2a2a2e)}.tile.m .tn{color:rgba(255,255,255,.24)}
+.tile.sel{box-shadow:0 8px 18px rgba(0,0,0,.5),0 0 0 3px #ff9f0a}
+.tile.lit .cm{background:#fff;box-shadow:0 0 14px 5px rgba(255,244,214,.9),0 0 40px 14px rgba(255,236,190,.3)}
+.tl{position:relative;margin:16px 12px 0;border-radius:16px;background:#151518;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07);overflow:hidden;flex:none;display:none}
+.recording .tl,.tl.show{display:block}
+.ruler{display:flex;margin-left:54px;height:22px;border-bottom:1px solid rgba(255,255,255,.07);font:600 10px -apple-system;color:#636366}
+.ruler span{flex:1;padding:5px 0 0 3px;border-left:1px solid rgba(255,255,255,.07)}
+.ly{display:flex;align-items:center;height:32px;border-bottom:1px solid rgba(255,255,255,.05)}
+.ly .ln{width:54px;padding-left:10px;display:flex;align-items:center;gap:6px;font:700 13px -apple-system}
+.ly .ln i{width:9px;height:9px;border-radius:3px}
+.ly .tr{flex:1;height:100%;position:relative}
+.bar{position:absolute;top:7px;height:18px;border-radius:6px;background:linear-gradient(180deg,#ffeeb8,#f7d77a);box-shadow:0 0 8px rgba(255,220,130,.3);min-width:4px}
+.bar::before,.bar::after{content:"";position:absolute;top:5px;width:7px;height:7px;background:#ff9f0a;transform:rotate(45deg);border-radius:1px}
+.bar::before{left:-3px}.bar::after{right:-3px}
+.bar.selb{background:linear-gradient(180deg,#ffb38a,#ff6b3d)}
+.phd{position:absolute;top:22px;bottom:0;width:2px;background:#ff453a;pointer-events:none}
+.phd::before{content:"";position:absolute;top:-1px;left:-6px;border:7px solid transparent;border-top:9px solid #ff453a}
+.tools{display:none;justify-content:space-around;margin:12px 20px 0;font:600 11px -apple-system;color:#8e8e93;flex:none}
+.recording .tools{display:flex}
+.tools button{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:#8e8e93;font:600 11px -apple-system}
+.tools b{width:40px;height:40px;border-radius:12px;background:#26262a;display:flex;align-items:center;justify-content:center;font:700 16px -apple-system;color:#fff}
+.st-hint{margin-top:auto;text-align:center;font:500 12.5px -apple-system;color:#8e8e93;padding:8px 16px}
+.ctl{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 0 26px}
+.cb{width:60px;height:60px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;background:#2a2a2e;position:relative;touch-action:none}
+.cb small{position:absolute;bottom:-19px;left:-12px;right:-12px;text-align:center;font:600 10.5px -apple-system;color:#8e8e93;pointer-events:none}
+.cb svg,.cb i{pointer-events:none}
+.cb.rec{box-shadow:inset 0 0 0 2.5px #30d158}.cb.rec i{width:22px;height:22px;border-radius:50%;background:#30d158}
+.recording .cb.rec{box-shadow:inset 0 0 0 2.5px #ff453a}.recording .cb.rec i{border-radius:6px;background:#ff453a}
+.cb.on{box-shadow:inset 0 0 0 2.5px #ffd60a}.cb.fl{box-shadow:inset 0 0 0 2.5px #ff6b3d}.cb.off{box-shadow:inset 0 0 0 2.5px #636366}
+.cb.down{filter:brightness(1.5)}
+.csep{width:1px;height:44px;background:rgba(255,255,255,.12)}
+.tabbar{flex:none;display:flex;justify-content:space-around;background:rgba(28,28,31,.96);border-radius:26px 26px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 8px)}
+.tabbar button{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;font:600 11px -apple-system;color:#8e8e93}
+.tabbar button.on{color:#ff9f0a}.tabbar svg{width:25px;height:25px}
+.recording .tabbar{opacity:.35;pointer-events:none}
+.rhd{display:flex;align-items:center;justify-content:space-between;padding:10px 20px 4px;flex:none}
+.rhd h1{font:800 30px -apple-system}.rhd button{background:none;border:0;color:#ff9f0a;font:600 16px -apple-system}
+.rlist{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 0 16px}
+.rc{margin:0 16px 12px;border-radius:20px;background:#1e1e22;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);padding:12px 14px;transition:transform .15s,box-shadow .15s}
+.rc.press{transform:scale(.97);box-shadow:inset 0 0 0 2px #ff9f0a}
+.rct{display:flex;align-items:center;gap:10px}
+.rct .ri{font-size:22px}.rct b{font:700 17px -apple-system}.rct small{display:block;font:500 12px -apple-system;color:#8e8e93;margin-top:2px}
+.rps{margin-left:auto;font:700 11px -apple-system;color:#ff9f0a;background:rgba(255,159,10,.12);padding:4px 8px;border-radius:999px;white-space:nowrap}
+.rpv{display:flex;gap:10px;margin-top:10px;align-items:flex-end}
+.minis{display:flex;gap:5px}
+.mp{width:20px;height:34px;border-radius:6px;background:#2b2b30;position:relative;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07)}
+.mp i{position:absolute;left:4px;top:4px;width:7px;height:7px;border-radius:2px;background:#111}
+.mp.lit i{background:#fff;box-shadow:0 0 8px 3px rgba(255,240,200,.85)}
+.mp span{position:absolute;bottom:2px;left:0;right:0;text-align:center;font:800 9px -apple-system;color:rgba(255,255,255,.25)}
+.mp.mm{background:#3a3a40}
+.mlanes{flex:1;position:relative}
+.ml{height:6px;border-radius:3px;background:rgba(255,255,255,.06);margin:3px 0;position:relative;overflow:hidden}
+.ml u{position:absolute;top:0;bottom:0;border-radius:3px;background:#ffe9a8}
+.mph{position:absolute;top:0;bottom:0;width:2px;background:#ff453a;border-radius:1px}
+.rempty{color:#8e8e93;text-align:center;font:500 15px -apple-system;padding:60px 30px;line-height:1.4}
+.pks{padding:6px 16px;overflow-y:auto}
+.pkc{background:#1e1e22;border-radius:18px;padding:4px 14px;margin-bottom:12px}
+.pkc .pr{display:flex;justify-content:space-between;align-items:center;min-height:46px;font:500 15px -apple-system;border-bottom:.5px solid rgba(255,255,255,.07)}
+.pkc .pr:last-child{border:0}
+.pkc select{background:none;border:0;color:#8e8e93;font:15px -apple-system;text-align:right;text-align-last:right;max-width:60%;-webkit-appearance:none;appearance:none}
+.pkn{color:#8e8e93;font:500 12.5px -apple-system;margin:0 6px 12px;line-height:1.4}
+#runBlack{position:fixed;inset:0;z-index:8;background:#000;opacity:0;pointer-events:none;transition:opacity .6s}
+#runBlack.on{opacity:1;pointer-events:auto}
+#svBg{position:fixed;inset:0;z-index:9;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:opacity .25s}
+#svSheet{position:fixed;left:0;right:0;bottom:0;z-index:10;max-height:86%;overflow-y:auto;background:#1c1c1f;border-radius:28px 28px 0 0;
+  padding:10px 18px calc(env(safe-area-inset-bottom) + 24px);transform:translateY(105%);transition:transform .35s cubic-bezier(.2,.9,.25,1);color:#fff}
+.sv #svBg{opacity:1;pointer-events:auto}.sv #svSheet{transform:none}
+.svg-grab{width:38px;height:5px;border-radius:3px;background:#48484a;margin:0 auto 12px}
+.svh{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.svh b{font:700 20px -apple-system}.svh button{background:none;border:0;color:#ff9f0a;font:600 16px -apple-system}
+.svf{background:#26262a;border-radius:14px;padding:0 14px;margin-bottom:12px}
+.svf .pr{display:flex;justify-content:space-between;align-items:center;min-height:48px;font:500 15px -apple-system;border-bottom:.5px solid rgba(255,255,255,.07);gap:10px}
+.svf .pr:last-child{border:0}
+.svf input[type=text]{background:none;border:0;color:#fff;font:600 15px -apple-system;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text}
+.svf select{background:none;border:0;color:#8e8e93;font:15px -apple-system;text-align:right;text-align-last:right;-webkit-appearance:none;appearance:none}
+.svf input[type=checkbox]{width:20px;height:20px;accent-color:#ff9f0a}
+.icons{display:flex;gap:6px}.icons button{width:32px;height:32px;border-radius:10px;border:0;background:#333338;font-size:16px}
+.icons button.on{box-shadow:inset 0 0 0 2px #ff9f0a}
+.svdel{width:100%;height:46px;border-radius:14px;border:0;background:#26262a;color:#ff453a;font:600 16px -apple-system}
+#stToast{position:fixed;left:50%;top:calc(max(env(safe-area-inset-top),20px) + 86px);transform:translateX(-50%);z-index:11;opacity:0;pointer-events:none;
+  padding:8px 16px;border-radius:999px;background:#2c2c2e;color:#fff;font:600 14px -apple-system;transition:opacity .2s;white-space:nowrap}
+#stToast.on{opacity:1}
 </style>
 </head>
 <body>
 <div id="pad"></div>
 <video id="cam" playsinline muted autoplay></video>
 
+<!-- ===== Studio (Magician phone) ===== -->
+<div id="studio">
+  <div class="st-top">
+    <button class="st-ic" id="stCancel">✕ Cancel</button>
+    <div class="st-time" id="stTime">00:00</div>
+    <div class="st-rec"><i></i>REC</div>
+    <button class="st-ic" id="stGear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+  <div id="stSub">Waiting for phones…</div>
+
+  <div class="pg on" id="pgPhones">
+    <div class="tiles" id="tiles"></div>
+    <div class="tl" id="tl"><div class="ruler" id="ruler"></div><div id="lanes"></div><div class="phd" id="phd"></div></div>
+    <div class="tools">
+      <button id="tUndo"><b>↶</b>Undo</button>
+      <button id="tDel"><b>✂︎</b>Delete bar</button>
+      <button id="tPrev"><b>▶︎</b>Preview</button>
+    </div>
+    <div class="st-hint" id="stHint">Tap phones to select · then tap a light button</div>
+    <div class="ctl">
+      <button class="cb rec" id="cRec"><i></i><small id="cRecL">Record</small></button>
+      <div class="csep"></div>
+      <button class="cb on" id="cOn"><svg width="24" height="28" viewBox="0 0 24 28" fill="#ffd60a"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><rect x="8.3" y="21.5" width="7.4" height="2.2" rx="1"/><rect x="9.3" y="25" width="5.4" height="2" rx="1"/></svg><small>On / hold</small></button>
+      <button class="cb fl" id="cFl"><svg width="26" height="20" viewBox="0 0 28 22" fill="none" stroke="#ff6b3d" stroke-width="2.4" stroke-linecap="round"><path d="M14 2v5M5 6l3 3M23 6l-3 3M3 18h7M18 18h7M12 18h4"/></svg><small>Flash</small></button>
+      <button class="cb off" id="cOff"><svg width="24" height="28" viewBox="0 0 24 28" fill="none" stroke="#8e8e93" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><path d="M3 2l18 24"/></svg><small>Off</small></button>
+    </div>
+  </div>
+
+  <div class="pg" id="pgRoutines">
+    <div class="rhd"><h1>Routines</h1><button id="rNew">+ Record new</button></div>
+    <div class="rlist" id="rlist"></div>
+  </div>
+
+  <div class="pg" id="pgPeek">
+    <div class="rhd"><h1>PeekSmith</h1></div>
+    <div class="pks">
+      <div class="pkc"><div class="pr">PeekSmith<span id="pkSt" style="color:#8e8e93">—</span></div></div>
+      <div class="pkc" id="pkBtns"></div>
+      <div class="pkn">Select a routine for a button: that button runs it (the screen goes black, the countdown buzzes, then the routine plays). Press it again to stop.</div>
+    </div>
+  </div>
+
+  <div class="tabbar">
+    <button data-pg="pgPhones" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="12" rx="2"/><rect x="14" y="3" width="7" height="12" rx="2"/><path d="M4 20h16"/></svg>Phones</button>
+    <button data-pg="pgRoutines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Routines</button>
+    <button data-pg="pgPeek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/></svg>PeekSmith</button>
+  </div>
+</div>
+<div id="runBlack"></div>
+<div id="stToast"></div>
+<div id="svBg"></div>
+<div id="svSheet">
+  <div class="svg-grab"></div>
+  <div class="svh"><b id="svTitle">Save routine</b><button id="svSave">Save</button></div>
+  <div class="svf">
+    <div class="pr">Name<input type="text" id="svName" autocapitalize="words" autocorrect="off"></div>
+    <div class="pr">Icon<div class="icons" id="svIcons"></div></div>
+  </div>
+  <div class="svf">
+    <div class="pr">PeekSmith button<select id="svPs"></select></div>
+    <div class="pr">Loop<input type="checkbox" id="svLoop"></div>
+    <div class="pr">Countdown buzz<select id="svCd"><option value="0">Off</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+    <div class="pr">Time between buzzes<select id="svGap"><option value="500">0.5 s</option><option value="750">0.75 s</option><option value="1000">1 s</option><option value="1500">1.5 s</option></select></div>
+  </div>
+  <div class="svf"><div class="pr">Length<span id="svLen" style="color:#8e8e93">—</span></div></div>
+  <button class="svdel" id="svDel">Delete routine</button>
+</div>
+
 <div id="bg"></div>
-<div id="sheet" data-hui='{"title":"Flashlight","tabs":[{"n":"Light","i":"light","s":["light"]},{"n":"Routine","i":"routine","s":["routine"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]}]}'>
+<div id="sheet" data-hui='{"title":"Flashlight","tabs":[{"n":"Light","i":"light","s":["light"]},{"n":"Routine","i":"routine","s":["routine"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Phones","i":"phone","s":["aura peer"]}]}'>
   <div class="hd"><b>Settings</b><button class="done" id="done">Done</button></div>
 
   <div class="lbl">Light</div>
@@ -88,6 +263,15 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
     <div class="r">Side – hold<select data-k="0.longpress"></select></div>
   </div>
   <div class="note">Hold the screen for 1 second to open these settings.</div>
+
+  <div class="lbl">Aura peer (phones)</div>
+  <div class="grp">
+    <div class="r">This phone<select id="pRole"><option value="spect">Spectator (flash)</option><option value="mirror">My phone (control)</option></select></div>
+    <div class="r">Status<span id="pSt" class="dim">—</span></div>
+    <div class="r">Room<input class="tx" id="pRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
+    <div class="r"><button class="btn" id="pTest">Test</button></div>
+  </div>
+  <div class="note">My phone (control): this phone shows the control screen (phones, routines, PeekSmith). Spectator (flash): the black flashlight screen; its flash does what your phone sends. Use the same room on all phones (default fvt-calc). The role is the same as on the calculator and Notes.</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold the screen for 1 second to open these settings.</p>
@@ -100,6 +284,14 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
   <li>Play it with a PeekSmith button set to Play. Countdown buzz lets you count along before it starts.</li></ol>
   <h4>PeekSmith</h4>
   <p>Connect the PeekSmith in the PeekSmith tab, then set what each button does.</p>
+  <h4>Several phones (Aura peer)</h4>
+  <ol><li>Your phone: set <b>This phone</b> to <b>My phone (control)</b> (Phones tab). The control screen opens. Spectator phones: open this page in AuraClip (Spectator).</li>
+  <li>Each phone gets a number (1, 2, 3…) when it connects. "Needs 1 tap": the spectator taps the black screen one time (iOS rule for the flash). Your phone is <b>M</b>: tap its tile one time.</li>
+  <li>Live: tap tiles to select, then <b>On</b> (tap = stays on, hold = on while you hold), <b>Flash</b> or <b>Off</b> (no tile selected = all off).</li>
+  <li>Record: tap <b>Record</b> (or + Record new), play with the lights, tap <b>Stop</b>. Each phone has a layer. Undo, tap a bar + Delete bar, Preview. Then name it, select an icon and a PeekSmith button, and Save.</li>
+  <li>Routines: each card shows a preview. Tap = run (black screen, countdown buzz, routine, back). Tap the black screen = stop. Hold a card = edit or delete.</li>
+  <li>PeekSmith tab: select a routine for a button to run it from your pocket.</li></ol>
+  <p>The gear (top right) opens these settings.</p>
 </div>
 </div>
 
@@ -294,6 +486,275 @@ addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=a
   try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
+<script>
+/* =====================================================================================
+   Phones over Aura peer.
+   Magician phone (host, "My phone"): the Studio screen. It connects spectator phones (1, 2, 3…),
+   controls their flash live, records routines (one layer for each phone, like After Effects)
+   and runs them (screen black, countdown buzz, routine, back to the list).
+   Spectator phone (guest): the normal black flashlight page. It does what the Magician sends.
+   ===================================================================================== */
+const Qf=new URLSearchParams(location.search);
+function roleSave(r){try{localStorage.setItem('fvtRole',r)}catch(e){}}
+try{const r=localStorage.getItem('fvtRole');if(r==='mirror'||r==='spect')P.peerRole=r}catch(e){}
+if(Qf.get('mirror')==='1')P.peerRole='mirror';else if(Qf.get('mirror')==='0')P.peerRole='spect';
+if(P.peerRole!=='mirror')P.peerRole='spect';if(Qf.has('mirror'))roleSave(P.peerRole);
+if(P.peerRoom==null)P.peerRoom='fvt-calc';if(Qf.has('room'))P.peerRoom=Qf.get('room');
+if(!Array.isArray(P.routines))P.routines=[];
+saveP();
+const isMag=()=>P.peerRole==='mirror';
+const now=()=>performance.now();
+const FLASH_MS=200;
+function hap(st){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('impact',{style:st||'medium'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
+let toastT=null;function stToast(t){const el=$('stToast');el.textContent=t;el.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('on'),1400)}
+
+/* ---------- Aura peer link ---------- */
+const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
+let hooked=false,hosting=false,joined=false,busy=false,gen=0,hold=0;
+const guests=new Map();   // id -> {slot, ready, on, rtt}
+let mySlot=0;             // spectator phone: its number
+function pStatus(t){const el=$('pSt');if(el)el.textContent=t}
+function isBusyErr(e){return /overload|busy|rate|too many|full|limit/i.test(String((e&&(e.message||e.code))||e||''))}
+function send(o,to){const api=peerApi();if(!api||Date.now()<hold)return false;
+  if(isMag()&&!hosting)return false;if(!isMag()&&!joined)return false;
+  try{const r=to?api.send(o,{to}):api.send(o);if(r&&r.catch)r.catch(e=>{if(isBusyErr(e))hold=Date.now()+1200})}catch(e){if(isBusyErr(e))hold=Date.now()+1200;return false}
+  return true}
+function freeSlot(){const used=new Set([...guests.values()].map(g=>g.slot));for(let n=1;n<=9;n++)if(!used.has(n))return n;return 9}
+function hook(){const A=window.Aura;if(hooked||!A||typeof A.on!=='function')return;hooked=true;
+  A.on('peer.connected',({id,name})=>{
+    if(isMag()){const g={slot:freeSlot(),ready:false,on:false,rtt:120,name:name||''};guests.set(id,g);
+      send({cmd:'slot',n:g.slot},id);ping(id);hap('light');stToast('Phone '+g.slot+' connected');drawTiles();return}
+    joined=true;pStatus('Connected'+(name?' to '+name:''));report()});
+  A.on('peer.disconnected',({id})=>{
+    if(isMag()){const g=guests.get(id);guests.delete(id);if(g)stToast('Phone '+g.slot+' left');drawTiles();return}
+    joined=false;pStatus('Not connected – trying again');setTimeout(link,1500)});
+  A.on('peer.message',({from,kind,data})=>{let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
+    if(!d||typeof d!=='object')return;
+    if(isMag())hostIn(from,d);else guestIn(d)})}
+async function link(manual){
+  const api=peerApi();if(!api){pStatus('Only in Aura');return}hook();
+  if(busy)return;const g0=gen;
+  if(isMag()){if(hosting)return;busy=true;
+    try{const o={name:'Magician'};if(P.peerRoom)o.room=P.peerRoom;await api.host(o);if(g0!==gen)return;hosting=true;pStatus('Hosting – waiting for phones')}
+    catch(e){if(g0!==gen)return;pStatus('Error: '+String((e&&e.message)||e).slice(0,40))}
+    finally{if(g0===gen)busy=false}return}
+  if(joined||(!manual&&document.visibilityState!=='visible'))return;busy=true;pStatus('Searching…');
+  try{const o={name:'Flash',timeout:6};if(P.peerRoom)o.room=P.peerRoom;await api.join(o);if(g0!==gen)return;joined=true;pStatus('Connected');report()}
+  catch(e){if(g0!==gen)return;pStatus('Not found – trying again')}
+  finally{if(g0===gen)busy=false}}
+async function unlink(){const api=peerApi();gen++;busy=false;hosting=false;joined=false;guests.clear();
+  if(api)try{await Promise.race([api.leave(),new Promise(z=>setTimeout(z,1500))])}catch(e){}}
+
+/* ---------- spectator phone: do what the Magician sends ---------- */
+let gTimers=[];
+function gClear(){gTimers.forEach(clearTimeout);gTimers=[]}
+function report(){send({type:'fstate',ready:camAlive(),on:lightOn,slot:mySlot})}
+async function gLight(on){if(!camAlive()){report();return}await setLight(on,true);report()}
+function guestIn(d){
+  if(d.cmd==='slot'){mySlot=d.n;report();return}
+  if(d.cmd==='echo'){send({type:'echoback',t:d.t});return}
+  if(d.cmd==='light'){const go=()=>gLight(!!d.on);if(d.in>0)gTimers.push(setTimeout(go,d.in));else go();return}
+  if(d.cmd==='flash'){const ms=d.ms||FLASH_MS,w=d.in>0?d.in:0;gTimers.push(setTimeout(()=>gLight(true),w),setTimeout(()=>gLight(false),w+ms));return}
+  if(d.cmd==='run'){gClear();const w=Math.max(0,d.in||0);for(const [t,on] of d.ev)gTimers.push(setTimeout(()=>gLight(!!on),w+t));
+    gTimers.push(setTimeout(()=>gLight(false),w+(d.len||0)+20));return}
+  if(d.cmd==='stop'){gClear();gLight(false);return}
+  if(d.cmd==='state'){report();return}}
+/* the first tap on the black screen prepares the light: tell the Magician */
+{const o=openCamera;openCamera=async function(){const r=await o();try{report()}catch(e){}return r}}
+
+/* ---------- Magician phone: phones, live control ---------- */
+function hostIn(id,d){const g=guests.get(id);if(!g)return;
+  if(d.type==='fstate'){g.ready=!!d.ready;g.on=!!d.on;drawTiles();return}
+  if(d.type==='echoback'){const r=now()-d.t;g.rtt=g.rtt?g.rtt*.6+r*.4:r;return}}
+function ping(id){send({cmd:'echo',t:now()},id)}
+setInterval(()=>{if(isMag()&&hosting)guests.forEach((g,id)=>ping(id))},4000);
+const idOf=slot=>{for(const [id,g] of guests)if(g.slot===slot)return id;return null};
+const gOf=slot=>{const id=idOf(slot);return id?guests.get(id):null};
+let sel=new Set(),mOn=false;
+/* turn the light of one target on/off now (target: 'M' or a slot number as text) */
+function act(target,on){
+  if(target==='M'){mOn=on;if(camAlive())setLight(on,true);else if(on)openCamera().then(ok=>ok&&mOn&&setLight(true,true));drawTiles();return}
+  const id=idOf(+target);if(!id)return;const g=guests.get(id);g.on=on;send({cmd:'light',on},id);drawTiles()}
+function targets(){return [...guests.values()].map(g=>String(g.slot)).sort((a,b)=>a-b)}
+function drawTiles(){if(!isMag())return;
+  const T=$('tiles');const maxS=Math.max(3,...[...guests.values()].map(g=>g.slot));
+  let h='';for(let n=1;n<=maxS;n++){const g=gOf(n);const st=!g?'empty':g.ready?'ready':'tap';
+    const lit=g&&(prevOn?prevState[String(n)]:g.on);
+    h+=`<div class="tile ${st}${sel.has(String(n))?' sel':''}${lit?' lit':''}" data-t="${n}"><div class="cm"></div><div class="ts">${!g?'Waiting…':g.ready?'Ready':'Needs 1 tap'}</div><div class="tn">${n}</div></div>`}
+  const mLit=prevOn?prevState.M:mOn;
+  h+=`<div class="tile m ${camAlive()?'ready':'tap'}${sel.has('M')?' sel':''}${mLit?' lit':''}" data-t="M"><div class="cm"></div><div class="ts">${camAlive()?'This phone':'Tap to prepare'}</div><div class="tn">M</div></div>`;
+  T.innerHTML=h;
+  const n=guests.size,r=[...guests.values()].filter(g=>g.ready).length;
+  $('stSub').textContent=!hosting?'Starting…':n?`${n} phone${n>1?'s':''} connected · ${r} ready${sel.size?' · '+[...sel].sort().join(', ')+' selected':''}`:'Waiting for phones… open the flashlight on the other phones';
+  const pk=$('pkSt');if(pk)pk.textContent=bleOn()?'Connected':AURA?'Searching…':'Only in Aura'}
+$('tiles').addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t||t.classList.contains('empty'))return;
+  const k=t.dataset.t;if(k==='M'&&!camAlive())openCamera().then(drawTiles);   // the tap is the user action iOS needs for the camera
+  sel.has(k)?sel.delete(k):sel.add(k);hap('light');drawTiles()});
+/* light buttons: On (tap = stays on, hold = on while held), Flash, Off (no phone selected = all off) */
+function selected(){return [...sel]}
+function allT(){return targets().concat(['M'])}
+let onDownAt=0,onHeld=null;
+function btn(el,down,up){el.addEventListener('touchstart',e=>{e.preventDefault();el.classList.add('down');down()},{passive:false});
+  el.addEventListener('touchend',e=>{e.preventDefault();el.classList.remove('down');up&&up()},{passive:false});
+  el.addEventListener('mousedown',()=>{el.classList.add('down');down()});el.addEventListener('mouseup',()=>{el.classList.remove('down');up&&up()})}
+btn($('cOn'),()=>{const s=selected();if(!s.length){stToast('Select phones first');onHeld=null;return}
+  onDownAt=now();onHeld=s;s.forEach(t=>{act(t,true);sAdd(t,1)});hap('light')},
+  ()=>{if(!onHeld)return;if(now()-onDownAt>300)onHeld.forEach(t=>{act(t,false);sAdd(t,0)});onHeld=null;sGrp++});
+btn($('cFl'),()=>{const s=selected();if(!s.length){stToast('Select phones first');return}hap('light');
+  s.forEach(t=>{act(t,true);sAdd(t,1);setTimeout(()=>{act(t,false);sAdd(t,0)},FLASH_MS)});setTimeout(()=>sGrp++,FLASH_MS+5)});
+btn($('cOff'),()=>{const s=selected().length?selected():allT();hap('light');s.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++});
+
+/* ---------- recording (one layer for each phone) ---------- */
+let sRec=false,sT0=0,sEv=[],sGrp=0,sTick=null,selBar=null,editId=null;
+function fmt(ms){const s=Math.max(0,ms)/1000,m=Math.floor(s/60);return String(m).padStart(2,'0')+':'+(s%60).toFixed(sRec?1:0).padStart(sRec?4:2,'0')}
+function sAdd(t,on){if(!sRec)return;const tt=Math.round(now()-sT0);
+  const st=stateAt(sEv,1e12);if(!!st[t]===!!on)return;sEv.push([tt,t,on?1:0,sGrp]);drawTL()}
+function stateAt(ev,t){const s={};for(const [et,tg,on] of ev)if(et<=t)s[tg]=on;return s}
+function sRecStart(){if(sRec)return;sRec=true;sEv=[];sGrp=0;selBar=null;editId=null;sT0=now();document.body.classList.add('recording');
+  $('cRecL').textContent='Stop';hap('medium');showPg('pgPhones');
+  sTick=setInterval(()=>{$('stTime').textContent=fmt(now()-sT0);drawTL()},100);drawTL()}
+function sRecFinish(save){clearInterval(sTick);const end=Math.round(now()-sT0);sRec=false;document.body.classList.remove('recording');
+  $('cRecL').textContent='Record';$('stTime').textContent='00:00';allT().forEach(t=>act(t,false));sel.clear();
+  if(!save){sEv=[];drawTL();return}
+  const ev=sEv.filter(e=>e);if(!ev.length){stToast('Nothing recorded');return}
+  const t0=ev[0][0];let len=end-t0;const out=ev.map(([t,tg,on])=>[t-t0,tg,on]);
+  const st=stateAt(out,1e12);for(const k in st)if(st[k])out.push([len,k,0]);   // all off at the end
+  len=Math.max(len,out[out.length-1][0]+50);
+  openSave({id:'r'+Date.now().toString(36),name:'Routine '+(P.routines.length+1),icon:'✨',ev:out,len,ps:'',loop:false,cd:3,gap:1000},true)}
+$('cRec').addEventListener('click',()=>sRec?sRecFinish(true):sRecStart());
+$('stCancel').addEventListener('click',()=>{if(sRec)sRecFinish(false)});
+$('tUndo').addEventListener('click',()=>{if(!sEv.length)return;const g=Math.max(...sEv.map(e=>e[3]));sEv=sEv.filter(e=>e[3]!==g);
+  const st=stateAt(sEv,1e12);allT().forEach(t=>act(t,!!st[t]));selBar=null;drawTL()});
+$('tDel').addEventListener('click',()=>{if(!selBar){stToast('Tap a bar first');return}
+  sEv=sEv.filter(e=>e!==selBar.a&&e!==selBar.b);selBar=null;drawTL()});
+$('tPrev').addEventListener('click',()=>{if(!sEv.length)return;const t0=sEv[0][0];preview(sEv.map(([t,tg,on])=>[t-t0,tg,on]),sEv[sEv.length-1][0]-t0+300)});
+/* bars from events: each on .. off for one target */
+function barsOf(ev,len){const B=[],open={};for(const e of ev){const [t,tg,on]=e;if(on){if(!open[tg])open[tg]=e}else if(open[tg]){B.push({tg,a:open[tg],b:e,s:open[tg][0],e:t});open[tg]=null}}
+  for(const tg in open)if(open[tg])B.push({tg,a:open[tg],b:null,s:open[tg][0],e:len});return B}
+const LC={M:'#ff9f0a'},PAL=['#64d2ff','#30d158','#bf5af2','#ff375f','#ffd60a','#5e5ce6','#ff9f0a','#66d4cf','#ac8e68'];
+function drawTL(){if(!isMag())return;const tl=$('tl');
+  const t=sRec?now()-sT0:0,scale=Math.max(6000,t+800),lanes=allT();
+  $('ruler').innerHTML=[0,.25,.5,.75].map(f=>`<span>${(scale*f/1000).toFixed(1).replace(/\.0$/,'')}s</span>`).join('');
+  const B=barsOf(sEv,t);
+  $('lanes').innerHTML=lanes.map(tg=>`<div class="ly"><div class="ln"><i style="background:${LC[tg]||PAL[(+tg-1)%PAL.length]}"></i>${tg}</div><div class="tr" data-tg="${tg}">${
+    B.filter(b=>b.tg===tg).map((b,i)=>`<div class="bar${selBar&&selBar.a===b.a?' selb':''}" data-k="${sEv.indexOf(b.a)}" style="left:${b.s/scale*100}%;width:${Math.max(.6,(b.e-b.s)/scale*100)}%"></div>`).join('')}</div></div>`).join('');
+  const w=tl.clientWidth-54;$('phd').style.left=(54+w*Math.min(1,t/scale))+'px'}
+$('lanes').addEventListener('click',e=>{const b=e.target.closest('.bar');if(!b)return;const a=sEv[+b.dataset.k];
+  const bar=barsOf(sEv,1e12).find(x=>x.a===a);selBar=bar&&(!selBar||selBar.a!==a)?bar:null;drawTL()});
+
+/* ---------- save / edit sheet ---------- */
+const ICONS=['✨','⚡','🎵','❤️','⭐','🔥','👻','🎯'];let draft=null;
+function psOptions(sel){const S=$('svPs');S.innerHTML='<option value="">None</option>'+Object.entries({'1.click':'Left – tap','1.longpress':'Left – hold','2.click':'Right – tap','2.longpress':'Right – hold','0.click':'Side – tap','0.longpress':'Side – hold'}).map(([k,v])=>`<option value="${k}">${v}</option>`).join('');S.value=sel||''}
+function openSave(r,isNew){draft=JSON.parse(JSON.stringify(r));draft.isNew=!!isNew;
+  $('svTitle').textContent=isNew?'Save routine':'Edit routine';$('svName').value=r.name;
+  $('svIcons').innerHTML=ICONS.map(i=>`<button class="${i===r.icon?'on':''}">${i}</button>`).join('');
+  psOptions(Object.keys(P.btns).find(k=>P.btns[k]==='r:'+r.id)||r.ps||'');
+  $('svLoop').checked=!!r.loop;$('svCd').value=String(r.cd);$('svGap').value=String(r.gap);
+  const tg=[...new Set(r.ev.map(e=>e[1]))];$('svLen').textContent=(r.len/1000).toFixed(1)+' s · '+tg.length+' layers · '+r.ev.length+' changes';
+  $('svDel').style.display=isNew?'none':'';document.body.classList.add('sv')}
+$('svIcons').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!draft)return;draft.icon=b.textContent;
+  [...$('svIcons').children].forEach(x=>x.classList.toggle('on',x===b))});
+function closeSave(){document.body.classList.remove('sv');if(document.activeElement)document.activeElement.blur()}
+$('svBg').addEventListener('click',()=>{if(draft&&draft.isNew&&!confirm('Discard this routine?'))return;closeSave();draft=null});
+$('svSave').addEventListener('click',()=>{if(!draft)return;const r=draft;
+  r.name=$('svName').value.trim()||r.name;r.loop=$('svLoop').checked;r.cd=+$('svCd').value;r.gap=+$('svGap').value;
+  const ps=$('svPs').value;for(const k in P.btns)if(P.btns[k]==='r:'+r.id)P.btns[k]='none';if(ps)P.btns[ps]='r:'+r.id;
+  delete r.isNew;delete r.ps;const i=P.routines.findIndex(x=>x.id===r.id);if(i>=0)P.routines[i]=r;else P.routines.push(r);
+  P.rtT=Date.now();saveP();rCloudSave();refreshBtnOptions();closeSave();draft=null;sEv=[];drawTL();drawRoutines();showPg('pgRoutines');stToast('Saved');hap('medium')});
+$('svDel').addEventListener('click',()=>{if(!draft||!confirm('Delete "'+draft.name+'"?'))return;
+  P.routines=P.routines.filter(x=>x.id!==draft.id);for(const k in P.btns)if(P.btns[k]==='r:'+draft.id)P.btns[k]='none';
+  P.rtT=Date.now();saveP();rCloudSave();refreshBtnOptions();closeSave();draft=null;drawRoutines()});
+
+/* ---------- routines list with live previews ---------- */
+function used(r){return [...new Set(r.ev.map(e=>e[1]))].sort((a,b)=>a==='M'?1:b==='M'?-1:a-b)}
+function psName(r){const k=Object.keys(P.btns).find(k=>P.btns[k]==='r:'+r.id);return k?({'1.click':'Left – tap','1.longpress':'Left – hold','2.click':'Right – tap','2.longpress':'Right – hold','0.click':'Side – tap','0.longpress':'Side – hold'})[k]:''}
+function drawRoutines(){const L=$('rlist');
+  if(!P.routines.length){L.innerHTML='<div class="rempty">No routines yet.<br>Tap <b>+ Record new</b>, select phones and play with the light buttons.</div>';return}
+  L.innerHTML=P.routines.map((r,i)=>{const u=used(r),np=u.filter(x=>x!=='M').length,ps=psName(r);
+    return `<div class="rc" data-i="${i}"><div class="rct"><span class="ri">${r.icon||'✨'}</span><div><b></b><small>${np} phone${np===1?'':'s'}${u.includes('M')?' + M':''} · ${r.ev.length} changes · ${(r.len/1000).toFixed(1)} s${r.loop?' · loop':''}</small></div>${ps?`<span class="rps">PeekSmith ${ps}</span>`:''}</div>
+    <div class="rpv"><div class="minis">${u.map(t=>`<div class="mp${t==='M'?' mm':''}" data-t="${t}"><i></i><span>${t}</span></div>`).join('')}</div>
+    <div class="mlanes">${u.map(t=>`<div class="ml">${barsOf(r.ev,r.len).filter(b=>b.tg===t).map(b=>`<u style="left:${b.s/r.len*100}%;width:${Math.max(1,(b.e-b.s)/r.len*100)}%"></u>`).join('')}</div>`).join('')}<div class="mph"></div></div></div></div>`}).join('');
+  L.querySelectorAll('.rc').forEach(c=>{c.querySelector('b').textContent=P.routines[+c.dataset.i].name})}
+/* preview loop: the mini phones light up as the routine will do */
+function animate(){requestAnimationFrame(animate);if(!isMag()||!$('pgRoutines').classList.contains('on'))return;
+  const T=now();document.querySelectorAll('#rlist .rc').forEach(c=>{const r=P.routines[+c.dataset.i];if(!r)return;
+    const lt=T%(r.len+700),t=Math.min(lt,r.len),s=stateAt(r.ev,t);
+    c.querySelectorAll('.mp').forEach(m=>m.classList.toggle('lit',!!s[m.dataset.t]&&lt<=r.len));
+    c.querySelector('.mph').style.left=`calc(${t/r.len*100}% - 1px)`})}
+requestAnimationFrame(animate);
+/* tap = run, hold 0.6 s = edit */
+{let ht=null,held=false,pc=null;const L=$('rlist');
+  L.addEventListener('touchstart',e=>{pc=e.target.closest('.rc');if(!pc)return;held=false;pc.classList.add('press');
+    ht=setTimeout(()=>{held=true;pc.classList.remove('press');hap('medium');openSave(P.routines[+pc.dataset.i],false)},600)},{passive:true});
+  L.addEventListener('touchmove',()=>{clearTimeout(ht);if(pc)pc.classList.remove('press');pc=null},{passive:true});
+  L.addEventListener('touchend',e=>{clearTimeout(ht);if(!pc)return;pc.classList.remove('press');if(!held){e.preventDefault();runRoutine(P.routines[+pc.dataset.i])}pc=null},{passive:false});
+  L.addEventListener('click',e=>{const c=e.target.closest('.rc');if(!c||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;runRoutine(P.routines[+c.dataset.i])})}
+$('rNew').addEventListener('click',()=>{showPg('pgPhones');sRecStart()});
+
+/* ---------- run: black screen, countdown buzz, routine on all phones, back to the list ---------- */
+let running=null,runTimers=[],prevOn=false,prevState={},prevTimers=[];
+function runRoutine(r){if(!r)return;if(running){runStop(true);return}
+  running=r;runTimers=[];$('runBlack').classList.add('on');try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
+  guests.forEach((g,id)=>ping(id));
+  const n=+r.cd||0,gap=+r.gap||1000,lead=650;
+  for(let i=0;i<n;i++)runTimers.push(setTimeout(()=>{hap('heavy');if(bleOn())aps.vibrate('.').catch(()=>{})},lead+i*gap));
+  runTimers.push(setTimeout(()=>loopRun(r),lead+n*gap))}
+function loopRun(r){if(running!==r)return;
+  const T0=now()+250;   // every phone starts at T0: each one gets its delay minus half its Bluetooth round trip
+  const per={};for(const [t,tg,on] of r.ev)(per[tg]=per[tg]||[]).push([t,on]);
+  for(const tg in per){if(tg==='M'){for(const [t,on] of per.M)runTimers.push(setTimeout(()=>{mOn=!!on;if(camAlive())setLight(!!on,true)},T0-now()+t));continue}
+    const id=idOf(+tg);if(!id)continue;const g=guests.get(id);send({cmd:'run',ev:per[tg],len:r.len,in:Math.round(T0-now()-(g.rtt||120)/2)},id)}
+  runTimers.push(setTimeout(()=>{if(running!==r)return;if(r.loop)loopRun(r);else runEnd()},T0-now()+r.len+60))}
+function runEnd(){running=null;runTimers.forEach(clearTimeout);runTimers=[];if(camAlive())setLight(false,true);mOn=false;
+  setTimeout(()=>{$('runBlack').classList.remove('on');drawTiles()},350)}
+function runStop(show){if(!running)return;guests.forEach((g,id)=>send({cmd:'stop'},id));runEnd();if(show)hap('medium')}
+$('runBlack').addEventListener('click',()=>runStop(true));   // tap the black screen = stop
+
+/* preview on the tiles only (no phone lights) */
+function preview(ev,len){prevTimers.forEach(clearTimeout);prevTimers=[];prevOn=true;prevState={};drawTiles();
+  for(const [t,tg,on] of ev)prevTimers.push(setTimeout(()=>{prevState[tg]=on;drawTiles()},t));
+  prevTimers.push(setTimeout(()=>{prevOn=false;drawTiles()},len))}
+
+/* ---------- PeekSmith: a button can run a routine ---------- */
+BACT.stop='Stop routine';
+function refreshBtnOptions(){
+  const opts=Object.entries(BACT).map(([v,n])=>[v,n]).concat(P.routines.map(r=>['r:'+r.id,'Run: '+r.name]));
+  const fill=s=>{const v=P.btns[s.dataset.k]||'none';s.innerHTML=opts.map(([v2,n])=>`<option value="${v2}">${n}</option>`).join('');s.value=v;if(s.value!==v)s.value='none'};
+  document.querySelectorAll('#sheet select[data-k],#pkBtns select').forEach(fill)}
+$('pkBtns').innerHTML=Object.entries({'1.click':'Left – tap','1.longpress':'Left – hold','2.click':'Right – tap','2.longpress':'Right – hold','0.click':'Side – tap','0.longpress':'Side – hold'})
+  .map(([k,n])=>`<div class="pr">${n}<select data-k="${k}"></select></div>`).join('');
+$('pkBtns').addEventListener('change',e=>{const s=e.target.closest('select');if(!s)return;P.btns[s.dataset.k]=s.value;saveP();refreshBtnOptions();drawRoutines()});
+{const o=bleButton;bleButton=function(b,e){const a=P.btns[b+'.'+e]||'none';
+  if(a.startsWith&&a.startsWith('r:')){const r=P.routines.find(x=>'r:'+x.id===a);if(running)runStop(true);else if(r)runRoutine(r);return}
+  if(a==='stop'){runStop(true);return}
+  return o(b,e)}}
+refreshBtnOptions();
+
+/* routines are also kept online, so they stay after a refresh (newest copy wins) */
+const RS_URL='https://peek-island-default-rtdb.firebaseio.com/peeks/'+encodeURIComponent((Qf.get('pk')||'fvt-c-k27x9m4q8w')+'-routines')+'.json';
+function rCloudSave(){try{fetch(RS_URL,{method:'PUT',keepalive:true,body:JSON.stringify({routines:P.routines,btns:P.btns,t:P.rtT||Date.now()})}).catch(()=>{})}catch(e){}}
+(async()=>{try{const d=await fetch(RS_URL,{cache:'no-store'}).then(r=>r.json());
+  if(d&&Array.isArray(d.routines)&&(d.t||0)>(P.rtT||0)){P.routines=d.routines;if(d.btns)P.btns=Object.assign({},P.btns,d.btns);P.rtT=d.t;saveP();refreshBtnOptions();drawRoutines()}
+  else if(P.routines.length&&(!d||(P.rtT||0)>(d.t||0)))rCloudSave()}catch(e){}})();
+
+/* ---------- pages, settings rows, start ---------- */
+function showPg(id){document.querySelectorAll('#studio .pg').forEach(p=>p.classList.toggle('on',p.id===id));
+  document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.pg===id));
+  if(id==='pgRoutines')drawRoutines();if(id==='pgPeek')refreshBtnOptions();drawTiles()}
+document.querySelector('.tabbar').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showPg(b.dataset.pg)});
+$('stGear').addEventListener('click',()=>openSheet());
+function applyRole(){document.body.classList.toggle('studio',isMag());$('pRole').value=P.peerRole;$('pRoom').value=P.peerRoom||'';
+  if(isMag()){try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}}drawTiles();drawRoutines()}
+$('pRole').onchange=async()=>{P.peerRole=$('pRole').value;roleSave(P.peerRole);saveP();await unlink();applyRole();link(true)};
+$('pRoom').onchange=async()=>{P.peerRoom=$('pRoom').value.trim().slice(0,64);saveP();await unlink();link(true)};
+$('pTest').onclick=()=>{if(isMag()){pStatus(hosting?(guests.size?'Hosting · '+guests.size+' phone(s): '+[...guests.values()].map(g=>g.slot+(g.ready?' ready':' needs tap')+' '+Math.round(g.rtt)+' ms').join(', '):'Hosting – no phone yet'):'Not hosting');return}
+  pStatus(joined?'Connected · this is phone '+(mySlot||'?'):'Not connected')};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){setTimeout(()=>link(),300);if(isMag())try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}}});
+applyRole();
+{let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);link()}},250)}
+setInterval(()=>link(),2000);
+</script>
+
 <script src="../hui.js"></script>
 </body>
 </html>
