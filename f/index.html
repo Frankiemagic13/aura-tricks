@@ -46,6 +46,7 @@ body.studio #studio{display:flex}
 .st-rec{position:absolute;right:62px;top:22px;display:none;align-items:center;gap:6px;font:700 13px -apple-system;color:#ff453a}
 .st-rec i{width:9px;height:9px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a}
 .recording .st-rec{display:flex}
+.recording #stHelp{display:none}
 .recording .st-time{font-size:40px;top:16px}
 .st-ic{position:absolute;top:14px;width:40px;height:40px;border-radius:50%;border:0;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center}
 .st-ic svg{width:20px;height:20px}
@@ -155,6 +156,7 @@ body.studio #studio{display:flex}
     <button class="st-ic" id="stCancel">✕ Cancel</button>
     <div class="st-time" id="stTime">00:00</div>
     <div class="st-rec"><i></i>REC</div>
+    <button class="st-ic" id="stHelp" aria-label="Help" style="right:62px;font:700 18px -apple-system;color:#fff">?</button>
     <button class="st-ic" id="stGear" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
   <div id="stSub">Waiting for phones…</div>
@@ -284,14 +286,39 @@ body.studio #studio{display:flex}
   <li>Play it with a PeekSmith button set to Play. Countdown buzz lets you count along before it starts.</li></ol>
   <h4>PeekSmith</h4>
   <p>Connect the PeekSmith in the PeekSmith tab, then set what each button does.</p>
-  <h4>Several phones (Aura peer)</h4>
-  <ol><li>Your phone: set <b>This phone</b> to <b>My phone (control)</b> (Phones tab). The control screen opens. Spectator phones: open this page in AuraClip (Spectator).</li>
-  <li>Each phone gets a number (1, 2, 3…) when it connects. "Needs 1 tap": the spectator taps the black screen one time (iOS rule for the flash). Your phone is <b>M</b>: tap its tile one time.</li>
-  <li>Live: tap tiles to select, then <b>On</b> (tap = stays on, hold = on while you hold), <b>Flash</b> or <b>Off</b> (no tile selected = all off).</li>
-  <li>Record: tap <b>Record</b> (or + Record new), play with the lights, tap <b>Stop</b>. Each phone has a layer. Undo, tap a bar + Delete bar, Preview. Then name it, select an icon and a PeekSmith button, and Save.</li>
-  <li>Routines: each card shows a preview. Tap = run (black screen, countdown buzz, routine, back). Tap the black screen = stop. Hold a card = edit or delete.</li>
-  <li>PeekSmith tab: select a routine for a button to run it from your pocket.</li></ol>
-  <p>The gear (top right) opens these settings.</p>
+  <h4>Studio: several phones (Aura peer)</h4>
+  <h4>1. Setup</h4>
+  <ol><li>Your phone: open this page in Aura Browser. Settings → <b>Phones</b> tab → <b>This phone</b> → <b>My phone (control)</b>. The Studio opens. (If your phone is already the Magician on the calculator or Notes, it opens by itself.)</li>
+  <li>Spectator phones: open this page in AuraClip. They show a black screen.</li>
+  <li>Each phone gets a number (1, 2, 3…) in the order it connects.</li>
+  <li><b>"Needs 1 tap"</b>: the spectator taps the black screen one time (iOS rule for the flash). Then the tile shows <b>Ready</b>. Tap your <b>M</b> tile one time too.</li>
+  <li>Same room on all phones (default fvt-calc). Keep all pages on screen.</li></ol>
+  <h4>2. Buttons</h4>
+  <div class="glist">
+    <div><span class="g g2" data-g="#cOn"></span><span><b>On</b>: tap = the selected phones stay on · hold = on while you hold</span></div>
+    <div><span class="g g2" data-g="#cFl"></span><span><b>Flash</b>: a short blink (0.2 s) on the selected phones</span></div>
+    <div><span class="g g2" data-g="#cOff"></span><span><b>Off</b>: the selected phones off · nothing selected = all off</span></div>
+    <div><span class="g"><i style="width:14px;height:14px;border-radius:50%;background:#30d158;display:block"></i></span><span><b>Record</b> / <b>Stop</b>: record a routine</span></div>
+    <div><span class="g">?</span><span>This help · the gear opens the settings</span></div>
+  </div>
+  <p>Tap a phone tile to select it (orange ring). Tap again to remove it. A tile glows when its flash is on.</p>
+  <h4>3. Record a routine</h4>
+  <ol><li>Tap <b>Record</b> (Phones tab) or <b>+ Record new</b> (Routines tab).</li>
+  <li>Select phones and use On, Flash and Off. Each phone has its own layer, with a bar for each light and a red playhead.</li>
+  <li>Mistake? <b>Undo</b> removes the last action. Or tap a bar, then <b>Delete bar</b>. <b>Preview</b> plays it on the tiles only.</li>
+  <li>Tap <b>Stop</b>. Type a name, select an icon, a <b>PeekSmith button</b>, Loop and the <b>Countdown buzz</b>. Tap <b>Save</b>.</li>
+  <li><b>Cancel</b> (top left) throws the recording away.</li></ol>
+  <h4>4. Run a routine</h4>
+  <ol><li>Routines tab: each card shows a live preview of what it will do.</li>
+  <li><b>Tap a card</b>: the screen goes black, the countdown buzzes (phone and PeekSmith), the routine plays on all phones at the same time, then the list comes back.</li>
+  <li><b>Tap the black screen</b> to stop.</li>
+  <li><b>Hold a card</b> (0.6 s) to edit or delete it.</li></ol>
+  <h4>5. From the PeekSmith</h4>
+  <p>PeekSmith tab: select a routine for a button (or set it in the Save sheet). Press the button to run it from your pocket. Press it again to stop.</p>
+  <h4>6. Problems</h4>
+  <ul><li>Tile shows "Waiting…": that phone is not connected. Open the page on it and keep it on screen.</li>
+  <li>"Needs 1 tap" after the phone was locked: tap its black screen one time again.</li>
+  <li>Settings → Phones tab → <b>Test</b> shows each phone, ready or not, and its Bluetooth time.</li></ul>
 </div>
 </div>
 
@@ -743,6 +770,7 @@ function showPg(id){document.querySelectorAll('#studio .pg').forEach(p=>p.classL
   if(id==='pgRoutines')drawRoutines();if(id==='pgPeek')refreshBtnOptions();drawTiles()}
 document.querySelector('.tabbar').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showPg(b.dataset.pg)});
 $('stGear').addEventListener('click',()=>openSheet());
+$('stHelp').addEventListener('click',()=>{openSheet();const b=[...document.querySelectorAll('#sheet .hui-tabs button')].find(x=>x.textContent.trim()==='Help');if(b)b.click()});
 function applyRole(){document.body.classList.toggle('studio',isMag());$('pRole').value=P.peerRole;$('pRoom').value=P.peerRoom||'';
   if(isMag()){try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}}drawTiles();drawRoutines()}
 $('pRole').onchange=async()=>{P.peerRole=$('pRole').value;roleSave(P.peerRole);saveP();await unlink();applyRole();link(true)};
@@ -755,6 +783,10 @@ applyRole();
 setInterval(()=>link(),2000);
 </script>
 
+<script>
+document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.querySelector(g.dataset.g);const v=src&&src.querySelector('svg');
+  if(v){const c=v.cloneNode(true);c.removeAttribute('id');c.setAttribute('width','18');c.setAttribute('height','18');g.appendChild(c)}});
+</script>
 <script src="../hui.js"></script>
 </body>
 </html>
