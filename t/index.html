@@ -92,6 +92,9 @@ svg{display:block}
 #qtoast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%) scale(.9);opacity:0;pointer-events:none;z-index:20;
   padding:9px 18px;border-radius:999px;background:#212121;color:#fff;font:600 16px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.09);transition:opacity .25s,transform .25s}
 #qtoast.on{opacity:1;transform:translateX(-50%) scale(1)}
+#acroHint{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 108px);transform:translateX(-50%);z-index:19;display:none;white-space:nowrap;
+  padding:8px 16px;border-radius:999px;background:rgba(40,40,42,.92);color:#fff;font:600 15px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.1);pointer-events:none}
+#acroHint.on{display:block}#acroHint b{color:#FFD60A;margin-left:6px}
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
   padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
@@ -158,6 +161,7 @@ svg{display:block}
   </div>
 </div>
 <div id="qtoast"></div>
+<div id="acroHint"></div>
 <div id="sheetBg"></div>
 <div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
   <div class="grab"></div>
@@ -204,7 +208,7 @@ svg{display:block}
     <li>Same room on both (default fvt-calc). Keep both pages on screen.</li>
     <li>Keyboard bar: <b>Aa</b> double tap = swap roles. <b>Table</b> double tap = mirror on/off.</li>
     <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop, or set <b>Stop prediction after</b>.</li>
-    <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
+    <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Swipe up/down on your phone to choose which letter of each word (1 swipe = 1st letter, 2 = 2nd…, up to 5). Turns off by itself.</li>
     <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
     <li>Mirror and prediction exclude each other: mirror on stops the prediction, a prediction turns the mirror off (it stays off until you double tap Table).</li>
     <li>Checklist button: <b>double tap</b> = change the prediction type and start it. This phone becomes the Magician, and the mirror goes off. More in the Help tab.</li>
@@ -261,8 +265,10 @@ svg{display:block}
   <li>It stops by itself when you do not type for the <b>Stop prediction after</b> time (default 5 s).</li>
   <li>Hold ••• to clear your text and type again.</li></ol>
   <h4>Prediction: Acrostic</h4>
-  <ol><li>Double tap the <b>checklist</b> until your phone shows "Acrostic". It starts at once. The spectator types a word.</li>
-  <li>Your note shows common words, one on each line. Their first letters spell the spectator's word.</li>
+  <ol><li>Double tap the <b>checklist</b> until your phone shows "Acrostic". It starts at once, and the top shows "Swipe to input number".</li>
+  <li>Swipe up or down anywhere above the keyboard and the toolbars. Each swipe = +1 and a buzz (1 = first letter of each word, 2 = second letter… up to 5). No swipe = first letter. The PeekSmith shows "Letter 2" and so on.</li>
+  <li>The spectator types a word.</li>
+  <li>Your note shows common words, one on each line. The letters in your position spell the spectator's word.</li>
   <li>Acrostic turns off by itself when the list is made. The words stay on your screen, and the mirror stops on your phone. Double tap <b>Table</b> to start it again.</li></ol>
   <h4>Quick change of the prediction type</h4>
   <p><b>Double tap</b> the <b>checklist</b> button (bottom bar, or the bar above the keyboard): "My prediction is…" ↔ "Acrostic". Your phone shows which one is on.</p>
@@ -711,40 +717,16 @@ function predCase(h){const m=P.predCase;
   const c=predSpecCase;if(!c)return h;   // the spectator typed no letters: as typed
   const up=(m==='opp')?(c==='low'):(c==='up');return up?h.toUpperCase():h.toLowerCase()}
 /* ---------- Acrostic: common words, the first letters spell the word that was typed ---------- */
-const ACRO={
-a:'apple anchor arrow autumn ocean? artist actor album angel animal answer army attic avenue',
-b:'banana bottle bridge butter blanket bicycle basket bread beach button bucket bell',
-c:'candle castle carpet cookie cotton circle cloud camera corner coffee cherry clock',
-d:'doctor dragon desert dinner dollar diamond door dolphin drum daisy dust dream',
-e:'eagle engine envelope evening elbow eleven echo empire easel egg earth elephant',
-f:'flower forest feather finger garden? family farmer fire friend fountain frame fork',
-g:'garden guitar glove galaxy giant ginger grass ghost gold glass grape gravel',
-h:'hammer harbor honey helmet hotel horse hollow heart hill house hunter harvest',
-i:'island iron ink insect igloo idea image inch ivory iceberg ivy index',
-j:'jacket jungle jelly journey jewel juice jar jigsaw judge jasmine joke jeans',
-k:'kitten kettle kingdom ketchup kite knife koala kayak kernel kiwi knot key',
-l:'lemon ladder lantern lizard lobster letter library lion leaf lake lamp lunch',
-m:'mirror mountain marble monkey melon magnet market meadow music moon mango map',
-n:'needle number napkin nature night nest noodle nickel north novel nurse nut',
-o:'orange ocean orchard oyster office olive onion otter oven owl oak opera',
-p:'pencil pillow planet pepper pocket puzzle parrot piano pirate pumpkin river? paper',
-q:'queen quilt quarter question quiet quiz quail quarry',
-r:'rabbit river rocket ribbon rainbow robot rose rice ruler riddle radio ring',
-s:'summer silver sugar spider shadow sunset stone saddle salmon spoon star sock',
-t:'tiger table tomato ticket tunnel turtle teapot thunder tower train tree tulip',
-u:'umbrella uncle unicorn uniform universe valley? utensil umpire upstairs urchin',
-v:'violin velvet valley village volcano vase vanilla vest voyage vine visitor van',
-w:'window winter wallet whistle walrus wagon water wheel wizard wolf wood wire',
-x:'xylophone xray',
-y:'yellow yogurt yacht yarn year yard yoga yolk youth yawn',
-z:'zebra zipper zero zoo zone zigzag zinnia zucchini'};
-for(const k in ACRO)ACRO[k]=ACRO[k].split(' ').filter(w=>w&&!w.endsWith('?')&&w[0]===k).map(w=>w==='xray'?'X-ray':w);
-const cap=w=>w.charAt(0).toUpperCase()+w.slice(1);
+/* common words; acroPos = which letter of each word spells the word (1 = first letter). Set by swipes. */
+const ACROWORDS='abacus abbey acorn actor adjust adult adventure affair after airport ajar alarm album alley amber anchor angel animal ankle answer antique antler apple apron aqua arch arena army arrow artist athlete atlas attic autumn avenue award awning axe axle azure badge bagel baker balloon bamboo banana banjo banquet baroque barrel basket beach beard beaver bell below berry bicycle bike biker bison blanket blender blizzard boat bonnet boot bottle bouquet bowl box boxer brake bread breeze brick bridge broker bronze broom brown brush bubble bucket buffalo bunny butter button cabin cactus cake camera canal candle canoe canyon captain carpet carrot castle cattle cedar chair cheese cherry chimney circle clock cloud clown cobra cobweb coffee comet cookie copper coral corner cotton cousin cowboy crayon cricket crowd crown cupcake curtain dagger daisy dancer denim dentist desert diamond diary dice dinner doctor dojo dollar dolphin donkey donut door dove dozen dragon drawer dream drum duck dune dust dwarf dye eagle earth easel ebony echo eclipse eel effort egg elbow elephant eleven elk emerald empire energy engine enjoy envelope equator escape eskimo ether evening exam exit eye fabric fairy falcon family farmer feather fence ferry fiddle fig finger fire flag flame flower flute forever fork fossil fountain fox frame friend frog frozen fudge gadget galaxy garage garden garlic gazelle gecko gem geyser ghost giant ginger giraffe glass glove goat gold goose gorilla gown grape grass gravel grill groove guard guitar gum habit hammer hamster harbor harvest hat hawk hazel heart hedge helmet hero hijack hiker hill hippo hockey hollow honey hoop horse hose hotel house hunter hut iceberg icicle idea idol igloo iguana image inch index infant injury ink insect inventor iron island ivory ivy jacket jaguar jam jar jasmine jeans jeep jelly jet jewel jigsaw jinx jockey joke joker journey judge juggler juice jumper jungle kangaroo karate kayak kernel ketchup kettle key keyboard kidney kilt kingdom kitchen kite kitten kiwi knife knight knot koala lace ladder ladybug lagoon lake lamb lamp lantern laptop lasso lava lawyer layer lazy leaf lemon letter lettuce library lily lion liquid lizard lobster locker locket loyal lumber lunch lynx magic magnet mailbox majesty mammoth mango map maple marble market mask mayor maze meadow melon meteor mirror mitten mixer mole monkey moon moose mosquito mountain muffin mushroom music muzzle nacho napkin native nature necklace nectar needle neon nephew nest net newt nickel night noodle north novel nugget number nurse nut oak oasis oatmeal object ocean octopus odor office olive omelet onion opera orange orbit orchard orchid ostrich otter outfit oven overjoyed owl owner oxygen oyster ozone packet paddle pajamas palace panda paper parade parrot peach peanut pearl pebble pencil penguin pepper piano piglet pillow pilot pirate pizza planet player plum pocket poker pony potato power prayer prize project pumpkin puppy puzzle quail quarry quarter quartz queen question quiet quilt quiver quiz rabbit raccoon racquet radio radish raft rain rainbow raisin rattle raven rayon razor reef rejoice relax rhino ribbon rice riddle ring river robin robot rocket rodeo rose royal rug ruler saddle sailor salad salmon sandal satin saxophone scarf school scooter seal sequin shadow shark sheep shell shovel shower silver sizzle skate ski skull skunk sky sled smoke snail snake snooze sock socket soup spark sphinx spider spoon squid squirrel star sticker stone stroke subject sugar summer sunset swan table taco tadpole tango target taxi teacher teapot tent tequila texas thief thimble thread thunder ticket tiger toast toffee tomato tooth torch towel tower toxic train tree trumpet tuba tulip tunnel turtle twig umbrella umpire uncle unicorn uniform unique universe upstairs urchin utensil vacuum valley valve van vanilla vapor vase vault veggie velvet vest viking village vine vinyl violet violin visitor visor volcano vowel voyage vulture waffle wagon waiter wallet walnut walrus wand warrior wasp water wax weasel whale wheat wheel whistle widow wig willow window winter wire wizard wolf wood wren xray xylophone yacht yak yard yarn yawn year yellow yeti yodel yoga yogurt yolk youth yoyo zebra zero zigzag zinnia zipper zombie zone zoo zucchini'.split(' ');
+let acroPos=1;
+const cap=w=>w==='xray'?'X-ray':w.charAt(0).toUpperCase()+w.slice(1);
 const acroCache=new Map();
-function acroOf(word,i){const key=i+':'+word.toLowerCase();if(acroCache.has(key))return acroCache.get(key);
-  const used=new Set(),out=[];
-  for(const ch of word.toLowerCase()){const list=ACRO[ch];if(!list)continue;
-    const free=list.filter(w=>!used.has(w)),pick=(free.length?free:list)[Math.floor(Math.random()*(free.length?free:list).length)];
+function acroOf(word,i){const key=acroPos+':'+i+':'+word.toLowerCase();if(acroCache.has(key))return acroCache.get(key);
+  const used=new Set(),out=[],n=acroPos;
+  for(const ch of word.toLowerCase()){if(!/[a-z]/.test(ch))continue;
+    let list=ACROWORDS.filter(w=>w.length>=n&&w[n-1]===ch);if(!list.length)list=ACROWORDS.filter(w=>w[0]===ch);   // (all letters have words for positions 1-5)
+    const free=list.filter(w=>!used.has(w)),pool=free.length?free:list,pick=pool[Math.floor(Math.random()*pool.length)];
     used.add(pick);out.push(cap(pick))}
   const r=out.join('\n');acroCache.set(key,r);return r}
 function acroText(h,all){const t=String(h).replace(/\u00a0/g,' ');let words=t.split(/\s+/).filter(Boolean);
@@ -777,13 +759,28 @@ function acroIn(h){h=String(h??'');
   clearTimeout(acroT);acroT=setTimeout(()=>{if(acroMode){post(v);acroShow(true);acroDone(true)}},1500)}
 /* the list is made (the first word is complete): Acrostic turns off by itself, the words stay on screen */
 function acroDone(all){if(!acroMode||!acroText(acroRaw,all))return false;acroToggle();return true}
+/* swipe up or down above the keyboard and the toolbars = +1 letter position (max 5), with a buzz each time */
+let acroSwipes=0;const ACRO_MAX=5;
+function acroHintShow(){const el=$('acroHint');el.classList.toggle('on',acroMode);
+  el.innerHTML='Swipe to input number'+(acroSwipes?'<b>'+acroSwipes+'</b>':'')}
+(function(){let x0=0,y0=0,on=false;
+  const skip=t=>t.closest&&t.closest('.bar,#kbar,#dbar,#dnav,#sheet,#sheetBg,.nav');
+  /* the bottom of the swipe area: the top of the toolbar (or of the keyboard bar while you type) */
+  const limit=()=>{let y=innerHeight;for(const el of [document.querySelector('.bar'),$('kbar')]){if(!el)continue;const r=el.getBoundingClientRect();if(r.height&&getComputedStyle(el).display!=='none')y=Math.min(y,r.top)}return y-4};
+  addEventListener('touchstart',e=>{const t0=e.touches[0];on=acroMode&&!skip(e.target)&&t0.clientY<limit();if(!on)return;x0=t0.clientX;y0=t0.clientY},{passive:true,capture:true});
+  addEventListener('touchmove',e=>{if(on&&e.cancelable)e.preventDefault()},{passive:false,capture:true});   // no page scroll while you count
+  addEventListener('touchend',e=>{if(!on)return;on=false;const t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;
+    if(Math.abs(dy)>30&&Math.abs(dy)>Math.abs(dx)){
+      acroSwipes=Math.min(ACRO_MAX,acroSwipes+1);acroPos=acroSwipes;acroCache.clear();qbuzz();acroHintShow();
+      try{bleShow('Letter '+acroPos)}catch(x){}
+      if(acroRaw)acroShow(false)}},{passive:true,capture:true})})();
 function acroToggle(){
   if(P.peerRole!=='mirror'){qtoast('Acrostic: only on the Magician phone');return}
   if(!acroMode){acroMode=true;acroCache.clear();acroRaw=null;note.blur();
     acroBase=P.mirr===false?undefined:note.innerText;   // what the spectator already typed
     if(P.mirr===false){setMirr(true);peerOut({cmd:'mirr',on:true})}
-    peerOut({cmd:'sync'});qtoast('Acrostic');qbuzz()}
-  else{acroMode=false;clearTimeout(acroT);acroShow(true);P.mirr=false;saveP();   // keep the words on screen: the mirror stops on this phone
+    peerOut({cmd:'sync'});qtoast('Acrostic');qbuzz();acroPos=1;acroSwipes=0;acroHintShow()}
+  else{acroMode=false;acroHintShow();clearTimeout(acroT);acroShow(true);P.mirr=false;saveP();   // keep the words on screen: the mirror stops on this phone
     qtoast('Acrostic done');qbuzz()}}
 function predToggle(){
   if(P.predType==='acro'||acroMode){acroToggle();return}
