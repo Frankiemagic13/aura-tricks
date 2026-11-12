@@ -31,12 +31,21 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <div class="card">
     <div class="row"><span><i class="dot" id="bd"></i>PeekSmith</span><span id="bs">Not connected</span></div>
     <div class="row"><span><i class="dot" id="nd"></i>Calculator channel</span><span id="ns">Starting…</span></div>
+    <div class="row"><span><i class="dot" id="pd"></i>Aura peer</span><span id="pst">—</span></div>
   </div>
   <div class="card" id="nobt" style="display:none;background:#3a1212"><b style="font-size:17px">This browser has no Bluetooth access.</b><small style="color:#ffb4ab">Safari and Chrome on iPhone cannot connect to Bluetooth devices. Copy this page address and open it in the Aura app (with this site in your Aura bookmarks), or in the Bluefy app.</small><button class="sec" id="copy">Copy page address</button></div>
   <button id="conn">Connect PeekSmith</button>
   <button class="sec" id="connAll">Connect (show all devices)</button>
   <button class="sec" id="test">Send test</button>
   <div class="card"><small>Last peek</small><div id="last">—</div></div>
+  <div data-tab="Connect" class="card" id="remote">
+    <small>Calculator remote (Aura peer)</small>
+    <div class="row">Force<input id="rForce" inputmode="numeric" pattern="[0-9]*" placeholder="Number" style="width:55%"></div>
+    <button id="rSend">Send force to calculator</button>
+    <button class="sec" id="rReset">Reset calculator</button>
+    <button class="sec" id="rInject">Calculator: send to Inject</button>
+    <small id="rSt">The force goes to the calculator on the other iPhone. It becomes the Custom force there.</small>
+  </div>
   <div data-tab="Settings" class="card">
     <div class="row">Text prefix<select id="pre"><option value="$">$ (iOS)</option><option value="#">#</option></select></div>
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
@@ -49,6 +58,9 @@ small{color:#636366;font-size:12px;line-height:1.5}
     <div class="row" id="audVolRow">Voice volume<select id="audVol"><option value="0.3">Low</option><option value="0.6">Medium</option><option value="1">High</option></select></div>
     <small id="audNote">Use AirPods or one earbud. The phone speaks each peek. Tap the screen once after you open the page, so iOS lets the page speak.</small>
     <div class="row">Keep screen on<input type="checkbox" id="wake" checked></div>
+    <div class="row">Aura peer (iPhone to iPhone)<input type="checkbox" id="peerOn"></div>
+    <div class="row">Peer room<input id="room" autocapitalize="off" autocorrect="off" placeholder="Automatic" style="width:55%"></div>
+    <small>Aura peer: Bluetooth from the calculator on the other iPhone directly to this page. No internet is necessary. This page must be open in Aura Browser and on screen. Room: keep it empty for automatic pairing (the spectator opens your Aura tag or link in AuraClip). Else type the same room name here and in the calculator.</small>
   </div>
   <div data-tab="Buttons" class="card" id="btnCard">
     <small>PeekSmith buttons</small>
@@ -238,7 +250,52 @@ function speak(t){
 
 /* ---------- channel from the calculator ---------- */
 setN('Connecting…');
-PeekRelay.listen(TOPIC,t=>sendText(t),s=>setN(s,s==='Listening'?'on':'err'));
+/* a peek can come two times (online channel and Aura peer): show it one time */
+let rxLast='',rxT=0;
+function recv(t){t=String(t||'');if(!t)return;if(t===rxLast&&Date.now()-rxT<5000)return;rxLast=t;rxT=Date.now();sendText(t)}
+PeekRelay.listen(TOPIC,t=>recv(t),s=>setN(s,s==='Listening'?'on':'err'));
+
+/* ---------- Aura peer: this page hosts, the calculator (AuraClip on the other iPhone) joins ---------- */
+const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.host==='function'?A.peer:null};
+let hosting=false,peerHooked=false;const guests=new Map();
+function setP(t,c){$('pst').textContent=t;$('pd').className='dot '+(c||'')}
+function peerShow(){if(!$('peerOn').checked){setP('Off');return}
+  if(!hosting)return;
+  if(guests.size)setP([...guests.values()].join(', ')+' connected','on');else setP('Waiting for calculator…')}
+$('peerOn').checked=st.get('peerOn','1')==='1';$('room').value=st.get('room','');
+function peerHook(){
+  const A=window.Aura;if(peerHooked||!A||typeof A.on!=='function')return;peerHooked=true;
+  A.on('peer.connected',({id,name})=>{guests.set(id,name||'Guest');log('Aura peer: '+(name||'Guest')+' connected');peerShow();
+    try{peerApi().send({cmd:'ping'},{to:id})}catch(e){}});
+  A.on('peer.disconnected',({id})=>{const n=guests.get(id);guests.delete(id);log('Aura peer: '+(n||'Guest')+' disconnected');peerShow()});
+  A.on('peer.message',({kind,data})=>{
+    if(kind==='text'){let d=null;try{d=JSON.parse(data)}catch(e){}if(!d||typeof d!=='object'){recv(data);return}data=d}
+    else if(kind!=='json')return;
+    if(data.type==='peek')recv(data.m);
+    else if(data.type==='state'){$('rSt').textContent='Calculator force now: '+(data.force||'—')+(data.mode==='custom'?' (Custom)':data.mode==='date'?' (Date & time)':' (Off)')}
+    else if(data.type==='ack'){
+      const t=data.cmd==='force'?(data.ok?'Force: '+data.n:'Force not set'):data.cmd==='reset'?'Calc reset':data.cmd==='inject'?'Calc: Inject sent':'OK';
+      $('rSt').textContent=t;show(t);log('Calculator: '+t)}})}
+async function peerHost(){
+  if(!$('peerOn').checked){setP('Off');return}
+  const P=peerApi();if(!P){setP('Only in Aura');return}
+  peerHook();if(hosting)return;
+  try{const o={name:'Magician'};const r=$('room').value.trim().slice(0,64);if(r)o.room=r;
+    await P.host(o);hosting=true;log('Aura peer: waiting'+(r?' in room '+r:' (automatic pairing)'));peerShow()}
+  catch(e){setP('Error','err');log('Aura peer error: '+((e&&e.message)||e))}}
+async function peerLeave(){const P=peerApi();hosting=false;guests.clear();if(P)try{await P.leave()}catch(e){}peerShow()}
+$('peerOn').onchange=async()=>{st.set('peerOn',$('peerOn').checked?'1':'0');if($('peerOn').checked)peerHost();else peerLeave()};
+$('room').onchange=async()=>{st.set('room',$('room').value.trim());await peerLeave();peerHost()};
+function peerCmd(o){
+  const P=peerApi();if(!P){$('rSt').textContent='Only in Aura';return}
+  if(!guests.size){$('rSt').textContent='No calculator connected';show('No calc');return}
+  try{const r=P.send(o);if(r&&r.catch)r.catch(e=>{$('rSt').textContent='Not sent';log('Aura peer send: '+((e&&e.message)||e))})}
+  catch(e){$('rSt').textContent='Not sent'}}
+$('rSend').onclick=()=>{const n=$('rForce').value.replace(/\D/g,'');if(!n){$('rSt').textContent='Type a number';return}peerCmd({cmd:'force',n})};
+$('rReset').onclick=()=>peerCmd({cmd:'reset'});
+$('rInject').onclick=()=>peerCmd({cmd:'inject'});
+{let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerHost()}},250)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!hosting)setTimeout(peerHost,300)});
 
 /* keep the screen on so the page keeps running */
 let lock=null;async function keepOn(){if(!$('wake').checked||!('wakeLock' in navigator))return;try{lock=await navigator.wakeLock.request('screen')}catch(e){}}

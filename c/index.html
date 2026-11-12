@@ -175,7 +175,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -239,6 +239,14 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<label><input type="checkbox" id="psOn" style="width:auto;transform:scale(1.3)"></label></div></div>
   <div class="note">Open PeekLink on your own phone (frankiemagic13.github.io/aura-tricks/peeklink/, in Aura or Bluefy) and connect the PeekSmith. Each number, total and result shows on the PeekSmith.</div>
+  <div class="lbl">Aura peer (iPhone to iPhone)</div>
+  <div class="grp">
+    <div class="r">Send peeks with Aura peer<label><input type="checkbox" id="peerOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Status<span id="peerSt" style="color:rgba(235,235,245,.6)">—</span></div>
+    <div class="r">Room<input id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Automatic"></div>
+    <div class="r"><button class="done" id="peerBtn" style="width:auto;text-align:left">Connect now</button><button class="done" id="peerTest" style="width:auto">Test</button></div>
+  </div>
+  <div class="note">Bluetooth from this phone directly to PeekLink on your iPhone. No internet is necessary. Open PeekLink in Aura Browser on your iPhone first, then open this page in AuraClip on the other iPhone. Keep the two pages open and on screen. Room: keep it empty when the spectator opens your Aura tag or link (automatic pairing). Type the same room name on the two pages for other cases (for example two browsers).</div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
     <div class="r">Send to Inject<label><input type="checkbox" id="injOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -284,7 +292,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v23</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v24</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -360,7 +368,7 @@ function livePeek(){
 function press(k){press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to Peek Island and PeekLink ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
-function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}if(!S.ps)return;
+function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}try{peerSend(t)}catch(e){}if(!S.ps)return;
   try{PeekRelay.send(PS_TOPIC,t,Q.get('nt')||'Peek')}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
 function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),400)}
@@ -531,7 +539,7 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync()}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}}
 document.querySelectorAll('#method button').forEach(b=>b.onclick=()=>{S.method=b.dataset.v;syncSheet()});
 $('autoEq').onchange=()=>{S.autoEq=$('autoEq').checked};
 $('psOn').onchange=()=>{S.ps=$('psOn').checked};
@@ -736,7 +744,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v23. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v24. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -784,6 +792,62 @@ $('pxOn').onchange=()=>{S.px=$('pxOn').checked;saveS();pxApply()};
 $('pxOn').checked=!!S.px;
 pxBoot();
 if(!S.px)setTimeout(pxApply,400);
+
+/* ---------- Aura peer: Bluetooth from this phone (guest) to PeekLink on the magician's iPhone (host) ----------
+   Sends: {type:'peek',m} for each peek, {type:'ack',...} after a command.
+   Gets from PeekLink: {cmd:'force',n} (set the force), {cmd:'reset'}, {cmd:'inject'}, {cmd:'ping'}. */
+if(S.peer===undefined)S.peer=true;
+if(Q.get('peer')==='0')S.peer=false;else if(Q.get('peer')==='1')S.peer=true;
+if(Q.has('room'))S.peerRoom=Q.get('room');
+if(S.peerRoom==null)S.peerRoom='';
+let peerOk=false,peerBusy=false,peerHooked=false,peerHost='';
+const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
+function peerStatus(t){const el=$('peerSt');if(el)el.textContent=t}
+function peerRaw(o){const P=peerApi();if(!P||!peerOk)return false;
+  try{const r=P.send(o);if(r&&r.catch)r.catch(()=>{peerOk=false;peerStatus('Connection lost');setTimeout(peerJoin,1500)})}catch(e){return false}
+  return true}
+function peerSend(t){if(!S.peer)return;peerRaw({type:'peek',m:String(t),t:Date.now()})}
+function peerState(){return{type:'state',mode:S.mode,custom:S.custom,force:Number.isFinite(target())?String(target()):''}}
+function peerCmd(d){
+  if(!d||typeof d!=='object'||!d.cmd)return;
+  if(d.cmd==='force'){const n=String(d.n??'').replace(/\D/g,'').replace(/^0+(?=\d)/,'');
+    if(!n){peerRaw({type:'ack',cmd:'force',ok:false});return}
+    S.mode='custom';S.custom=n;S.forceT=Date.now();saveS();try{cloudSave()}catch(e){}
+    if(!armed&&(force!==null||(cur===''&&toks.length&&(toks.at(-1)==='+'||toks.at(-1)==='−'))))computeForce();
+    if(document.body.classList.contains('open'))syncSheet();
+    render();peerRaw({type:'ack',cmd:'force',ok:true,n})}
+  else if(d.cmd==='reset'){reset();psHist.length=0;psLast='';render();peerRaw({type:'ack',cmd:'reset',ok:true})}
+  else if(d.cmd==='inject'){injSend(true);peerRaw({type:'ack',cmd:'inject',ok:true})}
+  else if(d.cmd==='ping')peerRaw(peerState())}
+function peerHook(){
+  const A=window.Aura;if(peerHooked||!A||typeof A.on!=='function')return;peerHooked=true;
+  A.on('peer.connected',({name})=>{peerOk=true;peerHost=name||'';peerStatus('Connected'+(peerHost?' to '+peerHost:''))});
+  A.on('peer.disconnected',()=>{peerOk=false;peerStatus('Not connected – trying again');setTimeout(peerJoin,1500)});
+  A.on('peer.message',({kind,data})=>{
+    let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
+    if(kind==='json'||kind==='text')peerCmd(d)})}
+async function peerJoin(manual){
+  if(!S.peer){peerStatus('Off');return}
+  const P=peerApi();if(!P){peerStatus('Only in Aura');return}
+  peerHook();
+  if(peerOk||peerBusy||(!manual&&document.visibilityState!=='visible'))return;
+  peerBusy=true;peerStatus('Searching…');
+  try{const o={name:'Calculator',timeout:30};if(S.peerRoom)o.room=S.peerRoom;
+    const h=await P.join(o);peerOk=true;peerHost=(h&&h.name)||'';
+    peerStatus('Connected'+(peerHost?' to '+peerHost:''));peerRaw(peerState())}
+  catch(e){peerOk=false;peerStatus('Not found – trying again')}
+  peerBusy=false}
+async function peerLeave(){const P=peerApi();peerOk=false;if(P)try{await P.leave()}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
+function peerSync(){$('peerOn').checked=!!S.peer;$('peerRoom').value=S.peerRoom||''}
+$('peerOn').onchange=()=>{S.peer=$('peerOn').checked;saveS();if(S.peer)peerJoin(true);else peerLeave()};
+$('peerRoom').onchange=async()=>{S.peerRoom=$('peerRoom').value.trim().slice(0,64);saveS();if(peerOk||peerBusy)await peerLeave();peerJoin(true)};
+$('peerBtn').onclick=async()=>{if(peerOk)await peerLeave();peerJoin(true)};
+$('peerTest').onclick=()=>{if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
+peerSync();
+/* Aura can add window.Aura a moment after the page loads */
+{let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
+setInterval(()=>peerJoin(),5000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>peerJoin(),300)});
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
