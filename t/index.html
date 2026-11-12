@@ -205,7 +205,7 @@ svg{display:block}
     <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop.</li>
     <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
     <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
-    <li>Checklist button: quick change of the prediction type. More in the Help tab.</li>
+    <li>Checklist button: <b>double tap</b> = change the prediction type. More in the Help tab.</li>
   </ul></div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
@@ -254,7 +254,7 @@ svg{display:block}
   <li>Your note shows common words, one on each line. Their first letters spell the spectator's word.</li>
   <li>Acrostic turns off by itself when the list is made. The words stay on your screen, and the mirror stops on your phone. Tap back to start it again.</li></ol>
   <h4>Quick change of the prediction type</h4>
-  <p>Tap the <b>checklist</b> button (bottom bar, or the bar above the keyboard): "My prediction is…" ↔ "Acrostic". Your phone shows which one is on.</p>
+  <p><b>Double tap</b> the <b>checklist</b> button (bottom bar, or the bar above the keyboard): "My prediction is…" ↔ "Acrostic". Your phone shows which one is on.</p>
   <h4>Setup</h4>
   <p>Your iPhone: Aura Browser, Magician. Spectator's device: AuraClip, Spectator. Same room on the two devices (default fvt-calc). Keep the two pages on screen.</p>
 </div>
@@ -786,7 +786,9 @@ $('predText').value=P.predText;
 function typeSwap(){if(predMode||acroMode){qtoast('Stop the prediction first');return}
   P.predType=P.predType==='acro'?'text':'acro';saveP();$('predType').value=P.predType;
   qtoast(P.predType==='acro'?'Acrostic':'My prediction is…');qbuzz()}
-['typeBtn','kType'].forEach(id=>$(id).addEventListener('click',e=>{e.preventDefault();typeSwap()}));$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
+/* double tap = next prediction type (a single tap does nothing, so a spectator cannot change it by accident) */
+['typeBtn','kType'].forEach(id=>{let last=0;$(id).addEventListener('click',e=>{e.preventDefault();const t=Date.now();
+  if(t-last<350){last=0;typeSwap()}else last=t})});$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
 async function swapRole(){predMode=false;acroMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
 function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
