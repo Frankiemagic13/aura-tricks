@@ -690,14 +690,22 @@ function openSave(r,isNew){draft=JSON.parse(JSON.stringify(r));draft.isNew=!!isN
   $('svDel').style.display=isNew?'none':'';document.body.classList.add('sv')}
 $('svIcons').addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!draft)return;draft.icon=b.textContent;
   [...$('svIcons').children].forEach(x=>x.classList.toggle('on',x===b))});
-function closeSave(){document.body.classList.remove('sv');if(document.activeElement)document.activeElement.blur()}
-$('svBg').addEventListener('click',()=>{if(draft&&draft.isNew&&!confirm('Discard this routine?'))return;closeSave();draft=null});
+function delReset(){delArm=0;$('svDel').textContent='Delete routine';$('svDel').style.background='';$('svDel').style.color=''}
+function closeSave(){delReset();document.body.classList.remove('sv');if(document.activeElement)document.activeElement.blur()}
+let discArm=0;
+$('svBg').addEventListener('click',()=>{if(draft&&draft.isNew&&Date.now()-discArm>3000){discArm=Date.now();stToast('Tap outside again to discard');return}
+  discArm=0;closeSave();draft=null});
 $('svSave').addEventListener('click',()=>{if(!draft)return;const r=draft;
   r.name=$('svName').value.trim()||r.name;r.loop=$('svLoop').checked;r.cd=+$('svCd').value;r.gap=+$('svGap').value;
   const ps=$('svPs').value;for(const k in P.btns)if(P.btns[k]==='r:'+r.id)P.btns[k]='none';if(ps)P.btns[ps]='r:'+r.id;
   delete r.isNew;delete r.ps;const i=P.routines.findIndex(x=>x.id===r.id);if(i>=0)P.routines[i]=r;else P.routines.push(r);
   P.rtT=Date.now();saveP();rCloudSave();refreshBtnOptions();closeSave();draft=null;sEv=[];drawTL();drawRoutines();showPg('pgRoutines');stToast('Saved');hap('medium')});
-$('svDel').addEventListener('click',()=>{if(!draft||!confirm('Delete "'+draft.name+'"?'))return;
+/* Aura can block confirm() boxes: tap Delete two times instead */
+let delArm=0;
+$('svDel').addEventListener('click',()=>{if(!draft)return;
+  if(Date.now()-delArm>3000){delArm=Date.now();$('svDel').textContent='Tap again to delete';$('svDel').style.background='#ff453a';$('svDel').style.color='#fff';
+    setTimeout(()=>{if(Date.now()-delArm>=2900)delReset()},3000);return}
+  delReset();
   P.routines=P.routines.filter(x=>x.id!==draft.id);for(const k in P.btns)if(P.btns[k]==='r:'+draft.id)P.btns[k]='none';
   P.rtT=Date.now();saveP();rCloudSave();refreshBtnOptions();closeSave();draft=null;drawRoutines()});
 
