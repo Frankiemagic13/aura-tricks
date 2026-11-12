@@ -134,7 +134,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 <div class="bar">
   <div class="glass pill">
     <i id="typeBtn"><svg width="31" height="26" viewBox="0 0 30 26" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="4.3"/><path d="m3.6 6 1.5 1.5 2.6-2.8"/><circle cx="5.5" cy="19.5" r="4.3"/><path d="M14 6h13.5M14 19.5h13.5"/></svg></i>
-    <i><svg width="26" height="28" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m20.5 12.4-8.3 8.3a5.3 5.3 0 0 1-7.5-7.5l8.7-8.7a3.6 3.6 0 0 1 5.1 5.1l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></i>
+    <i id="bClip"><svg width="26" height="28" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m20.5 12.4-8.3 8.3a5.3 5.3 0 0 1-7.5-7.5l8.7-8.7a3.6 3.6 0 0 1 5.1 5.1l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></i>
     <i id="penBtn"><svg width="30" height="30" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="14" r="11.8"/><path d="M9.6 25 13 9.5h2L18.4 25"/><path d="m12.4 12.4 1.6-6.5 1.6 6.5"/><path d="M11.3 18.6h5.4"/></svg></i>
   </div>
   <div class="glass btn empty" id="compose"><svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 4.5H7a2.5 2.5 0 0 0-2.5 2.5v10A2.5 2.5 0 0 0 7 19.5h10a2.5 2.5 0 0 0 2.5-2.5v-4.5"/><path d="M17.6 3.6a1.9 1.9 0 0 1 2.8 2.8l-7.6 7.6-3.6.9.9-3.6z"/></svg></div>
@@ -144,7 +144,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <i id="kAa"><svg width="34" height="24" viewBox="0 0 34 24" fill="currentColor"><text x="1" y="20" font-family="-apple-system,system-ui" font-size="25" font-weight="500" letter-spacing="-.5">Aa</text></svg></i>
   <i id="kType"><svg width="30" height="26" viewBox="0 0 30 26" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="6" r="4.3"/><path d="m3.6 6 1.5 1.5 2.6-2.8"/><circle cx="5.5" cy="19.5" r="4.3"/><path d="M14 6h13.5M14 19.5h13.5"/></svg></i>
   <i id="kTable"><svg width="30" height="24" viewBox="0 0 30 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round"><rect x="1.5" y="1.5" width="27" height="21" rx="4"/><path d="M1.5 8.5h27M1.5 15.5h27M15 8.5v14M8.2 8.5v14" stroke-width="1.9"/><path d="M1.5 5.5h27v3h-27z" fill="currentColor" stroke="none"/></svg></i>
-  <i><svg width="26" height="28" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20.5 12.4-8.3 8.3a5.3 5.3 0 0 1-7.5-7.5l8.7-8.7a3.6 3.6 0 0 1 5.1 5.1l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></i>
+  <i id="kClip"><svg width="26" height="28" viewBox="0 0 24 26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m20.5 12.4-8.3 8.3a5.3 5.3 0 0 1-7.5-7.5l8.7-8.7a3.6 3.6 0 0 1 5.1 5.1l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></i>
   <i id="kPen"><svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="14" r="11.8"/><path d="M9.6 25 13 9.5h2L18.4 25"/><path d="m12.4 12.4 1.6-6.5 1.6 6.5"/><path d="M11.3 18.6h5.4"/></svg></i>
 </div>
 <canvas id="draw"></canvas>
@@ -166,7 +166,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 <div id="qtoast"></div>
 <div id="acroHint"></div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
+<div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Predictions","i":"magic","s":["predictions","acrostic","drawings"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
   <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
@@ -199,24 +199,35 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r">This phone<select id="peerRole"><option value="spect">Spectator (sends)</option><option value="mirror">My phone (mirror)</option></select></div>
     <div class="r">Use Aura peer<input type="checkbox" id="peerOn"></div>
     <div class="r">Status<span id="peerSt" class="dim">—</span></div>
-    <div class="r">Prediction type<select id="predType"><option value="text">My prediction is…</option><option value="acro">Acrostic</option></select></div>
-    <div class="r">Stop prediction after<select id="predStop"><option value="3">3 s with no typing</option><option value="5">5 s with no typing</option><option value="10">10 s with no typing</option><option value="20">20 s with no typing</option><option value="30">30 s with no typing</option></select></div>
-    <div class="r">Prediction text<input class="tx" id="predText" autocapitalize="sentences" autocorrect="off" placeholder="My prediction is"></div>
-    <div class="r">Prediction case<select id="predCase"><option value="opp">Opposite of spectator</option><option value="same">Same as spectator</option><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
     <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
     <div class="r"><button class="sbtn" id="peerBtn">Connect now</button><button class="sbtn" id="peerTest">Test</button></div>
   </div>
   <div class="snote"><ul style="margin:0;padding-left:18px">
     <li>Your iPhone: Aura Browser, <b>My phone (mirror)</b>. Spectator: AuraClip, <b>Spectator</b>.</li>
     <li>Same room on both (default fvt-calc). Keep both pages on screen.</li>
-    <li>Keyboard bar: <b>Aa</b> double tap = swap roles. <b>Table</b> double tap = mirror on/off.</li>
-    <li><b>My prediction is…</b>: they type, YOUR note shows your prediction text + their words (for example "You're thinking of Paris"). Stops after Return or the <b>Stop prediction after</b> time.</li>
-    <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Swipe up/down on your phone to choose which letter of each word (1 swipe = 1st letter, 2 = 2nd…, up to 5). Turns off by itself.</li>
-    <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
-    <li>Mirror and prediction exclude each other: mirror on stops the prediction, a prediction turns the mirror off (it stays off until you double tap Table).</li>
-    <li>Checklist button: <b>double tap</b> = change the prediction type and start it. This phone becomes the Magician, and the mirror goes off. More in the Help tab.</li>
+    <li>Keyboard bar: <b>paperclip</b> double tap = swap roles. <b>Table</b> double tap = mirror on/off.</li>
+    <li>Predictions, Acrostic and drawings: see the <b>Predictions</b> tab.</li>
   </ul></div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
+  <div class="lbl">Predictions</div>
+  <div class="grp">
+    <div id="presetList"></div>
+    <div class="r"><input class="tx" id="presetNew" autocapitalize="sentences" autocorrect="off" placeholder="New preset (e.g. I knew you'd write)" style="text-align:left;flex:1;width:auto"><button class="sbtn" id="presetAdd">Add</button></div>
+    <div class="r">Case of their word<select id="predCase"><option value="same">Same as spectator</option><option value="opp">Opposite of spectator</option><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
+    <div class="r">Stop after<select id="predStop"><option value="3">3 s with no typing</option><option value="5">5 s with no typing</option><option value="10">10 s with no typing</option><option value="20">20 s with no typing</option><option value="30">30 s with no typing</option></select></div>
+    <div class="r" style="display:none"><select id="predType"><option value="text">Text</option><option value="acro">Acrostic</option></select><input id="predText"></div>
+  </div>
+  <div class="snote"><ul style="margin:0;padding-left:18px">
+    <li><b>Aa</b> (keyboard bar) double tap: the prediction starts with the selected preset (●). Double tap again while it runs: next preset.</li>
+    <li>The spectator types. YOUR note shows the preset + their word, for example "You're thinking of paris". The spectator's phone does not change.</li>
+    <li>It stops after Return or the stop time. Tap ● to select a preset, ✕ to delete it.</li>
+  </ul></div>
+  <div class="lbl">Acrostic</div>
+  <div class="grp"><div class="r">Start<span class="dim">Double tap the checklist</span></div></div>
+  <div class="snote">The top of your phone shows "Swipe to input number". Swipe up or down (each swipe = +1 and a buzz, up to 5) to choose which letter of each word spells their word. Then they type a word, and your note shows the list.</div>
+  <div class="lbl">Drawings</div>
+  <div class="grp"><div class="r">Their drawing on my phone<select id="drawMode"><option value="alter">Slightly changed</option><option value="exact">Exact copy</option></select></div></div>
+  <div class="snote">Slightly changed: your phone shows the spectator's drawing a little turned, moved, smaller or larger, and with a slightly different line, as if a different hand drew it. The PeekSmith gets the same drawing.</div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
     <div class="r">Send to Inject<input type="checkbox" id="iOn"></div>
@@ -252,28 +263,28 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <p>Each word goes to your PeekSmith (live peek), to PeekLink / Peek Island (online) and to your iPhone with Aura peer. Drawings go to the PeekSmith screen.</p>
   <h4>Buttons</h4>
   <div class="glist">
-    <div><span class="g" data-g="#kAa"></span><span><b>Aa</b> (keyboard bar): double tap = swap Spectator ↔ Magician (both devices)</span></div>
+    <div><span class="g" data-g="#kAa"></span><span><b>Aa</b> (keyboard bar): double tap = prediction with the selected preset · double tap again while it runs = next preset</span></div>
+    <div><span class="g" data-g="#kClip"></span><span><b>Paperclip</b> (bottom bar and keyboard bar): double tap = swap Spectator ↔ Magician (both devices)</span></div>
     <div><span class="g" data-g="#kTable"></span><span><b>Table</b> (keyboard bar): double tap = mirror on/off (both devices; on = this phone becomes the Magician)</span></div>
     <div><span class="g" data-g="#share"></span><span><b>Share</b>: hold 1 s = these settings</span></div>
     <div><span class="g" data-g="#more"></span><span><b>•••</b>: hold 1 s = clear the note (the date does the same)</span></div>
-    <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = change the prediction type and start it at once. This phone becomes the Magician, and the mirror goes off.</span></div>
+    <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = start the Acrostic. This phone becomes the Magician, and the mirror goes off.</span></div>
     <div><span class="g" data-g="#penBtn"></span><span><b>Markup</b>: draw (drawings go to the PeekSmith)</span></div>
     <div><span class="g" data-g="#compose"></span><span><b>New note</b>: clears the note</span></div>
     <div><span class="g" data-g="#undoBtn"></span><span><b>Undo</b>: undo the last change</span></div>
-    <div><span class="g" data-g="#back"></span><span><b>Back</b> and <b>paperclip</b>: no secret function. The keyboard bar shows when you tap the note.</span></div>
+    <div><span class="g" data-g="#back"></span><span><b>Back</b>: no secret function. The keyboard bar shows when you tap the note.</span></div>
   </div>
-  <h4>Prediction: "My prediction is…"</h4>
-  <ol><li>Double tap the <b>checklist</b> until your phone shows "Prediction". It starts at once on YOUR phone. The spectator's phone does not change.</li>
-  <li>The spectator types. Your note shows your <b>Prediction text</b> + their words, for example "You're thinking of Paris" (case: see Prediction case).</li>
-  <li>It stops by itself after Return, or when they do not type for the <b>Stop prediction after</b> time (default 5 s). The text stays on your screen.</li></ol>
-  <h4>Prediction: Acrostic</h4>
-  <ol><li>Double tap the <b>checklist</b> until your phone shows "Acrostic". It starts at once, and the top shows "Swipe to input number".</li>
-  <li>Swipe up or down anywhere above the keyboard and the toolbars. Each swipe = +1 and a buzz (1 = first letter of each word, 2 = second letter… up to 5). No swipe = first letter. The PeekSmith shows "Letter 2" and so on.</li>
-  <li>The spectator types a word.</li>
-  <li>Your note shows common words, one on each line. The letters in your position spell the spectator's word.</li>
-  <li>Acrostic turns off by itself when the list is made. The words stay on your screen, and the mirror stops on your phone. Double tap <b>Table</b> to start it again.</li></ol>
-  <h4>Quick change of the prediction type</h4>
-  <p><b>Double tap</b> the <b>checklist</b> button (bottom bar, or the bar above the keyboard): "My prediction is…" ↔ "Acrostic". Your phone shows which one is on.</p>
+  <h4>Prediction (Aa)</h4>
+  <ol><li>Add your presets in the <b>Predictions</b> tab (for example "You're thinking of", "I knew you'd write"). Tap ● to select one.</li>
+  <li>Tap your note, then double tap <b>Aa</b>. The prediction starts on YOUR phone (it becomes the Magician, the mirror goes off). Double tap Aa again to go to the next preset.</li>
+  <li>The spectator types. Your note shows the preset + their word (first letter small; case from "Case of their word").</li>
+  <li>It stops after Return or the stop time. The text stays on your screen.</li></ol>
+  <h4>Acrostic (checklist)</h4>
+  <ol><li>Double tap the <b>checklist</b>. The top shows "Swipe to input number".</li>
+  <li>Swipe up or down above the toolbars: each swipe = +1 and a buzz (1 = first letter, up to 5). The page does not move.</li>
+  <li>The spectator types a word. Your note shows common words; the letters at your position spell their word. It stops by itself.</li></ol>
+  <h4>Drawings</h4>
+  <p>Their drawing shows on your phone a little changed (turned, moved, other line), as if a different hand drew it. Set "Exact copy" in the Predictions tab for a true copy.</p>
   <h4>Setup</h4>
   <p>Your iPhone: Aura Browser, Magician. Spectator's device: AuraClip, Spectator. Same room on the two devices (default fvt-calc). Keep the two pages on screen.</p>
 </div>
@@ -671,8 +682,23 @@ setInterval(()=>peerSync(),250);
 function mirrorNote(h){h=String(h??'');note.classList.remove('plain');if(h===note.innerText)return;
   note.innerText=h;edited=!!h;topIcons();if(!h.trim()){last='';lastBle='';iSent=''}
   try{bleLive()}catch(e){}const ch=h.slice(-1);if(ch===' '||ch==='\n')now();else soon()}
+/* "Slightly changed": the whole drawing is turned, moved and scaled a little, and each line wobbles a little,
+   as if a different hand drew it. The change stays the same while the drawing grows (seeded random). */
+let altSeed=0;
+function rnd(seed){let a=seed>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+function alterStrokes(list){
+  if(!list.length){altSeed=0;return list}
+  if(!altSeed)altSeed=(Math.random()*1e9)|0;
+  const R=rnd(altSeed),ang=(R()*2-1)*4*Math.PI/180,sc=0.92+R()*0.12,dx=(R()*2-1)*14,dy=(R()*2-1)*14;
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const st of list)for(const [x,y] of st.points){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}
+  const cx=(x0+x1)/2,cy=(y0+y1)/2,ca=Math.cos(ang),sa=Math.sin(ang);
+  return list.map((st,si)=>{const r=rnd(altSeed+si*7919),ph1=r()*6.3,ph2=r()*6.3,f1=0.05+r()*0.05,f2=0.04+r()*0.05,amp=1.6+r()*1.6;
+    return{tool:st.tool==='pen'?'pencil':st.tool,color:st.color,points:st.points.map(([x,y],i)=>{
+      x+=amp*Math.sin(i*f1+ph1);y+=amp*Math.sin(i*f2+ph2);
+      const X=(x-cx)*sc,Y=(y-cy)*sc;return[cx+X*ca-Y*sa+dx,cy+X*sa+Y*ca+dy]})}})}
 function mirrorDraw(d){const k=innerWidth/(+d.w||innerWidth);
   strokes=(d.s||[]).filter(st=>TOOLS[st.t]).map(st=>({tool:st.t,color:st.c,points:(st.p||[]).map(q=>[q[0]*k,q[1]*k])}));
+  if(P.drawMode!=='exact')strokes=alterStrokes(strokes);else if(!strokes.length)altSeed=0;
   redoStack=[];redraw();undoState();drawToPS()}
 function hostShow(){if(!P.peer){peerStatus('Off');return}if(!hosting)return;
   peerStatus(guests.size?'Mirroring '+[...guests.values()].join(', '):'Waiting for spectator…')}
@@ -701,7 +727,9 @@ function peerOut(o){const Pp=peerApi();if(!Pp)return false;
 function setMirr(on){P.mirr=on;saveP();
   if(!on)return;if(P.peerRole==='mirror')peerOut({cmd:'sync'});else peerSync(true)}
 /* ---------- prediction: the magician types, the text shows on the spectator's note after the prediction text ---------- */
-if(P.predText==null)P.predText='My prediction is';
+if(!Array.isArray(P.presets)||!P.presets.length)P.presets=[P.predText&&P.predText!=='My prediction is'?P.predText:"You're thinking of",'My prediction is'];
+if(!(P.presetIdx>=0&&P.presetIdx<P.presets.length))P.presetIdx=0;
+P.predText=P.presets[P.presetIdx];
 let predMode=false,predOn=false,predPre='',predLast=null;
 function predPrefix(){let t=String(P.predText||'');if(t&&!/[\s]$/.test(t))t+=' ';return t}
 /* spectator side */
@@ -796,7 +824,7 @@ function acroHintShow(){const a=acroMode&&P.predType==='acro';const el=$('acroHi
       try{bleShow('Letter '+acroPos)}catch(x){}
       if(acroRaw)acroShow(false)}},{passive:true,capture:true})})();
 function acroToggle(){
-  const L=P.predType==='acro'?'Acrostic':'Prediction';
+  const L=P.predType==='acro'?'Acrostic':(P.predText||'Prediction');
   if(P.peerRole!=='mirror'){qtoast(L+': only on the Magician phone');return}
   if(!acroMode){acroMode=true;acroCache.clear();acroRaw=null;note.blur();
     acroBase=P.mirr===false?undefined:note.innerText;   // what the spectator already typed
@@ -816,18 +844,21 @@ function predToggle(){
     setTimeout(()=>{note.focus();placeEnd()},50)}
   else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}   // the mirror stays off: double tap Table to turn it on
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
-if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
+if(!P.predCaseV2){P.predCase='same';P.predCaseV2=1;saveP()}   // their word in small letters by default
+if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='same';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
 if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP();predStartOnClose=true};
-if(!(+P.predStop>0))P.predStop=5;   // a prediction always stops by itself$('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
+if(!(+P.predStop>0))P.predStop=5;   // a prediction always stops by itself
+$('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
 $('predText').value=P.predText;
 /* quick change of the prediction type: the checklist button (bottom bar and keyboard bar) */
 /* double tap the checklist: next prediction type -> this phone becomes the Magician -> mirror off -> the prediction starts */
 let typeBusy=false,typeBusyT=null;
-async function typeSwap(){if(typeBusy){qtoast('Wait…');return}typeBusy=true;clearTimeout(typeBusyT);typeBusyT=setTimeout(()=>{typeBusy=false},20000);
+function typeSwap(){return startType(P.predType==='acro'?'text':'acro')}
+async function startType(type){if(typeBusy){qtoast('Wait…');return}typeBusy=true;clearTimeout(typeBusyT);typeBusyT=setTimeout(()=>{typeBusy=false},20000);
   try{
     if(predMode)predToggle();else if(acroMode)acroToggle();   // a running prediction stops first
-    P.predType=P.predType==='acro'?'text':'acro';saveP();$('predType').value=P.predType;
-    const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();
+    P.predType=type;saveP();$('predType').value=P.predType;
+    const t=P.predType==='acro'?'Acrostic':P.predText;qtoast(t);qbuzz();
     await beMagician(t);
     if(!(P.peerRole==='mirror'&&hosting&&guests.size))qtoast(t+' · connecting…');
     if(!await waitLink(15000)){qtoast(t+' · not connected');return}
@@ -855,7 +886,24 @@ function dblTap(el,fn){let last=0,touch=0;
   const tap=()=>{const t=Date.now();if(t-last<400){last=0;fn()}else last=t};
   el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();e.__dt=1;touch=Date.now();tap()},{passive:false});
   el.addEventListener('click',e=>{e.preventDefault();if(Date.now()-touch<800)return;tap()})}
-['typeBtn','kType'].forEach(id=>dblTap($(id),typeSwap));$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
+['typeBtn','kType'].forEach(id=>dblTap($(id),()=>startType('acro')));   // checklist: Acrostic
+/* presets (Predictions tab) */
+function presetsDraw(){const L=$('presetList');L.innerHTML='';
+  P.presets.forEach((t,i)=>{const r=document.createElement('div');r.className='r';
+    r.innerHTML='<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span><span style="display:flex;gap:6px"><button class="sbtn" data-sel style="min-width:36px"></button><button class="sbtn" data-del style="min-width:36px">✕</button></span>';
+    r.querySelector('span').textContent=t;const sel=r.querySelector('[data-sel]');sel.textContent=i===P.presetIdx?'●':'○';
+    sel.onclick=()=>{P.presetIdx=i;P.predText=t;saveP();presetsDraw()};
+    r.querySelector('[data-del]').onclick=()=>{if(P.presets.length<2){qtoast('Keep one preset');return}P.presets.splice(i,1);if(P.presetIdx>=P.presets.length)P.presetIdx=0;P.predText=P.presets[P.presetIdx];saveP();presetsDraw()};
+    L.appendChild(r)})}
+$('presetAdd').onclick=()=>{const t=$('presetNew').value.trim();if(!t)return;P.presets.push(t.slice(0,80));$('presetNew').value='';saveP();presetsDraw()};
+$('presetNew').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();$('presetAdd').click()}});
+presetsDraw();
+if(P.drawMode!=='exact')P.drawMode='alter';$('drawMode').value=P.drawMode;$('drawMode').onchange=e=>{P.drawMode=e.target.value;saveP()};
+/* Aa: double tap = prediction with the selected preset; while it runs = next preset */
+function aaPred(){
+  if(acroMode&&P.predType==='text'){P.presetIdx=(P.presetIdx+1)%P.presets.length;P.predText=P.presets[P.presetIdx];saveP();presetsDraw();
+    acroShow(false);qtoast(P.predText);qbuzz();return}
+  P.predText=P.presets[P.presetIdx];startType('text')}$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
 async function swapRole(){predMode=false;acroMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
 function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
@@ -912,7 +960,8 @@ function gesture(el,o){let last=0,touch=0,lt=null,longDone=false;
   el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();e.__dt=1;touch=Date.now();hx();tap()},{passive:false});
   el.addEventListener('mousedown',()=>{if(Date.now()-touch>800)hs()});el.addEventListener('mouseup',hx);
   el.addEventListener('click',e=>{e.preventDefault();if(Date.now()-touch<800)return;hx();tap()})}
-gesture($('kAa'),{dbl:swapBoth});
+gesture($('kAa'),{dbl:aaPred});
+gesture($('kClip'),{dbl:swapBoth});gesture($('bClip'),{dbl:swapBoth});   // paperclip: swap Magician <-> Spectator
 gesture($('kTable'),{dbl:mirrorToggle});
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
 setInterval(()=>peerJoin(),2000);
