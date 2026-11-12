@@ -98,10 +98,22 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Passcode</div>
   <div class="grp">
     <div class="r">Digits<select id="sLen"><option value="4">4</option><option value="6">6</option></select></div>
-    <div class="r">After the last digit<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="unlock">Unlock → open a web page</option><option value="close">Unlock → close (black screen)</option><option value="home">Unlock → show home photo</option></select></div>
+    <div class="r">After the last digit<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="unlock">Unlock → open a web page</option><option value="close">Unlock → close (black screen)</option><option value="home">Unlock → show home photo</option><option value="shortcut">Run a Shortcut (code as input)</option></select></div>
+    <div class="r" id="rowDoneSc">Shortcut name<input type="text" id="sDoneSc" placeholder="Shortcut name" autocapitalize="off" autocorrect="off"></div>
     <div class="r" id="rowUrl">Web page<input type="text" id="sUrl" placeholder="https://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
   </div>
   <div class="snote">"Wrong passcode": the spectator can try again (each try is a new peek). "Close": the screen goes black like a closed app; tap 3 times to come back. "Show home photo": shows a photo without blur, for example a screenshot of their home screen.</div>
+  <div class="lbl">When the screen is touched</div>
+  <div class="grp">
+    <div class="r">Action<select id="tAct"><option value="none">Nothing</option><option value="shortcut">Run a Shortcut</option><option value="url">Open a link / app</option><option value="buzz">Buzz the PeekSmith</option><option value="peek">Send online peek "Touched"</option></select></div>
+    <div class="r" id="rowTSc">Shortcut name<input type="text" id="tSc" placeholder="Shortcut name" autocapitalize="off" autocorrect="off"></div>
+    <div class="r" id="rowTIn">Shortcut input<input type="text" id="tIn" placeholder="(optional text)" autocapitalize="off" autocorrect="off"></div>
+    <div class="r" id="rowTUrl">Link<input type="text" id="tUrl" placeholder="https://… or app://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
+    <div class="r">When<select id="tWhen"><option value="first">First touch only</option><option value="every">Every touch</option></select></div>
+    <div class="r">Delay<select id="tDelay"><option value="0">None</option><option value="300">0.3 s</option><option value="700">0.7 s</option><option value="1500">1.5 s</option><option value="3000">3 s</option></select></div>
+    <div class="r">The touch also types a digit<input type="checkbox" id="tType"></div>
+  </div>
+  <div class="snote">Runs on the phone that shows this page. "First touch only" runs one time, then again after the screen is reset. A Shortcut must exist on this phone, with this exact name. iOS opens the Shortcuts app to run it (the spectator can see this). To come back, end the Shortcut with "Open App → Aura". "Open a link / app" opens any address or app link (for example a URL scheme). Test it in Aura first.</div>
   <div class="lbl">When the phone locks</div>
   <div class="grp">
     <div class="r">Action<select id="sLock"><option value="none">Nothing</option><option value="reset">Reset the passcode screen</option><option value="close">Close (black screen)</option><option value="url">Open a web page</option></select></div>
@@ -148,7 +160,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 const Q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',sideBack:true,returnBack:true,blur:28,auto:true,vib:true,online:true},store.get('lset',{}));
+const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',sideBack:true,returnBack:true,blur:28,auto:true,vib:true,online:true,doneSc:'',tAct:'none',tSc:'',tIn:'',tUrl:'',tWhen:'first',tDelay:0,tType:true},store.get('lset',{}));
 if(Q.has('len'))P.len=+Q.get('len')===4?4:6;
 if(Q.has('after'))P.after=['unlock','close','home'].includes(Q.get('after'))?Q.get('after'):'shake';
 if(Q.has('lock'))P.onLock=Q.get('lock');if(Q.has('lockurl'))P.lockUrl=Q.get('lockurl');
@@ -200,17 +212,45 @@ function digit(k){
   if(code.length===P.len){locked=true;setTimeout(complete,180)}}
 function complete(){
   lastCode=code;peekDone(code);
+  if(P.after==='shortcut'){runShortcut(P.doneSc,code);setTimeout(()=>{code='';locked=false;drawDots()},800);return}
   if(P.after!=='shake'){finish(P.after,P.url);return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
   try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
   setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots()},560)}
+/* ---------- Shortcuts / links ---------- */
+function runShortcut(name,input){
+  name=String(name||'').trim();if(!name)return;
+  let u='shortcuts://run-shortcut?name='+encodeURIComponent(name);
+  if(input!=null&&String(input)!=='')u+='&input=text&text='+encodeURIComponent(String(input));
+  openLink(u)}
+function openLink(u){u=String(u||'').trim();if(!u)return;
+  if(/^https?:/i.test(u)){location.href=u;return}
+  /* app link (shortcuts://, other schemes): a hidden link click is the most reliable way in a web view */
+  try{const a=document.createElement('a');a.href=u;a.style.display='none';document.body.appendChild(a);a.click();a.remove()}catch(e){location.href=u}}
+/* action when the screen is touched */
+let touchDone=false;
+function touchAction(){
+  if(P.tAct==='none'||document.body.classList.contains('open'))return;
+  if(P.tWhen==='first'&&touchDone)return;touchDone=true;
+  const go=()=>{
+    if(P.tAct==='shortcut')runShortcut(P.tSc,P.tIn);
+    else if(P.tAct==='url')openLink(P.tUrl);
+    else if(P.tAct==='buzz'){if(bleOn())aps.vibrate('.').catch(()=>{})}
+    else if(P.tAct==='peek'){try{PeekRelay.send(TOPIC,'Touched',Q.get('nt')||'Peek')}catch(e){}}};
+  if(+P.tDelay>0)setTimeout(go,+P.tDelay);else go()}
+const isScreenTouch=e=>!e.target.closest('#sheet,#sheetBg,#emergency');
+/* run on touchend: iOS allows an app link only from a real tap */
+addEventListener('touchend',e=>{if(isScreenTouch(e))touchAction()},{passive:true,capture:true});
+addEventListener('mouseup',e=>{if(!touchUsed&&isScreenTouch(e))touchAction()},{capture:true});
+const skipDigit=()=>P.tAct!=='none'&&!P.tType&&!(P.tWhen==='first'&&touchDone);
+
 /* ---------- unlock / close actions ---------- */
 function finish(kind,url){
   if(kind==='unlock'||kind==='url'){$('app').classList.add('unlock');setTimeout(()=>location.replace(url||'https://www.google.com'),420);return}
   if(kind==='home'){const i=homeImage();const h=$('home');if(i){h.style.backgroundImage='url("'+i.replace(/"/g,'%22')+'")'}$('app').classList.add('unlock');h.classList.add('on');return}
   if(kind==='close'){$('app').classList.add('unlock');$('closed').classList.add('on');try{window.close()}catch(e){}return}
   if(kind==='reset'){resetScreen()}}
-function resetScreen(){code='';locked=false;$('app').classList.remove('unlock');$('closed').classList.remove('on');$('home').classList.remove('on');drawDots()}
+function resetScreen(){touchDone=false;code='';locked=false;$('app').classList.remove('unlock');$('closed').classList.remove('on');$('home').classList.remove('on');drawDots()}
 /* hidden way back from the black / home screen: tap 3 times quickly */
 (function(){let n=0,t=0;const back=e=>{const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;resetScreen()}};
   $('closed').addEventListener('click',back);$('home').addEventListener('click',back)})();
@@ -223,7 +263,7 @@ $('cancel').onclick=()=>{if(locked)return;if(code.length){code=code.slice(0,-1);
 
 /* key touch handling (instant highlight like iOS) */
 const pad=$('pad');
-const press=el=>{el.classList.add('down');digit(el.dataset.k)};
+const press=el=>{el.classList.add('down');if(!skipDigit())digit(el.dataset.k)};
 const release=()=>document.querySelectorAll('.key.down').forEach(k=>k.classList.remove('down'));
 pad.addEventListener('touchstart',e=>{const el=e.target.closest('.key');if(!el)return;e.preventDefault();press(el)},{passive:false});
 pad.addEventListener('touchend',e=>{e.preventDefault();release()},{passive:false});
@@ -273,7 +313,10 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
 function syncSheet(){
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sUrl').value=P.url;$('rowUrl').style.display=P.after==='unlock'?'':'none';
   $('sSide').checked=P.sideBack;$('sReturn').checked=P.returnBack;$('sLock').value=P.onLock;$('sLockUrl').value=P.lockUrl;$('rowLockUrl').style.display=P.onLock==='url'?'':'none';
-  $('sBlur').value=String(P.blur);$('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online}
+  $('sBlur').value=String(P.blur);$('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
+  $('rowDoneSc').style.display=P.after==='shortcut'?'':'none';$('sDoneSc').value=P.doneSc;
+  $('tAct').value=P.tAct;$('tSc').value=P.tSc;$('tIn').value=P.tIn;$('tUrl').value=P.tUrl;$('tWhen').value=P.tWhen;$('tDelay').value=String(P.tDelay);$('tType').checked=P.tType;
+  $('rowTSc').style.display=$('rowTIn').style.display=P.tAct==='shortcut'?'':'none';$('rowTUrl').style.display=P.tAct==='url'?'':'none'}
 $('sLen').onchange=e=>{P.len=+e.target.value;saveP();code='';drawDots()};
 $('sAfter').onchange=e=>{P.after=e.target.value;saveP();syncSheet()};
 $('sUrl').onchange=e=>{let u=e.target.value.trim();if(u&&!/^https?:\/\//i.test(u))u='https://'+u;P.url=u;saveP()};
@@ -285,9 +328,17 @@ $('sBlur').onchange=e=>{P.blur=+e.target.value;saveP();applyBg()};
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
+$('sDoneSc').onchange=e=>{P.doneSc=e.target.value.trim();saveP()};
+$('tAct').onchange=e=>{P.tAct=e.target.value;saveP();syncSheet()};
+$('tSc').onchange=e=>{P.tSc=e.target.value.trim();saveP()};
+$('tIn').onchange=e=>{P.tIn=e.target.value;saveP()};
+$('tUrl').onchange=e=>{P.tUrl=e.target.value.trim();saveP()};
+$('tWhen').onchange=e=>{P.tWhen=e.target.value;saveP()};
+$('tDelay').onchange=e=>{P.tDelay=+e.target.value;saveP()};
+$('tType').onchange=e=>{P.tType=e.target.checked;saveP()};
 $('bleBtn').onclick=bleToggle;
 $('bleTest').onclick=()=>{if(bleOn()){onScreen='';psWrite('Test 123')}else bleStatus(AURA?'Connect first':'Only in Aura')};
-const openSheet=()=>{syncSheet();document.body.classList.add('open')},closeSheet=()=>document.body.classList.remove('open');
+const openSheet=()=>{syncSheet();document.body.classList.add('open')},closeSheet=()=>{setTimeout(()=>{document.body.classList.remove('open');touchDone=false},50)};
 $('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
 (function(){const el=$('emergency');let tm=null;
   const go=()=>{tm=setTimeout(openSheet,1000)},stop=()=>clearTimeout(tm);
