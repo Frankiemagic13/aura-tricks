@@ -25,9 +25,9 @@ small{color:#636366;font-size:12px;line-height:1.5}
 </style>
 </head>
 <body>
-<main>
+<main data-hui='{"tabs":[{"n":"Connect","i":"link"},{"n":"Settings","i":"more"},{"n":"Buttons","i":"buttons"},{"n":"Log","i":"log"}]}'>
   <h1>PeekLink</h1>
-  <div class="card" id="auraBox" style="display:none;background:#12251a"><b style="font-size:16px">Aura Bluetooth ✓</b><small style="color:#9fe0b0">This page runs in Aura and connects to the PeekSmith through Aura. Bluefy is not needed.</small></div>
+  <div data-tab="Connect" class="card" id="auraBox" style="display:none;background:#12251a"><b style="font-size:16px">Aura Bluetooth ✓</b><small style="color:#9fe0b0">This page runs in Aura and connects to the PeekSmith through Aura. Bluefy is not needed.</small></div>
   <div class="card">
     <div class="row"><span><i class="dot" id="bd"></i>PeekSmith</span><span id="bs">Not connected</span></div>
     <div class="row"><span><i class="dot" id="nd"></i>Calculator channel</span><span id="ns">Starting…</span></div>
@@ -37,7 +37,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <button class="sec" id="connAll">Connect (show all devices)</button>
   <button class="sec" id="test">Send test</button>
   <div class="card"><small>Last peek</small><div id="last">—</div></div>
-  <div class="card">
+  <div data-tab="Settings" class="card">
     <div class="row">Text prefix<select id="pre"><option value="$">$ (iOS)</option><option value="#">#</option></select></div>
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
     <div class="row">Inject ID<input id="injId" inputmode="numeric" pattern="[0-9]*" placeholder="13297" style="width:40%"></div>
@@ -50,7 +50,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
     <small id="audNote">Use AirPods or one earbud. The phone speaks each peek. Tap the screen once after you open the page, so iOS lets the page speak.</small>
     <div class="row">Keep screen on<input type="checkbox" id="wake" checked></div>
   </div>
-  <div class="card" id="btnCard">
+  <div data-tab="Buttons" class="card" id="btnCard">
     <small>PeekSmith buttons</small>
     <div class="row">Left – tap<select data-k="1.click"></select></div>
     <div class="row">Left – hold<select data-k="1.longpress"></select></div>
@@ -60,7 +60,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
     <div class="row">Side – hold<select data-k="0.longpress"></select></div>
     <small id="lastBtn"></small>
   </div>
-  <div class="card"><small>Log</small><div id="log"></div></div>
+  <div data-tab="Log" class="card"><small>Log</small><div id="log"></div></div>
   <small id="info"></small>
 </main>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -252,5 +252,6 @@ addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=a
   try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
+<script src="../hui.js"></script>
 </body>
 </html>

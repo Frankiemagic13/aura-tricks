@@ -154,7 +154,7 @@ svg{display:block}
   </div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet">
+<div id="sheet" data-hui='{"tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
   <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
@@ -557,5 +557,6 @@ addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=a
   try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
+<script src="../hui.js"></script>
 </body>
 </html>

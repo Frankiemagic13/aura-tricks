@@ -158,7 +158,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <div id="launch"><div class="ph"></div><div class="col"></div></div>
 
 <div id="sheetBg"></div>
-<div id="sheet">
+<div id="sheet" data-hui='{"tabs":[{"n":"PIN","i":"pin","s":["equation","passcode"]},{"n":"Unlock","i":"unlock","s":["tilt","shortcut","tap the home"]},{"n":"Inject","i":"inject","s":["send to inject"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","badge"]},{"n":"Look","i":"look","s":["look","wallpaper"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
 
@@ -232,7 +232,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Wallpaper<span><button class="sbtn" id="sPick">Choose…</button> <button class="sbtn" id="sReset">Default</button></span></div>
     <div class="r">Battery %<input type="number" id="sBatt" inputmode="numeric" min="1" max="100"></div>
-    <div class="r">Passcode dim<select id="sDim"><option value=".3">Light</option><option value=".5">iOS</option><option value=".65">Dark</option></select></div>
+    <div class="r">Passcode dim<select id="sDim"><option value="0.3">Light</option><option value="0.5">iOS</option><option value="0.65">Dark</option></select></div>
     <div class="r">Home photo<span><button class="sbtn" id="sPickHome">Choose…</button> <button class="sbtn" id="sResetHome">Wallpaper</button></span></div>
   </div>
   <div class="snote">Tip: use a screenshot of your home screen as the home photo. The photos stay on this phone only.</div>
@@ -262,7 +262,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v22</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v23</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -662,5 +662,6 @@ addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=a
   try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
+<script src="../hui.js"></script>
 </body>
 </html>
