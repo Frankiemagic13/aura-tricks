@@ -198,7 +198,7 @@ svg{display:block}
     <div class="r"><button class="sbtn" id="peerBtn">Connect now</button><button class="sbtn" id="peerTest">Test</button></div>
   </div>
   <div class="snote">Bluetooth from the spectator's phone directly to your iPhone. No internet is necessary. Your iPhone: open this page in Aura Browser and set "This phone" to "My phone (mirror)" (or add ?mirror=1 to the link). Your Notes then shows the spectator's note and drawings live, and the peeks go to your PeekSmith from your phone. The spectator's phone stays "Spectator". Use the same room on the two phones (default fvt-calc, the same as the calculator and PeekLink). Keep the two pages open and on screen.</div>
-  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case: "Opposite of spectator" looks at the spectator's note before the prediction: if they typed in capitals, your text shows in small letters, and if they typed in small letters, your text shows in capitals. "Same as spectator" uses their case. "Swap" changes each letter you type (A ↔ a). Acrostic: type the spectator's word on your phone. When the word is complete (space, or hold back to stop), the spectator's note shows common words, one on each line. The first letters of the words spell the word. Prediction text and case are not used for Acrostic.</div>
+  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case: "Opposite of spectator" looks at the spectator's note before the prediction: if they typed in capitals, your text shows in small letters, and if they typed in small letters, your text shows in capitals. "Same as spectator" uses their case. "Swap" changes each letter you type (A ↔ a). Acrostic: hold the back button on your phone. While the spectator types, YOUR note shows common words, one on each line; their first letters spell each word that the spectator typed (after a space, or 1.5 s with no typing). The spectator's phone does not change, and the PeekSmith still gets the real words. Hold back again to stop: the words stay on your screen and the mirror stops on your phone (tap back to start it again).</div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
@@ -632,7 +632,7 @@ function peerHook(){
     if(d.cmd==='mirr'||d.cmd==='swap'){peerRemote(d);return}
     if(P.peerRole==='mirror'&&predMode&&(d.type==='note'||d.type==='draw'))return;   // the magician is writing a prediction
     if(P.peerRole==='spect'){if(d.cmd==='pred'){predRemote(d);return}if(d.type==='predtext'){predShow(d.h);return}}
-    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note'){peerRx++;peerDbgShow();mirrorNote(d.h)}else if(d.type==='draw')mirrorDraw(d);return}
+    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note'){peerRx++;peerDbgShow();if(acroMode)acroIn(d.h);else mirrorNote(d.h)}else if(d.type==='draw')mirrorDraw(d);return}
     if(d.cmd==='sync'||d.cmd==='ping')peerSync(true)})}
 /* send to the other device: the host sends to all its guests, a guest sends to its host */
 function peerOut(o){const Pp=peerApi();if(!Pp)return false;
@@ -700,13 +700,34 @@ function acroText(h,all){const t=String(h).replace(/\u00a0/g,' ');let words=t.sp
   if(!all&&!/\s$/.test(t))words=words.slice(0,-1);   // the word that is still being typed is not shown yet
   return words.map((w,i)=>acroOf(w,i)).filter(Boolean).join('\n\n')}
 function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;predLast=h;
-  peerOut({type:'predtext',h:P.predType==='acro'?acroText(h,!!force):predCase(h)})}
+  peerOut({type:'predtext',h:predCase(h)})}
 note.addEventListener('input',()=>predSend());
 setInterval(()=>predSend(),200);
+/* Acrostic on the magician's phone: the spectator types, YOUR note shows common words whose first letters spell
+   each word they typed. The spectator's phone does not change. The PeekSmith still gets what they really typed. */
+let acroMode=false,acroRaw='',acroT=null;
+function acroShow(all){const v=acroText(acroRaw,all);if(v!==note.innerText){note.innerText=v;edited=!!v;topIcons()}}
+function acroIn(h){h=String(h??'');if(h===acroRaw)return;acroRaw=h;
+  /* peeks from the real text (same as the normal mirror) */
+  const lines=h.replace(/\u00a0/g,' ').split('\n').map(x=>x.trim()).filter(Boolean),v=lines.join(' | ');
+  if(!lines.length){last='';lastBle='';iSent='';acroCache.clear()}
+  try{if(P.live&&v)bleWrite(tail(v))}catch(e){}
+  const ch=h.slice(-1);if(ch===' '||ch==='\n')post(v);
+  acroShow(false);
+  /* a word with no space after it: show it after 1.5 s with no typing */
+  clearTimeout(acroT);acroT=setTimeout(()=>{if(acroMode){post(v);acroShow(true)}},1500)}
+function acroToggle(){
+  if(P.peerRole!=='mirror'){qtoast('Acrostic: only on the Magician phone');return}
+  if(!acroMode){acroMode=true;acroCache.clear();acroRaw=null;note.blur();
+    if(P.mirr===false){setMirr(true);peerOut({cmd:'mirr',on:true})}
+    peerOut({cmd:'sync'});qtoast('Acrostic');qbuzz()}
+  else{acroMode=false;clearTimeout(acroT);acroShow(true);P.mirr=false;saveP();   // keep the words on screen: the mirror stops on this phone
+    qtoast('Acrostic done');qbuzz()}}
 function predToggle(){
+  if(P.predType==='acro'||acroMode){acroToggle();return}
   if(P.peerRole!=='mirror'){qtoast('Prediction: only on the Magician phone');return}
   if(!predMode){
-    if(!peerOut({cmd:'pred',on:true,pre:P.predType==='acro'?'':predPrefix()})){qtoast('Not connected');return}
+    if(!peerOut({cmd:'pred',on:true,pre:predPrefix()})){qtoast('Not connected');return}
     acroCache.clear();
     predSpecCase=caseOf(note.innerText);   // this phone shows the spectator's note (mirror)
     predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast(P.predType==='acro'?'Acrostic':'Prediction');qbuzz();
@@ -716,7 +737,7 @@ if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
 if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP()};
 $('predText').value=P.predText;$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
-async function swapRole(){predMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
+async function swapRole(){predMode=false;acroMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
 function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
 async function peerHostStart(){
