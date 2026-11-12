@@ -292,7 +292,8 @@ body.studio #studio{display:flex}
   <li>Spectator phones: open this page in AuraClip. They show a black screen.</li>
   <li>Each phone gets a number (1, 2, 3…) in the order it connects.</li>
   <li><b>"Needs 1 tap"</b>: the spectator taps the black screen one time (iOS rule for the flash). Then the tile shows <b>Ready</b>. Tap your <b>M</b> tile one time too.</li>
-  <li>Same room on all phones (default fvt-calc). Keep all pages on screen.</li></ol>
+  <li>Same room on all phones (default fvt-calc). Keep all pages on screen.</li>
+  <li><b>No phones yet?</b> You can still record: tap the tiles 1, 2, 3 (they show "Waiting…") and record as normal. Tap <b>+ Add phone</b> for more layers (up to 9). Hold the last empty tile to remove it. When the phones connect later, the routine plays on them by their numbers.</li></ol>
   <h4>2. Buttons</h4>
   <div class="glist">
     <div><span class="g g2" data-g="#cOn"></span><span><b>On</b>: tap = the selected phones stay on · hold = on while you hold</span></div>
@@ -597,26 +598,33 @@ function ping(id){send({cmd:'echo',t:now()},id)}
 setInterval(()=>{if(isMag()&&hosting)guests.forEach((g,id)=>ping(id))},4000);
 const idOf=slot=>{for(const [id,g] of guests)if(g.slot===slot)return id;return null};
 const gOf=slot=>{const id=idOf(slot);return id?guests.get(id):null};
-let sel=new Set(),mOn=false;
+let sel=new Set(),mOn=false;const vOn={};   // vOn: light of a phone that is not connected (recording without it)
+if(!(P.nSlots>=1))P.nSlots=3;
 /* turn the light of one target on/off now (target: 'M' or a slot number as text) */
 function act(target,on){
   if(target==='M'){mOn=on;if(camAlive())setLight(on,true);else if(on)openCamera().then(ok=>ok&&mOn&&setLight(true,true));drawTiles();return}
-  const id=idOf(+target);if(!id)return;const g=guests.get(id);g.on=on;send({cmd:'light',on},id);drawTiles()}
-function targets(){return [...guests.values()].map(g=>String(g.slot)).sort((a,b)=>a-b)}
+  const id=idOf(+target);if(!id){vOn[target]=on;drawTiles();return}const g=guests.get(id);g.on=on;send({cmd:'light',on},id);drawTiles()}
+function slotsN(){return Math.max(P.nSlots,...[...guests.values()].map(g=>g.slot))}
+function targets(){const a=[];for(let n=1;n<=slotsN();n++)a.push(String(n));return a}
 function drawTiles(){if(!isMag())return;
-  const T=$('tiles');const maxS=Math.max(3,...[...guests.values()].map(g=>g.slot));
+  const T=$('tiles');const maxS=slotsN();
   let h='';for(let n=1;n<=maxS;n++){const g=gOf(n);const st=!g?'empty':g.ready?'ready':'tap';
-    const lit=g&&(prevOn?prevState[String(n)]:g.on);
+    const lit=prevOn?prevState[String(n)]:g?g.on:vOn[String(n)];
     h+=`<div class="tile ${st}${sel.has(String(n))?' sel':''}${lit?' lit':''}" data-t="${n}"><div class="cm"></div><div class="ts">${!g?'Waiting…':g.ready?'Ready':'Needs 1 tap'}</div><div class="tn">${n}</div></div>`}
   const mLit=prevOn?prevState.M:mOn;
   h+=`<div class="tile m ${camAlive()?'ready':'tap'}${sel.has('M')?' sel':''}${mLit?' lit':''}" data-t="M"><div class="cm"></div><div class="ts">${camAlive()?'This phone':'Tap to prepare'}</div><div class="tn">M</div></div>`;
+  if(maxS<9)h+=`<div class="tile empty add" data-add="1"><div class="tn" style="bottom:auto;top:36px;font-size:34px;color:rgba(255,255,255,.3)">+</div><div class="ts" style="top:84px">Add phone</div></div>`;
   T.innerHTML=h;
   const n=guests.size,r=[...guests.values()].filter(g=>g.ready).length;
-  $('stSub').textContent=!hosting?'Starting…':n?`${n} phone${n>1?'s':''} connected · ${r} ready${sel.size?' · '+[...sel].sort().join(', ')+' selected':''}`:'Waiting for phones… open the flashlight on the other phones';
+  $('stSub').textContent=!hosting?'Starting…':n?`${n} phone${n>1?'s':''} connected · ${r} ready${sel.size?' · '+[...sel].sort().join(', ')+' selected':''}`:'No phones connected · you can still record';
   const pk=$('pkSt');if(pk)pk.textContent=bleOn()?'Connected':AURA?'Searching…':'Only in Aura'}
-$('tiles').addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t||t.classList.contains('empty'))return;
+$('tiles').addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t)return;
+  if(t.dataset.add){P.nSlots=Math.min(9,slotsN()+1);saveP();hap('light');drawTiles();drawTL();return}   // + = one more phone layer (also before it connects)
   const k=t.dataset.t;if(k==='M'&&!camAlive())openCamera().then(drawTiles);   // the tap is the user action iOS needs for the camera
   sel.has(k)?sel.delete(k):sel.add(k);hap('light');drawTiles()});
+{let ht=null;$('tiles').addEventListener('touchstart',e=>{const t=e.target.closest('.tile.empty[data-t]');if(!t||sRec)return;
+  ht=setTimeout(()=>{const n=+t.dataset.t;if(n===slotsN()&&n>3&&!gOf(n)){P.nSlots=n-1;sel.delete(String(n));saveP();drawTiles();stToast('Phone '+n+' removed')}},700)},{passive:true});
+  ['touchend','touchmove','touchcancel'].forEach(n=>$('tiles').addEventListener(n,()=>clearTimeout(ht),{passive:true}))}
 /* light buttons: On (tap = stays on, hold = on while held), Flash, Off (no phone selected = all off) */
 function selected(){return [...sel]}
 function allT(){return targets().concat(['M'])}
@@ -629,7 +637,7 @@ btn($('cOn'),()=>{const s=selected();if(!s.length){stToast('Select phones first'
   ()=>{if(!onHeld)return;if(now()-onDownAt>300)onHeld.forEach(t=>{act(t,false);sAdd(t,0)});onHeld=null;sGrp++});
 btn($('cFl'),()=>{const s=selected();if(!s.length){stToast('Select phones first');return}hap('light');
   s.forEach(t=>{act(t,true);sAdd(t,1);setTimeout(()=>{act(t,false);sAdd(t,0)},FLASH_MS)});setTimeout(()=>sGrp++,FLASH_MS+5)});
-btn($('cOff'),()=>{const s=selected().length?selected():allT();hap('light');s.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++});
+btn($('cOff'),()=>{const s=selected().length?selected():allT();if(!selected().length)for(const k in vOn)vOn[k]=false;hap('light');s.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++});
 
 /* ---------- recording (one layer for each phone) ---------- */
 let sRec=false,sT0=0,sEv=[],sGrp=0,sTick=null,selBar=null,editId=null;
