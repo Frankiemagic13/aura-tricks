@@ -102,6 +102,13 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r" id="rowDoneSc">Shortcut name<input type="text" id="sDoneSc" placeholder="Shortcut name" autocapitalize="off" autocorrect="off"></div>
     <div class="r" id="rowUrl">Web page<input type="text" id="sUrl" placeholder="https://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
   </div>
+  <div class="lbl">Tap the screen after unlock</div>
+  <div class="grp">
+    <div class="r">Action<select id="uAct"><option value="none">Nothing</option><option value="app">Open an app</option></select></div>
+    <div class="r" id="rowUApp">App<select id="uApp"><option value="notes">Notes</option><option value="photos">Photos</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="custom">Other (app link)</option></select></div>
+    <div class="r" id="rowUUrl">App link<input type="text" id="uUrl" placeholder="app://" autocapitalize="off" autocorrect="off" inputmode="url"></div>
+  </div>
+  <div class="snote">For "Unlock → close (black screen)" and "Unlock → show home photo". One tap on that screen opens the app. When this is on, use the PeekSmith side button, or come back to the page, to reset the passcode screen (3 quick taps do not work then). "Other": type the app's link (URL scheme), for example fb:// .</div>
   <div class="snote">"Wrong passcode": the spectator can try again (each try is a new peek). "Close": the screen goes black like a closed app; tap 3 times to come back. "Show home photo": shows a photo without blur, for example a screenshot of their home screen.</div>
   <div class="lbl">When the screen is touched</div>
   <div class="grp">
@@ -160,7 +167,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 const Q=new URLSearchParams(location.search);
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',sideBack:true,returnBack:true,blur:28,auto:true,vib:true,online:true,doneSc:'',tAct:'none',tSc:'',tIn:'',tUrl:'',tWhen:'first',tDelay:0,tType:true},store.get('lset',{}));
+const P=Object.assign({len:6,after:'shake',url:'https://www.google.com',onLock:'none',lockUrl:'https://www.google.com',sideBack:true,returnBack:true,blur:28,auto:true,vib:true,online:true,doneSc:'',tAct:'none',tSc:'',tIn:'',tUrl:'',tWhen:'first',tDelay:0,tType:true,uAct:'none',uApp:'notes',uUrl:''},store.get('lset',{}));
 if(Q.has('len'))P.len=+Q.get('len')===4?4:6;
 if(Q.has('after'))P.after=['unlock','close','home'].includes(Q.get('after'))?Q.get('after'):'shake';
 if(Q.has('lock'))P.onLock=Q.get('lock');if(Q.has('lockurl'))P.lockUrl=Q.get('lockurl');
@@ -253,8 +260,12 @@ function finish(kind,url){
   if(kind==='close'){$('app').classList.add('unlock');$('closed').classList.add('on');try{window.close()}catch(e){}return}
   if(kind==='reset'){resetScreen()}}
 function resetScreen(){touchDone=false;code='';locked=false;$('app').classList.remove('unlock');$('closed').classList.remove('on');$('home').classList.remove('on');drawDots()}
+/* tap after unlock: open an app */
+const APP_LINK={notes:'mobilenotes://',photos:'photos-redirect://',messages:'sms:',mail:'message://',maps:'maps://',music:'music://',calendar:'calshow://',reminders:'x-apple-reminderkit://',settings:'App-prefs:',shortcuts:'shortcuts://',instagram:'instagram://',youtube:'youtube://',spotify:'spotify://',whatsapp:'whatsapp://'};
+function unlockTap(){if(P.uAct!=='app')return false;
+  const u=P.uApp==='custom'?P.uUrl:APP_LINK[P.uApp];if(!u)return false;openLink(u);return true}
 /* hidden way back from the black / home screen: tap 3 times quickly */
-(function(){let n=0,t=0;const back=e=>{const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;resetScreen()}};
+(function(){let n=0,t=0;const back=e=>{if(unlockTap())return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;resetScreen()}};
   $('closed').addEventListener('click',back);$('home').addEventListener('click',back)})();
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'){if(P.returnBack&&!document.body.classList.contains('open'))resetScreen();return}
@@ -317,6 +328,7 @@ function syncSheet(){
   $('sSide').checked=P.sideBack;$('sReturn').checked=P.returnBack;$('sLock').value=P.onLock;$('sLockUrl').value=P.lockUrl;$('rowLockUrl').style.display=P.onLock==='url'?'':'none';
   $('sBlur').value=String(P.blur);$('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
   $('rowDoneSc').style.display=P.after==='shortcut'?'':'none';$('sDoneSc').value=P.doneSc;
+  $('uAct').value=P.uAct;$('uApp').value=P.uApp;$('uUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
   $('tAct').value=P.tAct;$('tSc').value=P.tSc;$('tIn').value=P.tIn;$('tUrl').value=P.tUrl;$('tWhen').value=P.tWhen;$('tDelay').value=String(P.tDelay);$('tType').checked=P.tType;
   $('rowTSc').style.display=$('rowTIn').style.display=P.tAct==='shortcut'?'':'none';$('rowTUrl').style.display=P.tAct==='url'?'':'none'}
 $('sLen').onchange=e=>{P.len=+e.target.value;saveP();code='';drawDots()};
@@ -331,6 +343,9 @@ $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
 $('sDoneSc').onchange=e=>{P.doneSc=e.target.value.trim();saveP()};
+$('uAct').onchange=e=>{P.uAct=e.target.value;saveP();syncSheet()};
+$('uApp').onchange=e=>{P.uApp=e.target.value;saveP();syncSheet()};
+$('uUrl').onchange=e=>{P.uUrl=e.target.value.trim();saveP()};
 $('tAct').onchange=e=>{P.tAct=e.target.value;saveP();syncSheet()};
 $('tSc').onchange=e=>{P.tSc=e.target.value.trim();saveP()};
 $('tIn').onchange=e=>{P.tIn=e.target.value;saveP()};
