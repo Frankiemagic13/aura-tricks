@@ -83,34 +83,10 @@ body.studio #studio{display:flex}
 .recording .tools{display:flex}
 .tools button{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:#8e8e93;font:600 11px -apple-system}
 .tools b{width:40px;height:40px;border-radius:12px;background:#26262a;display:flex;align-items:center;justify-content:center;font:700 16px -apple-system;color:#fff}
-/* record countdown (4 looks) */
+/* record countdown: a small "REC in 3" pill, the phones stay visible */
 #recCd{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;flex-direction:column}
 #recCd.on{display:flex}
 #recCd .n{font-variant-numeric:tabular-nums}
-/* film leader (After Effects) */
-#recCd[data-cd=film]{background:rgba(10,10,12,.88)}
-#recCd .fl{position:relative;width:260px;height:260px;border-radius:50%;background:#2b2b2e;overflow:hidden;box-shadow:0 0 0 6px #1c1c1e,0 0 0 8px #3a3a3e}
-#recCd .fl .cx,#recCd .fl .cy{position:absolute;background:rgba(255,255,255,.35)}#recCd .fl .cx{left:0;right:0;top:50%;height:2px}#recCd .fl .cy{top:0;bottom:0;left:50%;width:2px}
-#recCd .fl .c1,#recCd .fl .c2{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.5)}#recCd .fl .c1{inset:18px}#recCd .fl .c2{inset:44px}
-#recCd .fl .sw{position:absolute;inset:-40%;background:conic-gradient(rgba(255,255,255,.22) 0deg,rgba(255,255,255,.22) var(--a,0deg),transparent var(--a,0deg));animation:flSw 1s linear infinite}
-@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
-@keyframes flSw{from{--a:0deg}to{--a:360deg}}
-#recCd .fl .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 150px/1 -apple-system;color:#fff;text-shadow:0 2px 0 #000}
-/* ring timer */
-#recCd[data-cd=ring]{background:rgba(0,0,0,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-#recCd .rg{position:absolute;width:250px;height:250px;transform:rotate(-90deg)}
-#recCd .rg circle{fill:none;stroke-width:8}#recCd .rg .bg{stroke:rgba(255,255,255,.12)}
-#recCd .rg .fg{stroke:#ff453a;stroke-linecap:round;stroke-dasharray:553;stroke-dashoffset:0;filter:drop-shadow(0 0 6px rgba(255,69,58,.8))}
-#recCd.run .rg .fg{transition:stroke-dashoffset 3s linear;stroke-dashoffset:553}
-#recCd[data-cd=ring] .n{font:700 110px/1 -apple-system;color:#fff;animation:rgN .35s ease-out both}
-#recCd[data-cd=ring] small{position:absolute;top:calc(50% + 150px);font:600 15px -apple-system;color:#8e8e93}
-@keyframes rgN{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
-/* flash burst */
-#recCd[data-cd=flash]{background:#000}
-#recCd .burst{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,#fff 0,#fff6dc 18%,rgba(255,236,190,.35) 40%,transparent 70%);animation:bu 1s ease-out infinite}
-@keyframes bu{0%{transform:scale(.2);opacity:1}35%{transform:scale(1.15);opacity:1}100%{transform:scale(1.6);opacity:0}}
-#recCd[data-cd=flash] .n{position:relative;font:900 160px/1 -apple-system;color:#000;animation:fN 1s ease-out both}
-@keyframes fN{0%{color:#000;transform:scale(1.3)}30%{color:#000;transform:none}100%{color:#fff;text-shadow:0 0 30px #fff}}
 /* small pill (the layers stay visible) */
 #recCd[data-cd=pill]{background:transparent;justify-content:flex-start;padding-top:calc(env(safe-area-inset-top) + 150px);pointer-events:none}
 #recCd .pl{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:999px;background:#2a1414;box-shadow:inset 0 0 0 1.5px #ff453a,0 8px 30px rgba(255,69,58,.35);font:700 22px -apple-system;color:#fff;animation:plIn .3s cubic-bezier(.3,1.6,.5,1) both}
@@ -182,6 +158,17 @@ body.studio #studio{display:flex}
 @keyframes mpOut{to{transform:scale(0);opacity:0}}
 @keyframes mlPop{from{height:0;margin:0;opacity:0}to{height:6px;opacity:1}}
 @keyframes mlOut{to{height:0;margin:0;opacity:0}}
+.rbar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 16px 10px;flex:none}
+.rtabs{display:flex;background:#1e1e22;border-radius:12px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.rtabs button{border:0;background:none;color:#8e8e93;font:600 14px -apple-system;padding:7px 14px;border-radius:9px}
+.rtabs button.on{background:#3a3a40;color:#fff}.rtabs button[data-tab=fav].on{color:#ffd60a}
+.rstart{display:flex;align-items:center;gap:6px;font:600 13px -apple-system;color:#8e8e93}
+.rstart select{background:#1e1e22;color:#ff9f0a;border:0;border-radius:10px;padding:7px 8px;font:600 13px -apple-system;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);max-width:150px}
+.rstar{border:0;background:none;font-size:22px;line-height:1;color:#48484a;padding:4px;margin-left:auto}.rstar.on{color:#ffd60a;text-shadow:0 0 10px rgba(255,214,10,.5)}
+.rn{margin-left:4px}.rstar+.rps{margin-left:4px}
+.rstar.pop{animation:stPop .35s cubic-bezier(.3,1.8,.5,1)}@keyframes stPop{0%{transform:scale(.5)}100%{transform:none}}
+#runBlack .arm{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 40px);text-align:center;font:600 13px -apple-system;color:#3a3a3c;line-height:1.5;display:none}
+#runBlack.armed .arm{display:block}
 .rempty{color:#8e8e93;text-align:center;font:500 15px -apple-system;padding:60px 30px;line-height:1.4}
 .pks{padding:6px 16px;overflow-y:auto}
 .pkc{background:#1e1e22;border-radius:18px;padding:4px 14px;margin-bottom:12px}
@@ -249,6 +236,8 @@ body.studio #studio{display:flex}
 
   <div class="pg" id="pgRoutines">
     <div class="rhd"><h1>Routines</h1><button id="rNew">+ Record new</button></div>
+    <div class="rbar"><div class="rtabs" id="rTabs"><button data-tab="all" class="on">All</button><button data-tab="fav">★ Favorites</button></div>
+      <label class="rstart">Start<select id="rStart"><option value="tap">At once</option><option value="down">Face down</option><option value="ps">PeekSmith click</option><option value="both">Face down or PeekSmith</option></select></label></div>
     <div class="rlist" id="rlist"></div>
   </div>
 
@@ -269,7 +258,7 @@ body.studio #studio{display:flex}
     <button data-pg="pgPeek"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="5"/><circle cx="8" cy="12" r="1.5"/><circle cx="16" cy="12" r="1.5"/></svg>PeekSmith</button>
   </div>
 </div>
-<div id="runBlack"></div>
+<div id="runBlack"><div class="arm" id="armTx"></div></div>
 <div id="stToast"></div>
 <div id="svBg"></div>
 <div id="svSheet">
@@ -384,6 +373,8 @@ body.studio #studio{display:flex}
   <li><b>Tap a card</b>: the screen goes black, the countdown buzzes (phone and PeekSmith), the routine plays on all phones at the same time, then the list comes back.</li>
   <li><b>Tap the black screen</b> to stop.</li>
   <li><b>Hold a card</b> (0.6 s) to edit or delete it.</li></ol>
+  <p>The list is A to Z. Tap <b>☆</b> on a card to add it to <b>★ Favorites</b> (tap ★ again to remove it). The <b>Favorites</b> tab shows only those.</p>
+  <p><b>Start</b> (top right): <b>At once</b> = the routine starts when you tap it. <b>Face down</b>, <b>PeekSmith click</b> or <b>both</b> = tap the routine, the screen goes black and waits; turn the phone face down on the table or click any PeekSmith button to start it. Tap the black screen to cancel. The PeekSmith shows "Ready: name" while it waits.</p>
   <p>There are 24 ready-made routines, for example Ping-pong, Wave, Countdown, Police, The chosen one, Vanish, Spotlight, Applause and Firework. Each one starts with 2 phones (M + 1). Tap <b>+</b> on the card to add a phone (up to M + 9) and <b>−</b> to remove one. The routine and its preview change to fit. A phone that is not connected is skipped. You can edit or delete them like your own routines.</p>
   <h4>5. From the PeekSmith</h4>
   <p>PeekSmith tab: select a routine for a button (or set it in the Save sheet). Press the button to run it from your pocket. Press it again to stop.</p>
@@ -741,15 +732,11 @@ function sRecFinish(save){clearInterval(sTick);const end=Math.round(now()-sT0);s
 /* Record: a 3 s countdown (3-2-1 with a buzz), then the recording starts. Tap Record or Cancel again = no recording. */
 let cdT=[];
 function recCountdown(){if(cdT.length){cdStop();return}showPg('pgPhones');const o=$('recCd');document.body.classList.add('cd');
-  o.dataset.cd=P.cdLook||'film';o.innerHTML=CDHTML[o.dataset.cd]||'';o.classList.add('on');void o.offsetWidth;o.classList.add('run');
+  o.dataset.cd='pill';o.innerHTML=CDHTML[o.dataset.cd]||'';o.classList.add('on');void o.offsetWidth;o.classList.add('run');
   [3,2,1].forEach((n,i)=>cdT.push(setTimeout(()=>{o.querySelectorAll('.n').forEach(e=>{e.textContent=n;e.style.animation='none';void e.offsetWidth;e.style.animation=''});
     o.style.setProperty('--k',i);hap(n===1?'heavy':'medium')},i*1000)));
   cdT.push(setTimeout(()=>{cdStop();sRecStart()},3000))}
-const CDHTML={
-  film:'<div class="fl"><div class="cx"></div><div class="cy"></div><div class="c1"></div><div class="c2"></div><div class="sw"></div><b class="n"></b></div>',
-  ring:'<svg class="rg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" class="bg"/><circle cx="100" cy="100" r="88" class="fg"/></svg><b class="n"></b><small>Recording starts</small>',
-  flash:'<div class="burst"></div><b class="n"></b>',
-  pill:'<div class="pl"><i></i><span>REC in <b class="n"></b></span></div>'};
+const CDHTML={pill:'<div class="pl"><i></i><span>REC in <b class="n"></b></span></div>'};
 function cdStop(){cdT.forEach(clearTimeout);cdT=[];const o=$('recCd');o.classList.remove('on','run');o.innerHTML='';document.body.classList.remove('cd')}
 $('recCd').addEventListener('click',cdStop);
 $('cRec').addEventListener('click',()=>sRec?sRecFinish(true):recCountdown());
@@ -879,14 +866,43 @@ function lineOf(r){return r.gen?[...Array(r.n||1)].map((_,i)=>String(i+1)).conca
 function psName(r){const k=Object.keys(P.btns).find(k=>P.btns[k]==='r:'+r.id);return k?({'1.click':'Left – tap','1.longpress':'Left – hold','2.click':'Right – tap','2.longpress':'Right – hold','0.click':'Side – tap','0.longpress':'Side – hold'})[k]:''}
 function cardHTML(r,i,pop){const u=lineOf(r),np=u.filter(x=>x!=='M').length,ps=psName(r),G=!!r.gen,bars=barsOf(r.ev,r.len);
   const info=G?`${np+1} phones (M + ${np})`:`${np} phone${np===1?'':'s'}${u.includes('M')?' + M':''}`;
-  return `<div class="rc${u.length>6?' many':''}" data-i="${i}"><div class="rct"><span class="ri">${r.icon||'✨'}</span><div class="rtx"><b></b><small>${info} · ${(r.len/1000).toFixed(1)} s${r.loop?' · loop':''}${G&&ps?` · <em>PeekSmith ${ps}</em>`:''}</small></div>${!G&&ps?`<span class="rps">PeekSmith ${ps}</span>`:''}
+  return `<div class="rc${u.length>6?' many':''}" data-i="${i}"><div class="rct"><span class="ri">${r.icon||'✨'}</span><div class="rtx"><b></b><small>${info} · ${(r.len/1000).toFixed(1)} s${r.loop?' · loop':''}${G&&ps?` · <em>PeekSmith ${ps}</em>`:''}</small></div><button class="rstar${favs().has(r.id)?' on':''}" aria-label="Favorite">${favs().has(r.id)?'★':'☆'}</button>${!G&&ps?`<span class="rps">PeekSmith ${ps}</span>`:''}
     ${G?`<span class="rn"><button data-d="-1"${np<=1?' class="off"':''}>−</button><button data-d="1"${np>=9?' class="off"':''}>+</button></span>`:''}</div>
     <div class="rpv"><div class="minis">${u.map(t=>`<div class="mp${t==='M'?' mm':''}${pop&&t===pop?' pop':''}" data-t="${t}"><i></i><span>${t}</span></div>`).join('')}</div>
     <div class="mlanes">${u.map(t=>`<div class="ml${pop&&t===pop?' pop':''}">${bars.filter(b=>b.tg===t).map(b=>`<u style="left:${b.s/r.len*100}%;width:${Math.max(1,(b.e-b.s)/r.len*100)}%"></u>`).join('')}</div>`).join('')}<div class="mph"></div></div></div></div>`}
 function drawRoutines(){const L=$('rlist');
   if(!P.routines.length){L.innerHTML='<div class="rempty">No routines yet.<br>Tap <b>+ Record new</b>, select phones and play with the light buttons.</div>';return}
-  L.innerHTML=P.routines.map((r,i)=>cardHTML(r,i)).join('');
+  let list=P.routines.map((r,i)=>[r,i]).sort((x,y)=>x[0].name.localeCompare(y[0].name,undefined,{numeric:true,sensitivity:'base'}));   // A to Z
+  if(rTab==='fav')list=list.filter(([r])=>favs().has(r.id));
+  if(!list.length){L.innerHTML='<div class="rempty">No favorites yet.<br>Tap <b>☆</b> on a routine to add it here.</div>';return}
+  L.innerHTML=list.map(([r,i])=>cardHTML(r,i)).join('');
   L.querySelectorAll('.rc').forEach(c=>{c.querySelector('b').textContent=P.routines[+c.dataset.i].name})}
+/* favorites (kept on this phone) and the All / Favorites tabs */
+let rTab='all';
+function favs(){if(!Array.isArray(P.favs))P.favs=[];return new Set(P.favs)}
+function favToggle(c,btn){const r=P.routines[+c.dataset.i];if(!r)return;const f=favs();f.has(r.id)?f.delete(r.id):f.add(r.id);P.favs=[...f];saveP();hap('light');
+  if(rTab==='fav'&&!f.has(r.id)){c.style.transition='opacity .2s,transform .2s';c.style.opacity='0';c.style.transform='scale(.95)';setTimeout(drawRoutines,200);return}
+  btn.classList.toggle('on',f.has(r.id));btn.textContent=f.has(r.id)?'★':'☆';btn.classList.remove('pop');void btn.offsetWidth;btn.classList.add('pop')}
+$('rTabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;rTab=b.dataset.tab;
+  [...$('rTabs').children].forEach(x=>x.classList.toggle('on',x===b));hap('light');drawRoutines()});
+/* how a tapped routine starts: at once, or it waits (black screen) for face down and / or a PeekSmith click */
+if(!['tap','down','ps','both'].includes(P.rStart))P.rStart='tap';$('rStart').value=P.rStart;
+$('rStart').onchange=e=>{P.rStart=e.target.value;saveP();if(P.rStart==='down'||P.rStart==='both')motionAsk()};
+let armed=null,armSwallow=0,motionOk=false,faceDown=false,downT=null;
+function motionAsk(){try{const D=window.DeviceOrientationEvent;if(D&&typeof D.requestPermission==='function')D.requestPermission().then(s=>{motionOk=s==='granted'}).catch(()=>{});else motionOk=true}catch(e){}}
+addEventListener('deviceorientation',e=>{if(e.beta==null)return;motionOk=true;
+  const down=Math.abs(e.beta)>150&&Math.abs(e.gamma||0)<35;   // screen to the table
+  if(down===faceDown)return;faceDown=down;clearTimeout(downT);
+  if(down&&armed&&(P.rStart==='down'||P.rStart==='both'))downT=setTimeout(()=>{if(faceDown&&armed)armGo()},250)});
+function arm(r){armed=r;armSwallow=0;const b=$('runBlack');b.classList.add('on','armed');try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
+  const m=P.rStart;$('armTx').innerHTML=(m==='down'?'Turn the phone face down':m==='ps'?'Click the PeekSmith':'Turn face down or click the PeekSmith')+'<br>Tap to cancel';
+  if(faceDown&&(m==='down'||m==='both'))$('armTx').innerHTML='Turn the phone up, then face down<br>Tap to cancel';
+  bleShow('Ready: '+r.name);hap('light')}
+function armGo(){const r=armed;if(!r)return;armed=null;$('runBlack').classList.remove('armed');runRoutine(r)}
+function armCancel(){if(!armed)return;armed=null;$('runBlack').classList.remove('on','armed');bleShow('');hap('medium')}
+function startRoutine(r){if(running){runStop(true);return}if(P.rStart==='tap'){runRoutine(r);return}
+  if(P.rStart!=='ps')motionAsk();arm(r)}
+$('runBlack').addEventListener('click',e=>{if(armed){e.stopImmediatePropagation();armCancel()}},true);
 /* − / + on a ready-made routine: one phone less / more. A new phone pops in at the side, a removed one shrinks away. */
 function stepPhones(c,d){const i=+c.dataset.i,r=P.routines[i];if(!r||!r.gen)return;const n=(r.n||1)+d;if(n<1||n>9){hap('light');return}
   const swap=pop=>{setPhones(r,n);const t=document.createElement('div');t.innerHTML=cardHTML(r,i,pop);const nc=t.firstElementChild;nc.querySelector('b').textContent=r.name;c.replaceWith(nc)};
@@ -901,11 +917,11 @@ function animate(){requestAnimationFrame(animate);if(!isMag()||!$('pgRoutines').
 requestAnimationFrame(animate);
 /* tap = run, hold 0.6 s = edit */
 {let ht=null,held=false,pc=null;const L=$('rlist');
-  L.addEventListener('touchstart',e=>{if(e.target.closest('.rn')){pc=null;return}pc=e.target.closest('.rc');if(!pc)return;held=false;pc.classList.add('press');
+  L.addEventListener('touchstart',e=>{if(e.target.closest('.rn,.rstar')){pc=null;return}pc=e.target.closest('.rc');if(!pc)return;held=false;pc.classList.add('press');
     ht=setTimeout(()=>{held=true;pc.classList.remove('press');hap('medium');openSave(P.routines[+pc.dataset.i],false)},600)},{passive:true});
   L.addEventListener('touchmove',()=>{clearTimeout(ht);if(pc)pc.classList.remove('press');pc=null},{passive:true});
-  L.addEventListener('touchend',e=>{clearTimeout(ht);if(!pc)return;pc.classList.remove('press');if(!held){e.preventDefault();runRoutine(P.routines[+pc.dataset.i])}pc=null},{passive:false});
-  L.addEventListener('click',e=>{const sb=e.target.closest('.rn button');if(sb){e.stopPropagation();stepPhones(sb.closest('.rc'),+sb.dataset.d);return}const c=e.target.closest('.rc');if(!c||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;runRoutine(P.routines[+c.dataset.i])})}
+  L.addEventListener('touchend',e=>{clearTimeout(ht);if(!pc)return;pc.classList.remove('press');if(!held){e.preventDefault();startRoutine(P.routines[+pc.dataset.i])}pc=null},{passive:false});
+  L.addEventListener('click',e=>{const st=e.target.closest('.rstar');if(st){e.stopPropagation();favToggle(st.closest('.rc'),st);return}const sb=e.target.closest('.rn button');if(sb){e.stopPropagation();stepPhones(sb.closest('.rc'),+sb.dataset.d);return}const c=e.target.closest('.rc');if(!c||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;startRoutine(P.routines[+c.dataset.i])})}
 $('rNew').addEventListener('click',()=>{showPg('pgPhones');recCountdown()});
 
 /* ---------- run: black screen, countdown buzz, routine on all phones, back to the list ---------- */
@@ -969,7 +985,10 @@ function lightButton(b,e){const v=P.lightBtn[b];if(!v)return false;
   if(e==='release'){const d=lbDown[b];delete lbDown[b];if(!d)return true;clearTimeout(d.t);if(d.held)lbLight(v,false);else lbTap(v);return true}
   if(e==='click'||e==='longpress'){if(!lbSeenPress[b]&&e==='click')lbTap(v);return true}   // (a PeekSmith that sends no press/release: tap only)
   return true}
-{const o=bleButton;bleButton=function(b,e){if(lightButton(b,e))return;const a=P.btns[b+'.'+e]||'none';
+{const o=bleButton;bleButton=function(b,e){
+  if(armed&&(P.rStart==='ps'||P.rStart==='both')&&(e==='press'||e==='click')){armSwallow=now()+900;armGo();return}
+  if(armSwallow&&now()<armSwallow&&e!=='press')return;   // the rest of the same click
+  if(lightButton(b,e))return;const a=P.btns[b+'.'+e]||'none';
   if(a.startsWith&&a.startsWith('r:')){const r=P.routines.find(x=>'r:'+x.id===a);if(running)runStop(true);else if(r)runRoutine(r);return}
   if(a==='stop'){runStop(true);return}
   return o(b,e)}}
