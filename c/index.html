@@ -295,7 +295,27 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v31</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v32</div>
+<div data-tab="Help" class="hui-help">
+  <h4>Open and close</h4>
+  <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
+  <h4>Force (4th number)</h4>
+  <ol><li>Spectators type numbers with <b>+</b> between them (default: 3 numbers).</li>
+  <li>The last person taps <b>+</b> and types "any" fourth number. Each digit they tap shows the next digit of the necessary number.</li>
+  <li>They tap <b>=</b>. The total is the force: the date and time (1 minute ahead) or your custom number.</li></ol>
+  <p>Quick force: type a number, then hold <b>1</b> for 1 second. Battery: type 1–100, then hold <b>8</b>. AC makes the force ready again.</p>
+  <h4>Peeks</h4>
+  <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
+  <h4>Aura peer mirror (top right button)</h4>
+  <ul><li><b>Double tap</b>: this phone switches Spectator ↔ Magician. The other device switches too.</li>
+  <li><b>Tap</b>: mirror on / off on the two devices.</li>
+  <li>Your iPhone (Magician, in Aura Browser) shows the spectator's display live. The spectator's device (AuraClip) is Spectator.</li>
+  <li>The two devices must use the same room (default fvt-calc) and stay on screen.</li></ul>
+  <h4>Inject</h4>
+  <p>The calculator sends a number to Inject (default: the last number typed) when the proximity sensor is covered, the phone is face down, or = is tapped (see Inject tab).</p>
+  <h4>Problems</h4>
+  <p>Not connected: open Peeks → Aura peer and read the Status and Peer test lines. "Aura.peer: —" means that Aura must be updated.</p>
+</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -761,7 +781,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v31. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v32. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}

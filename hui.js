@@ -6,6 +6,7 @@
    - The Done button in .shead / .hd moves to the new header, so its handlers stay. */
 (function(){
 const ICONS={
+help:'<circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 1 1 3.4 2.3c-.6.3-1 .8-1 1.5v.6"/><path d="M12 17h.01"/>',
 pin:'<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
 unlock:'<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 7.5-2"/>',
 inject:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
@@ -23,6 +24,10 @@ log:'<path d="M4 6h16M4 12h16M4 18h10"/>',
 more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'};
 const svg=n=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||ICONS.more)+'</svg>';
 const CSS=`
+.hui .hui-help{margin:16px 0 0;border-radius:22px;background:var(--hb);box-shadow:8px 8px 18px var(--hd),-8px -8px 18px var(--hl);padding:6px 18px 14px;color:var(--ht);font-size:14px;line-height:1.45}
+.hui .hui-help h4{font-size:12px;font-weight:700;color:var(--ha);text-transform:uppercase;letter-spacing:.3px;margin:14px 0 4px}
+.hui .hui-help p{margin:4px 0;color:var(--ht)}.hui .hui-help ol,.hui .hui-help ul{margin:4px 0 4px 20px;padding:0}.hui .hui-help li{margin:3px 0}
+.hui .hui-help b{color:#fff}.hui .hui-help small{color:var(--hm);font-size:12.5px}
 .hui{--hb:#1e2026;--hd:#121318;--hl:#2a2d35;--ht:#e9eaee;--hm:#7d818c;--ha:#ff9f0a;
   background:var(--hb)!important;color:var(--ht)!important;font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif}
 #sheet.hui{top:0!important;bottom:0!important;left:0!important;right:0!important;max-height:none!important;height:auto!important;max-width:none!important;margin:0!important;
@@ -81,7 +86,9 @@ function norm(t){return String(t||'').replace(/\s+/g,' ').trim().toLowerCase()}
 function build(box){
   if(box.classList.contains('hui'))return;
   let cfg={};try{cfg=JSON.parse(box.getAttribute('data-hui')||'{}')}catch(e){}
-  const tabs=(cfg.tabs||[]).map(t=>({n:t.n,i:t.i||'more',s:(t.s||[]).map(norm),el:null,btn:null}));
+  const tabs=(cfg.tabs||[]).map(t=>({n:t.n,i:t.i||'more',s:(t.s||[]).map(norm),x:!!t.x,el:null,btn:null}));
+  /* a page with a data-tab="Help" card gets a Help tab at the end */
+  if(box.querySelector('[data-tab="Help"]')&&!tabs.some(t=>norm(t.n)==='help'))tabs.push({n:'Help',i:'help',s:[],x:true,el:null,btn:null});
   if(!tabs.length)tabs.push({n:'Settings',i:'more',s:[]});
   if(!document.getElementById('hui-css')){const st=document.createElement('style');st.id='hui-css';st.textContent=CSS;document.head.appendChild(st)}
   /* 1. card = .lbl + the .grp / .seg right after it */
@@ -116,7 +123,7 @@ function build(box){
     let tab=null;
     if(s.t&&s.t[0]==='#')tab=tabs.find(t=>norm(t.n)===norm(s.t.slice(1)));
     if(!tab&&s.t)tab=tabs.find(t=>t.s.some(w=>s.t.startsWith(w)));
-    (tab||tabs[tabs.length-1]).el.append(...s.els)});
+    (tab||tabs.filter(t=>!t.x).pop()||tabs[tabs.length-1]).el.append(...s.els)});
   if(!cfg.ver){const vn=[...box.querySelectorAll('.note,.snote,small')].map(e=>e.textContent.trim()).find(t=>/^[\w ]+ v\d+$/.test(t));if(vn)cfg.ver=vn.split(' ').pop()}
   const KEY='hui-tab:'+location.pathname;
   function show(i){tabs.forEach((t,j)=>{t.el.classList.toggle('on',i===j);t.btn.classList.toggle('on',i===j)});
