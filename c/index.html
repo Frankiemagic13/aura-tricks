@@ -295,7 +295,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v30</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v31</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -761,7 +761,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v30. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v31. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -818,8 +818,12 @@ if(Q.get('peer')==='0')S.peer=false;else if(Q.get('peer')==='1')S.peer=true;
 if(Q.has('room'))S.peerRoom=Q.get('room');
 if(!S.peerRoomV){S.peerRoom=S.peerRoom||'fvt-calc';S.peerRoomV=1;saveS()}
 if(S.peerRoom==null)S.peerRoom='';
+/* the role is shared by the calculator and Notes on this device */
+function roleSave(r){try{localStorage.setItem('fvtRole',r)}catch(e){}}
+try{const r=localStorage.getItem('fvtRole');if(r==='mirror'||r==='spect')S.peerRole=r}catch(e){}
 if(Q.get('mirror')==='1')S.peerRole='mirror';else if(Q.get('mirror')==='0')S.peerRole='spect';
 if(S.peerRole!=='mirror')S.peerRole='spect';
+if(Q.has('mirror'))roleSave(S.peerRole);
 let peerGen=0,peerOk=false,peerBusy=false,peerHooked=false,peerHost='',hosting=false,lastDisp='';const guests=new Map();
 /* spectator: send the display to the mirror after each change */
 function peerDisp(force){
@@ -886,7 +890,7 @@ function peerOut(o){const P=peerApi();if(!P)return false;
 /* mirror on/off and Spectator/Magician swap: the same change on this device and on the other device */
 function setMirr(on){S.mirr=on;saveS();
   if(S.peerRole==='mirror'){render();if(on)peerOut({cmd:'disp'})}else if(on)peerDisp(true)}
-async function swapRole(){S.peerRole=S.peerRole==='mirror'?'spect':'mirror';S.peer=true;S.mirr=true;saveS();peerSync();
+async function swapRole(){S.peerRole=S.peerRole==='mirror'?'spect':'mirror';roleSave(S.peerRole);S.peer=true;S.mirr=true;saveS();peerSync();
   mirrorD=null;await peerLeave();render();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
 function peerRemote(d){
@@ -906,7 +910,7 @@ async function peerJoin(manual){
   peerBusy=false}
 async function peerLeave(){const P=peerApi();peerGen++;peerBusy=false;peerOk=false;hosting=false;guests.clear();lastDisp='';if(P)try{await P.leave()}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
 function peerSync(){$('peerOn').checked=!!S.peer;$('peerRoom').value=S.peerRoom||'';$('peerRole').value=S.peerRole}
-$('peerRole').onchange=async()=>{S.peerRole=$('peerRole').value;saveS();mirrorD=null;await peerLeave();render();peerJoin(true)};
+$('peerRole').onchange=async()=>{S.peerRole=$('peerRole').value;roleSave(S.peerRole);saveS();mirrorD=null;await peerLeave();render();peerJoin(true)};
 $('peerOn').onchange=()=>{S.peer=$('peerOn').checked;saveS();if(S.peer)peerJoin(true);else peerLeave()};
 $('peerRoom').onchange=async()=>{S.peerRoom=$('peerRoom').value.trim().slice(0,64);saveS();if(peerOk||peerBusy)await peerLeave();peerJoin(true)};
 $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};

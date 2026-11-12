@@ -571,16 +571,20 @@ if(P.peer===undefined)P.peer=true;
 if(!P.peerRoomV){P.peerRoom=P.peerRoom||'fvt-calc';P.peerRoomV=1}
 if(Q.get('peer')==='0')P.peer=false;else if(Q.get('peer')==='1')P.peer=true;
 if(Q.has('room'))P.peerRoom=Q.get('room');
+/* the role is shared by the calculator and Notes on this device */
+function roleSave(r){try{localStorage.setItem('fvtRole',r)}catch(e){}}
+try{const r=localStorage.getItem('fvtRole');if(r==='mirror'||r==='spect')P.peerRole=r}catch(e){}
 if(Q.get('mirror')==='1')P.peerRole='mirror';else if(Q.get('mirror')==='0')P.peerRole='spect';
 if(P.peerRole!=='mirror')P.peerRole='spect';
+if(Q.has('mirror'))roleSave(P.peerRole);
 if(P.peerRoom==null)P.peerRoom='';
 saveP();
-let peerOk=false,peerBusy=false,peerHooked=false,hosting=false,peerLastErr='',lastNote=null,lastDraw='';const guests=new Map(),peerEv=[];
+let peerTx=0,peerRx=0,peerOk=false,peerBusy=false,peerHooked=false,hosting=false,peerLastErr='',lastNote=null,lastDraw='';const guests=new Map(),peerEv=[];
 const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
 function peerStatus(t){$('peerSt').textContent=t;peerDbgShow()}
 function peerErr(e){let m=(e&&(e.message||e.code||e.name))||e;try{if(typeof m==='object')m=JSON.stringify(m)}catch(x){}peerLastErr=String(m).slice(0,120);peerDbgShow()}
 function peerDbgShow(){const A=window.Aura,Pp=A&&A.peer;let f='—';try{if(Pp)f=Object.keys(Pp).join(', ')||Object.getOwnPropertyNames(Object.getPrototypeOf(Pp)).filter(k=>k!=='constructor').join(', ')}catch(e){}
-  $('peerDbg').textContent='Peer test: Aura '+(A?'yes':'no')+', Aura.peer: '+f+'. Role: '+P.peerRole+'. Room: '+(P.peerRoom||'automatic')+'. Last error: '+(peerLastErr||'none')+'. Events: '+(peerEv.slice(-4).join(' | ')||'none')}
+  $('peerDbg').textContent='Peer test: Aura '+(A?'yes':'no')+', Aura.peer: '+f+'. Role: '+P.peerRole+'. Room: '+(P.peerRoom||'automatic')+'. Mirror: '+(P.mirr===false?'off':'on')+'. Notes sent: '+peerTx+', received: '+peerRx+'. Last error: '+(peerLastErr||'none')+'. Events: '+(peerEv.slice(-4).join(' | ')||'none')}
 function peerRaw(o){const Pp=peerApi();if(!Pp||!peerOk)return false;
   try{const r=Pp.send(o);if(r&&r.catch)r.catch(()=>{peerOk=false;peerStatus('Connection lost');setTimeout(peerJoin,1500)})}catch(e){return false}
   return true}
@@ -594,7 +598,7 @@ function drawMsg(){
   return m}
 function peerSync(force){
   if(P.peerRole!=='spect'||!P.peer||!peerOk||P.mirr===false)return;
-  const h=note.innerText;if(force||h!==lastNote){lastNote=h;peerRaw({type:'note',h})}
+  const h=note.innerText;if(force||h!==lastNote){lastNote=h;if(peerRaw({type:'note',h})){peerTx++;peerDbgShow()}}
   if(cur)return;   // the drawing goes when the stroke ends
   const ds=drawSig();if(force||ds!==lastDraw){lastDraw=ds;peerRaw(drawMsg())}}
 note.addEventListener('input',()=>peerSync());
@@ -621,7 +625,7 @@ function peerHook(){
     let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
     if((kind!=='json'&&kind!=='text')||!d||typeof d!=='object')return;
     if(d.cmd==='mirr'||d.cmd==='swap'){peerRemote(d);return}
-    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note')mirrorNote(d.h);else if(d.type==='draw')mirrorDraw(d);return}
+    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note'){peerRx++;peerDbgShow();mirrorNote(d.h)}else if(d.type==='draw')mirrorDraw(d);return}
     if(d.cmd==='sync'||d.cmd==='ping')peerSync(true)})}
 /* send to the other device: the host sends to all its guests, a guest sends to its host */
 function peerOut(o){const Pp=peerApi();if(!Pp)return false;
@@ -630,7 +634,7 @@ function peerOut(o){const Pp=peerApi();if(!Pp)return false;
 /* mirror on/off and Spectator/Magician swap: the same change on this device and on the other device */
 function setMirr(on){P.mirr=on;saveP();
   if(!on)return;if(P.peerRole==='mirror')peerOut({cmd:'sync'});else peerSync(true)}
-async function swapRole(){P.peerRole=P.peerRole==='mirror'?'spect':'mirror';P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
+async function swapRole(){P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
 function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
 async function peerHostStart(){
@@ -652,7 +656,7 @@ async function peerJoin(manual){
   peerBusy=false}
 async function peerLeave(){const Pp=peerApi();peerOk=false;hosting=false;guests.clear();lastNote=null;lastDraw='';if(Pp)try{await Pp.leave()}catch(e){}peerStatus(P.peer?'Not connected':'Off')}
 function peerUI(){$('peerOn').checked=!!P.peer;$('peerRoom').value=P.peerRoom||'';$('peerRole').value=P.peerRole}
-$('peerRole').onchange=async()=>{P.peerRole=$('peerRole').value;saveP();await peerLeave();peerJoin(true)};
+$('peerRole').onchange=async()=>{P.peerRole=$('peerRole').value;roleSave(P.peerRole);saveP();await peerLeave();peerJoin(true)};
 $('peerOn').onchange=()=>{P.peer=$('peerOn').checked;saveP();if(P.peer)peerJoin(true);else peerLeave()};
 $('peerRoom').onchange=async()=>{P.peerRoom=$('peerRoom').value.trim().slice(0,64);saveP();await peerLeave();peerJoin(true)};
 $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};
