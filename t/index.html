@@ -254,6 +254,9 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="lbl">Acrostic</div>
   <div class="grp"><div class="r">Start<span class="dim">Double tap the checklist</span></div></div>
   <div class="snote">The top of your phone shows "Swipe to input number". Swipe up or down (each swipe = +1 and a buzz, up to 5) to choose which letter of each word spells their word. Then they type a word, and your note shows the list.</div>
+  <div class="lbl">Predictions and Inject</div>
+  <div class="grp"><div class="r">Their word comes from<select id="predSrc"><option value="notes">Notes (they type)</option><option value="inject">Inject</option></select></div></div>
+  <div class="snote">Inject: start the prediction or the Acrostic as usual (no second phone needed). Your phone waits for the next word that comes into Inject (Inject ID on the Inject tab), then shows the prediction or the Acrostic list for that word. The PeekSmith shows "Waiting for Inject", then the word. It waits up to 5 minutes.</div>
   <div class="lbl">Drawings</div>
   <div class="grp"><div class="r">Their drawing on my phone<select id="drawMode"><option value="alter">Slightly changed</option><option value="exact">Exact copy</option></select></div></div>
   <div class="snote">Slightly changed: your phone shows the spectator's drawing a little turned, moved, smaller or larger, and with a slightly different line, as if a different hand drew it. The PeekSmith gets the same drawing.</div>
@@ -773,7 +776,7 @@ function peerHook(){
     if(d.cmd==='mirr'||d.cmd==='swap'){peerRemote(d);return}
     if(P.peerRole==='mirror'&&predMode&&(d.type==='note'||d.type==='draw'))return;   // the magician is writing a prediction
     if(P.peerRole==='spect'){if(d.cmd==='pred'){predRemote(d);return}if(d.type==='predtext'){predShow(d.h);return}}
-    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note'){peerRx++;peerDbgShow();if(acroMode)acroIn(d.h);else mirrorNote(d.h)}else if(d.type==='draw')mirrorDraw(d);return}
+    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note'){peerRx++;peerDbgShow();if(acroMode){if(!injPoll)acroIn(d.h)}else mirrorNote(d.h)}else if(d.type==='draw')mirrorDraw(d);return}
     if(d.cmd==='sync'||d.cmd==='ping')peerSync(true)})}
 /* send to the other device: the host sends to all its guests, a guest sends to its host */
 function peerOut(o){const Pp=peerApi();if(!Pp)return false;
@@ -888,6 +891,26 @@ function acroToggle(){
     peerOut({cmd:'sync'});qtoast(L);qbuzz();acroPos=1;acroSwipes=0;acroHintShow();if(P.predType!=='acro'){note.innerText='';note.classList.remove('plain')}}
   else{acroMode=false;acroHintShow();clearTimeout(acroT);acroShow(true);P.mirr=false;saveP();   // keep the words on screen: the mirror stops on this phone
     qtoast(L+' done');qbuzz()}}
+/* their word from Inject: the prediction / Acrostic waits for the next new word in Inject (no second phone) */
+let injPoll=null;
+function injStop(){clearInterval(injPoll);injPoll=null}
+function injStart(){injStop();if(acroMode)acroToggle();
+  const L=P.predType==='acro'?'Acrostic':(P.predText||'Prediction');
+  acroMode=true;acroCache.clear();acroRaw=null;acroBase='';note.blur();acroPos=1;acroSwipes=0;acroHintShow();
+  if(P.predType!=='acro'){note.innerText='';note.classList.remove('plain')}
+  qtoast(L+' · waiting for Inject');qbuzz();try{bleShow('Waiting for Inject')}catch(e){}
+  const id=(P.iId||'13297').replace(/\D/g,'')||'13297',end=Date.now()+300000;let base=null,busy=false;
+  injPoll=setInterval(async()=>{
+    if(!acroMode){injStop();return}
+    if(Date.now()>end){injStop();acroToggle();qtoast('Inject: no word came');return}
+    if(busy)return;busy=true;
+    try{const r=await fetch('https://11z.co/_w/'+id+'/selection?t='+Date.now(),{cache:'no-store'});const j=await r.json();
+      const c=String(j.count??'')+'|'+String(j.value??'');
+      if(base===null){base=c;return}   // the word that was there before you started does not count
+      if(c!==base&&acroMode){const w=String(j.value??'').trim();if(!w){base=c;return}injStop();
+        try{bleShow('Inject: '+w)}catch(e){}
+        acroIn(w+(P.predType==='acro'?' ':'\n'))}}   // same as when the spectator types the word, then Return / space
+    catch(e){}finally{busy=false}},1000)}
 function predToggle(){
   if(!predMode){acroToggle();return}   // all prediction types show on the Magician phone
   if(P.peerRole!=='mirror'){qtoast('Prediction: only on the Magician phone');return}
@@ -906,6 +929,7 @@ if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predT
 if(!(+P.predStop>0))P.predStop=5;   // a prediction always stops by itself
 $('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
 $('predText').value=P.predText;
+if(P.predSrc!=='inject')P.predSrc='notes';$('predSrc').value=P.predSrc;$('predSrc').onchange=e=>{P.predSrc=e.target.value;saveP()};
 /* quick change of the prediction type: the checklist button (bottom bar and keyboard bar) */
 /* double tap the checklist: next prediction type -> this phone becomes the Magician -> mirror off -> the prediction starts */
 let typeBusy=false,typeBusyT=null;
@@ -914,6 +938,7 @@ async function startType(type){if(typeBusy){qtoast('Wait…');return}typeBusy=tr
   try{
     if(predMode)predToggle();else if(acroMode)acroToggle();   // a running prediction stops first
     P.predType=type;saveP();$('predType').value=P.predType;
+    if(P.predSrc==='inject'){injStart();return}   // the word comes from Inject: no second phone
     const t=P.predType==='acro'?'Acrostic':P.predText;qtoast(t);qbuzz();
     await beMagician(t);
     if(!(P.peerRole==='mirror'&&hosting&&guests.size))qtoast(t+' · connecting…');
@@ -922,6 +947,7 @@ async function startType(type){if(typeBusy){qtoast('Wait…');return}typeBusy=tr
   finally{typeBusy=false;clearTimeout(typeBusyT)}}
 async function predStart(){if(typeBusy){qtoast('Wait…');return}typeBusy=true;clearTimeout(typeBusyT);typeBusyT=setTimeout(()=>{typeBusy=false},20000);
   try{if(predMode)predToggle();else if(acroMode)acroToggle();
+    if(P.predSrc==='inject'){injStart();return}
     const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();
     await beMagician(t);
     if(!(P.peerRole==='mirror'&&hosting&&guests.size))qtoast(t+' · connecting…');
