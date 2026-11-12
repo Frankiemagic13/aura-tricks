@@ -50,6 +50,7 @@ svg{display:block}
 #note{min-height:60vh;outline:none;font-size:17px;line-height:23px;white-space:pre-wrap;word-wrap:break-word;caret-color:var(--tint);
   -webkit-user-select:text;user-select:text}
 #note::first-line{font-size:30px;line-height:40px;font-weight:800;letter-spacing:.2px;color:var(--title)}
+#note.plain::first-line{font-size:17px;line-height:23px;font-weight:400;letter-spacing:0;color:inherit}   /* Acrostic: no title line */
 #note:empty{min-height:max(60vh,40px)}
 #note:empty::before{content:'';display:inline-block;height:40px}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:5;padding:14px 28px max(calc(env(safe-area-inset-bottom) - 7px),12px) 27px;
@@ -278,7 +279,7 @@ function editing(on){done.classList.toggle('hidden',!on);document.body.classList
 let edited=false;
 function topIcons(){const has=!!note.innerText.trim();$('share').classList.toggle('empty',!has);$('compose').classList.toggle('empty',!has);$('undoBtn').classList.toggle('gone',!edited)}
 note.addEventListener('input',()=>{edited=true;topIcons()});
-function newNote(){edited=false;topIcons()}
+function newNote(){edited=false;note.classList.remove('plain');topIcons()}
 /* keep the keyboard toolbar just above the keyboard */
 function kbarPlace(){const v=window.visualViewport,k=document.getElementById('kbar');if(!k)return;
   const kb=v?Math.max(0,innerHeight-(v.offsetTop+v.height)):0;k.style.bottom=(kb>40?kb+9:8+0)+'px'}
@@ -609,7 +610,7 @@ function peerSync(force){
 note.addEventListener('input',()=>peerSync());
 setInterval(()=>peerSync(),250);
 /* mirror: show what comes from the spectator, then the normal peeks run on this phone (PeekSmith, live peek, drawing) */
-function mirrorNote(h){h=String(h??'');if(h===note.innerText)return;
+function mirrorNote(h){h=String(h??'');note.classList.remove('plain');if(h===note.innerText)return;
   note.innerText=h;edited=!!h;topIcons();if(!h.trim()){last='';lastBle='';iSent=''}
   try{bleLive()}catch(e){}const ch=h.slice(-1);if(ch===' '||ch==='\n')now();else soon()}
 function mirrorDraw(d){const k=innerWidth/(+d.w||innerWidth);
@@ -706,7 +707,7 @@ setInterval(()=>predSend(),200);
 /* Acrostic on the magician's phone: the spectator types, YOUR note shows common words whose first letters spell
    each word they typed. The spectator's phone does not change. The PeekSmith still gets what they really typed. */
 let acroMode=false,acroRaw='',acroT=null;
-function acroShow(all){const v=acroText(acroRaw,all);if(v!==note.innerText){note.innerText=v;edited=!!v;topIcons()}}
+function acroShow(all){note.classList.add('plain');const v=acroText(acroRaw,all);if(v!==note.innerText){note.innerText=v;edited=!!v;topIcons()}}
 function acroIn(h){h=String(h??'');if(h===acroRaw)return;acroRaw=h;
   /* peeks from the real text (same as the normal mirror) */
   const lines=h.replace(/\u00a0/g,' ').split('\n').map(x=>x.trim()).filter(Boolean),v=lines.join(' | ');
