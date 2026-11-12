@@ -84,13 +84,13 @@ body.studio #studio{display:flex}
 .tools button{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:#8e8e93;font:600 11px -apple-system}
 .tools b{width:40px;height:40px;border-radius:12px;background:#26262a;display:flex;align-items:center;justify-content:center;font:700 16px -apple-system;color:#fff}
 .st-hint{margin-top:auto;text-align:center;font:500 12.5px -apple-system;color:#8e8e93;padding:8px 16px}
-.ctl{flex:none;display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 0 26px}
+.ctl{flex:none;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0 26px}
 .cb{width:60px;height:60px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;background:#2a2a2e;position:relative;touch-action:none}
 .cb small{position:absolute;bottom:-19px;left:-12px;right:-12px;text-align:center;font:600 10.5px -apple-system;color:#8e8e93;pointer-events:none}
 .cb svg,.cb i{pointer-events:none}
 .cb.rec{box-shadow:inset 0 0 0 2.5px #30d158}.cb.rec i{width:22px;height:22px;border-radius:50%;background:#30d158}
 .recording .cb.rec{box-shadow:inset 0 0 0 2.5px #ff453a}.recording .cb.rec i{border-radius:6px;background:#ff453a}
-.cb.on{box-shadow:inset 0 0 0 2.5px #ffd60a}.cb.fl{box-shadow:inset 0 0 0 2.5px #ff6b3d}.cb.off{box-shadow:inset 0 0 0 2.5px #636366}
+.cb.on{box-shadow:inset 0 0 0 2.5px #ffd60a}.cb.all{box-shadow:inset 0 0 0 2.5px #ffd60a;background:#3a3420}.cb.fl{box-shadow:inset 0 0 0 2.5px #ff6b3d}.cb.off{box-shadow:inset 0 0 0 2.5px #636366}
 .cb.down{filter:brightness(1.5)}
 .csep{width:1px;height:44px;background:rgba(255,255,255,.12)}
 .tabbar{flex:none;display:flex;justify-content:space-around;background:rgba(28,28,31,.96);border-radius:26px 26px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 8px)}
@@ -175,6 +175,7 @@ body.studio #studio{display:flex}
       <div class="csep"></div>
       <button class="cb on" id="cOn"><svg width="24" height="28" viewBox="0 0 24 28" fill="#ffd60a"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><rect x="8.3" y="21.5" width="7.4" height="2.2" rx="1"/><rect x="9.3" y="25" width="5.4" height="2" rx="1"/></svg><small>On / hold</small></button>
       <button class="cb fl" id="cFl"><svg width="26" height="20" viewBox="0 0 28 22" fill="none" stroke="#ff6b3d" stroke-width="2.4" stroke-linecap="round"><path d="M14 2v5M5 6l3 3M23 6l-3 3M3 18h7M18 18h7M12 18h4"/></svg><small>Flash</small></button>
+      <button class="cb all" id="cAll"><svg width="30" height="28" viewBox="0 0 30 28" fill="#ffd60a"><path d="M15 5a7 7 0 0 0-4.1 12.7c.6.5 1 1.3 1 2.1V21h6.2v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 15 5z"/><rect x="11.9" y="22.4" width="6.2" height="2" rx="1"/><g stroke="#ffd60a" stroke-width="2" stroke-linecap="round"><path d="M15 0v2M4 4l1.6 1.6M26 4l-1.6 1.6M0 12h2.3M28 12h2"/></g></svg><small>All on</small></button>
       <button class="cb off" id="cOff"><svg width="24" height="28" viewBox="0 0 24 28" fill="none" stroke="#8e8e93" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><path d="M3 2l18 24"/></svg><small>Off</small></button>
     </div>
   </div>
@@ -298,6 +299,7 @@ body.studio #studio{display:flex}
   <div class="glist">
     <div><span class="g g2" data-g="#cOn"></span><span><b>On</b>: tap = the selected phones stay on · hold = on while you hold</span></div>
     <div><span class="g g2" data-g="#cFl"></span><span><b>Flash</b>: a short blink (0.2 s) on the selected phones</span></div>
+    <div><span class="g g2" data-g="#cAll"></span><span><b>All on</b>: every phone and M on at once (no need to select)</span></div>
     <div><span class="g g2" data-g="#cOff"></span><span><b>Off</b>: the selected phones off · nothing selected = all off</span></div>
     <div><span class="g"><i style="width:14px;height:14px;border-radius:50%;background:#30d158;display:block"></i></span><span><b>Record</b> / <b>Stop</b>: record a routine</span></div>
     <div><span class="g">?</span><span>This help · the gear opens the settings</span></div>
@@ -638,6 +640,7 @@ btn($('cOn'),()=>{const s=selected();if(!s.length){stToast('Select phones first'
   ()=>{if(!onHeld)return;if(now()-onDownAt>300)onHeld.forEach(t=>{act(t,false);sAdd(t,0)});onHeld=null;sGrp++});
 btn($('cFl'),()=>{const s=selected();if(!s.length){stToast('Select phones first');return}hap('light');
   s.forEach(t=>{act(t,true);sAdd(t,1);setTimeout(()=>{act(t,false);sAdd(t,0)},FLASH_MS)});setTimeout(()=>sGrp++,FLASH_MS+5)});
+btn($('cAll'),()=>{hap('medium');allT().forEach(t=>{act(t,true);sAdd(t,1)});sGrp++});   // All on: every phone and M
 btn($('cOff'),()=>{const s=selected().length?selected():allT();if(!selected().length)for(const k in vOn)vOn[k]=false;hap('light');s.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++});
 
 /* ---------- recording (one layer for each phone) ---------- */
