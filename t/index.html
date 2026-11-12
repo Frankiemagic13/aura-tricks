@@ -154,7 +154,7 @@ svg{display:block}
   </div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
+<div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
   <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
@@ -182,6 +182,16 @@ svg{display:block}
   </div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
+  <div class="lbl">Aura peer (iPhone to iPhone)</div>
+  <div class="grp">
+    <div class="r">This phone<select id="peerRole"><option value="spect">Spectator (sends)</option><option value="mirror">My phone (mirror)</option></select></div>
+    <div class="r">Use Aura peer<input type="checkbox" id="peerOn"></div>
+    <div class="r">Status<span id="peerSt" class="dim">—</span></div>
+    <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
+    <div class="r"><button class="sbtn" id="peerBtn">Connect now</button><button class="sbtn" id="peerTest">Test</button></div>
+  </div>
+  <div class="snote">Bluetooth from the spectator's phone directly to your iPhone. No internet is necessary. Your iPhone: open this page in Aura Browser and set "This phone" to "My phone (mirror)" (or add ?mirror=1 to the link). Your Notes then shows the spectator's note and drawings live, and the peeks go to your PeekSmith from your phone. The spectator's phone stays "Spectator". Use the same room on the two phones (default fvt-calc, the same as the calculator and PeekLink). Keep the two pages open and on screen.</div>
+  <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
     <div class="r">Send to Inject<input type="checkbox" id="iOn"></div>
@@ -243,7 +253,8 @@ function ble(v){if(!v||v===lastBle)return;lastBle=v;try{bleSend(v)}catch(e){}}  
 function post(v){
   ble(v);
   if(!v||v===last)return;last=v;
-  if(!P.online)return;
+  try{peerPeek(v)}catch(e){}
+  if(!P.online||P.peerRole==='mirror')return;
   try{PeekRelay.send(TOPIC,v,TITLE)}catch(e){}
 }
 function soon(){clearTimeout(t);t=setTimeout(()=>post(text()),800)}
@@ -508,6 +519,7 @@ note.addEventListener('input',()=>{if(!note.innerText.trim())iSent=''});
 $('compose').addEventListener('click',()=>{iSent=''});
 
 function iTrigger(src){
+  if(src==='prox'&&P.peerRole==='mirror')return;   // the magician's phone in a pocket must not send to Inject
   if(!P.inj||P.iWhen!==src||document.body.classList.contains('open'))return;
   iSend(false)}
 done.addEventListener('click',()=>iTrigger('done'));
@@ -549,6 +561,91 @@ function pxApply(){
   else{$('pxSt').textContent='Starting…';$('pxNow').textContent='—'}}
 $('pxOn').onchange=e=>{P.px=e.target.checked;saveP();pxApply()};
 pxApply();
+
+/* ================= Aura peer: spectator (guest) sends the note and the drawing, the mirror (host) shows them ================= */
+if(P.peer===undefined)P.peer=true;
+if(!P.peerRoomV){P.peerRoom=P.peerRoom||'fvt-calc';P.peerRoomV=1}
+if(Q.get('peer')==='0')P.peer=false;else if(Q.get('peer')==='1')P.peer=true;
+if(Q.has('room'))P.peerRoom=Q.get('room');
+if(Q.get('mirror')==='1')P.peerRole='mirror';else if(Q.get('mirror')==='0')P.peerRole='spect';
+if(P.peerRole!=='mirror')P.peerRole='spect';
+if(P.peerRoom==null)P.peerRoom='';
+saveP();
+let peerOk=false,peerBusy=false,peerHooked=false,hosting=false,peerLastErr='',lastNote=null,lastDraw='';const guests=new Map(),peerEv=[];
+const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
+function peerStatus(t){$('peerSt').textContent=t;peerDbgShow()}
+function peerErr(e){let m=(e&&(e.message||e.code||e.name))||e;try{if(typeof m==='object')m=JSON.stringify(m)}catch(x){}peerLastErr=String(m).slice(0,120);peerDbgShow()}
+function peerDbgShow(){const A=window.Aura,Pp=A&&A.peer;let f='—';try{if(Pp)f=Object.keys(Pp).join(', ')||Object.getOwnPropertyNames(Object.getPrototypeOf(Pp)).filter(k=>k!=='constructor').join(', ')}catch(e){}
+  $('peerDbg').textContent='Peer test: Aura '+(A?'yes':'no')+', Aura.peer: '+f+'. Role: '+P.peerRole+'. Room: '+(P.peerRoom||'automatic')+'. Last error: '+(peerLastErr||'none')+'. Events: '+(peerEv.slice(-4).join(' | ')||'none')}
+function peerRaw(o){const Pp=peerApi();if(!Pp||!peerOk)return false;
+  try{const r=Pp.send(o);if(r&&r.catch)r.catch(()=>{peerOk=false;peerStatus('Connection lost');setTimeout(peerJoin,1500)})}catch(e){return false}
+  return true}
+/* spectator: what goes to the other phone */
+function peerPeek(v){if(P.peerRole==='spect'&&P.peer)peerRaw({type:'peek',m:String(v),t:Date.now()})}
+function drawSig(){let n=0;for(const st of strokes)n+=st.points.length;return strokes.length+':'+n}
+function drawMsg(){
+  let step=1,m;
+  do{m={type:'draw',w:innerWidth,s:strokes.map(st=>({t:st.tool,c:st.color,p:st.points.filter((q,i,a)=>i%step===0||i===a.length-1).map(q=>[Math.round(q[0]),Math.round(q[1])])}))};step*=2}
+  while(JSON.stringify(m).length>60000&&step<64);
+  return m}
+function peerSync(force){
+  if(P.peerRole!=='spect'||!P.peer||!peerOk)return;
+  const h=note.innerText;if(force||h!==lastNote){lastNote=h;peerRaw({type:'note',h})}
+  if(cur)return;   // the drawing goes when the stroke ends
+  const ds=drawSig();if(force||ds!==lastDraw){lastDraw=ds;peerRaw(drawMsg())}}
+note.addEventListener('input',()=>peerSync());
+setInterval(()=>peerSync(),250);
+/* mirror: show what comes from the spectator, then the normal peeks run on this phone (PeekSmith, live peek, drawing) */
+function mirrorNote(h){h=String(h??'');if(h===note.innerText)return;
+  note.innerText=h;edited=!!h;topIcons();if(!h.trim()){last='';lastBle='';iSent=''}
+  try{bleLive()}catch(e){}const ch=h.slice(-1);if(ch===' '||ch==='\n')now();else soon()}
+function mirrorDraw(d){const k=innerWidth/(+d.w||innerWidth);
+  strokes=(d.s||[]).filter(st=>TOOLS[st.t]).map(st=>({tool:st.t,color:st.c,points:(st.p||[]).map(q=>[q[0]*k,q[1]*k])}));
+  redoStack=[];redraw();undoState();drawToPS()}
+function hostShow(){if(!P.peer){peerStatus('Off');return}if(!hosting)return;
+  peerStatus(guests.size?'Mirroring '+[...guests.values()].join(', '):'Waiting for spectator…')}
+function peerHook(){
+  const A=window.Aura;if(peerHooked||!A||typeof A.on!=='function')return;peerHooked=true;
+  ['peer.connected','peer.disconnected'].forEach(n=>A.on(n,d=>{peerEv.push(n.slice(5)+' '+((d&&d.name)||''));if(peerEv.length>10)peerEv.shift();peerDbgShow()}));
+  A.on('peer.connected',({id,name})=>{
+    if(P.peerRole==='mirror'){guests.set(id,name||'Spectator');hostShow();try{peerApi().send({cmd:'sync'},{to:id})}catch(e){}return}
+    peerOk=true;peerStatus('Connected'+(name?' to '+name:''));peerSync(true)});
+  A.on('peer.disconnected',({id})=>{
+    if(P.peerRole==='mirror'){guests.delete(id);hostShow();return}
+    peerOk=false;peerStatus('Not connected – trying again');setTimeout(peerJoin,1500)});
+  A.on('peer.message',({kind,data})=>{
+    let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
+    if((kind!=='json'&&kind!=='text')||!d||typeof d!=='object')return;
+    if(P.peerRole==='mirror'){if(d.type==='note')mirrorNote(d.h);else if(d.type==='draw')mirrorDraw(d);return}
+    if(d.cmd==='sync'||d.cmd==='ping')peerSync(true)})}
+async function peerHostStart(){
+  const Pp=peerApi();if(!Pp||typeof Pp.host!=='function'){peerStatus('Only in Aura');return}
+  peerHook();if(hosting||peerBusy)return;peerBusy=true;
+  try{const o={name:'Magician'};if(P.peerRoom)o.room=P.peerRoom;await Pp.host(o);hosting=true;hostShow()}
+  catch(e){peerStatus('Error');peerErr(e)}
+  peerBusy=false}
+async function peerJoin(manual){
+  if(!P.peer){peerStatus('Off');return}
+  if(P.peerRole==='mirror')return peerHostStart();
+  const Pp=peerApi();if(!Pp){peerStatus('Only in Aura');return}
+  peerHook();
+  if(peerOk||peerBusy||(!manual&&document.visibilityState!=='visible'))return;
+  peerBusy=true;peerStatus('Searching…');
+  try{const o={name:'Notes',timeout:6};if(P.peerRoom)o.room=P.peerRoom;
+    const h=await Pp.join(o);peerOk=true;peerStatus('Connected'+(h&&h.name?' to '+h.name:''));peerSync(true)}
+  catch(e){peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
+  peerBusy=false}
+async function peerLeave(){const Pp=peerApi();peerOk=false;hosting=false;guests.clear();lastNote=null;lastDraw='';if(Pp)try{await Pp.leave()}catch(e){}peerStatus(P.peer?'Not connected':'Off')}
+function peerUI(){$('peerOn').checked=!!P.peer;$('peerRoom').value=P.peerRoom||'';$('peerRole').value=P.peerRole}
+$('peerRole').onchange=async()=>{P.peerRole=$('peerRole').value;saveP();await peerLeave();peerJoin(true)};
+$('peerOn').onchange=()=>{P.peer=$('peerOn').checked;saveP();if(P.peer)peerJoin(true);else peerLeave()};
+$('peerRoom').onchange=async()=>{P.peerRoom=$('peerRoom').value.trim().slice(0,64);saveP();await peerLeave();peerJoin(true)};
+$('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};
+$('peerTest').onclick=()=>{if(P.peerRole==='mirror'){hostShow();return}if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
+peerUI();
+{let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
+setInterval(()=>peerJoin(),2000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>peerJoin(),300)});
 </script>
 <script>
 /* Disconnect the PeekSmith when the page closes or goes to another page.
