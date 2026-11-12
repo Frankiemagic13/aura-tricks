@@ -162,8 +162,10 @@ body.studio #studio{display:flex}
 .rtabs{display:flex;background:#1e1e22;border-radius:12px;padding:3px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
 .rtabs button{border:0;background:none;color:#8e8e93;font:600 14px -apple-system;padding:7px 14px;border-radius:9px}
 .rtabs button.on{background:#3a3a40;color:#fff}.rtabs button[data-tab=fav].on{color:#ffd60a}
+.rsort{display:flex;align-items:center;gap:4px;border:0;background:#1e1e22;color:#fff;border-radius:10px;padding:7px 10px;font:600 13px -apple-system;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);white-space:nowrap}.rsort span{color:#ff9f0a}
+.rbar{gap:8px;padding:6px 12px 10px}.rtabs button{padding:7px 11px}
 .rstart{display:flex;align-items:center;gap:6px;font:600 13px -apple-system;color:#8e8e93}
-.rstart select{background:#1e1e22;color:#ff9f0a;border:0;border-radius:10px;padding:7px 8px;font:600 13px -apple-system;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);max-width:150px}
+.rstart select{background:#1e1e22;color:#ff9f0a;border:0;border-radius:10px;padding:7px 8px;font:600 13px -apple-system;box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);max-width:118px;-webkit-appearance:none;appearance:none}
 .rstar{border:0;background:none;font-size:22px;line-height:1;color:#48484a;padding:4px;margin-left:auto}.rstar.on{color:#ffd60a;text-shadow:0 0 10px rgba(255,214,10,.5)}
 .rn{margin-left:4px}.rstar+.rps{margin-left:4px}
 .rstar.pop{animation:stPop .35s cubic-bezier(.3,1.8,.5,1)}@keyframes stPop{0%{transform:scale(.5)}100%{transform:none}}
@@ -237,7 +239,7 @@ body.studio #studio{display:flex}
   <div class="pg" id="pgRoutines">
     <div class="rhd"><h1>Routines</h1><button id="rNew">+ Record new</button></div>
     <div class="rbar"><div class="rtabs" id="rTabs"><button data-tab="all" class="on">All</button><button data-tab="fav">★ Favorites</button></div>
-      <label class="rstart">Start<select id="rStart"><option value="tap">At once</option><option value="down">Face down</option><option value="ps">PeekSmith click</option><option value="both">Face down or PeekSmith</option></select></label></div>
+      <button class="rsort" id="rSort"><span>⇅</span><b>A–Z</b></button><label class="rstart"><select id="rStart"><option value="tap">▶ Start at once</option><option value="down">▶ Face down</option><option value="ps">▶ PeekSmith click</option><option value="both">▶ Face down / PeekSmith</option></select></label></div>
     <div class="rlist" id="rlist"></div>
   </div>
 
@@ -373,9 +375,9 @@ body.studio #studio{display:flex}
   <li><b>Tap a card</b>: the screen goes black, the countdown buzzes (phone and PeekSmith), the routine plays on all phones at the same time, then the list comes back.</li>
   <li><b>Tap the black screen</b> to stop.</li>
   <li><b>Hold a card</b> (0.6 s) to edit or delete it.</li></ol>
-  <p>The list is A to Z. Tap <b>☆</b> on a card to add it to <b>★ Favorites</b> (tap ★ again to remove it). The <b>Favorites</b> tab shows only those.</p>
+  <p><b>⇅ Sort</b>: tap to change between <b>A–Z</b> and <b>Recent</b> (the routine you used or made last is at the top). The list is A to Z by default. Tap <b>☆</b> on a card to add it to <b>★ Favorites</b> (tap ★ again to remove it). The <b>Favorites</b> tab shows only those.</p>
   <p><b>Start</b> (top right): <b>At once</b> = the routine starts when you tap it. <b>Face down</b>, <b>PeekSmith click</b> or <b>both</b> = tap the routine, the screen goes black and waits; turn the phone face down on the table or click any PeekSmith button to start it. Tap the black screen to cancel. The PeekSmith shows "Ready: name" while it waits.</p>
-  <p>There are 24 ready-made routines, for example Ping-pong, Wave, Countdown, Police, The chosen one, Vanish, Spotlight, Applause and Firework. Each one starts with 2 phones (M + 1). Tap <b>+</b> on the card to add a phone (up to M + 9) and <b>−</b> to remove one. The routine and its preview change to fit. A phone that is not connected is skipped. You can edit or delete them like your own routines.</p>
+  <p>There are 39 ready-made routines, for example Ping-pong, Wave, Countdown, Police, The chosen one, Roulette, Teleport, Thunder, Grand reveal, Applause and Firework. Each one starts with 2 phones (M + 1). Tap <b>+</b> on the card to add a phone (up to M + 9) and <b>−</b> to remove one. The routine and its preview change to fit. A phone that is not connected is skipped. You can edit or delete them like your own routines.</p>
   <h4>5. From the PeekSmith</h4>
   <p>PeekSmith tab: select a routine for a button (or set it in the Save sheet). Press the button to run it from your pocket. Press it again to stop.</p>
   <h4>Light buttons (PeekSmith)</h4>
@@ -728,7 +730,7 @@ function sRecFinish(save){clearInterval(sTick);const end=Math.round(now()-sT0);s
   const t0=ev[0][0];let len=end-t0;const out=ev.map(([t,tg,on])=>[t-t0,tg,on]);
   const st=stateAt(out,1e12);for(const k in st)if(st[k])out.push([len,k,0]);   // all off at the end
   len=Math.max(len,out[out.length-1][0]+50);
-  openSave({id:'r'+Date.now().toString(36),name:'Routine '+(P.routines.length+1),icon:'✨',ev:out,len,ps:'',loop:false,cd:3,gap:1000},true)}
+  openSave({made:Date.now(),id:'r'+Date.now().toString(36),name:'Routine '+(P.routines.length+1),icon:'✨',ev:out,len,ps:'',loop:false,cd:3,gap:1000},true)}
 /* Record: a 3 s countdown (3-2-1 with a buzz), then the recording starts. Tap Record or Cancel again = no recording. */
 let cdT=[];
 function recCountdown(){if(cdT.length){cdStop();return}showPg('pgPhones');const o=$('recCd');document.body.classList.add('cd');
@@ -849,6 +851,30 @@ gdef('zip','Zipper','🤐',(A,B,k)=>{let t=0;const h=Math.ceil(k/2);for(let q=0;
 gdef('firework','Firework','🎆',(A,B,k)=>{const r=srand(19+k),c=Math.floor((k-1)/2);let t=0;for(let q=0;q<3;q++){B(A[c],t,60);t+=200}t+=200;
   for(let d=0;d<=k;d++){const s=[c-d,c+d+(k%2?0:1)].filter((x,i,a)=>x>=0&&x<k&&a.indexOf(x)===i);if(!s.length)break;s.forEach(i=>B(A[i],t,180));t+=200}
   const free={};for(let q=0;q<4*k+4;q++){const p=A[Math.floor(r()*k)],a=Math.max(t+Math.floor(r()*1500),free[p]||0);B(p,a,50);free[p]=a+110}return t+1800});
+gdef('lighthouse','Lighthouse','🗼',(A,B,k)=>{let t=0;const st=Math.max(250,600-k*40);for(let q=0;q<3;q++)for(let i=0;i<k;i++){B(A[i],t,st*.9);t+=st}return t+300});
+gdef('sos','SOS','🆘',(A,B)=>{let t=0;for(let q=0;q<2;q++){for(const c of '...---...'){const d=c==='.'?150:450;A.forEach(p=>B(p,t,d));t+=d+150}t+=1000}return t});
+gdef('ripple','Ripple','💧',(A,B,k)=>{let t=0;for(let q=0;q<4;q++){const st=Math.max(80,160-q*25);for(let i=k-1;i>=0;i--){B(A[i],t,st*.9);t+=st}t+=250}return t+100});
+gdef('pairs','Pairs','👯',(A,B,k)=>{const G=[];for(let i=0;i<k;i+=2)G.push(A.slice(i,i+2));let t=0;const o=G.map((_,i)=>i).concat(G.map((_,i)=>i).reverse().slice(1));
+  const rep=Math.max(2,Math.ceil(8/o.length));for(let q=0;q<rep;q++)for(const g of o){G[g].forEach(p=>B(p,t,250));t+=300}return t+200});
+gdef('roulette','Roulette','🎰',(A,B,k)=>{const r=srand(23+k),pick=Math.floor(r()*k),N=20+((pick-20%k)%k+k)%k;let t=0,st=60;
+  for(let j=0;j<=N;j++){const fin=j===N;B(A[j%k],t,fin?2200:Math.min(st-15,180));t+=fin?2200:st;st=Math.round(st*1.1)}return t+200});
+gdef('stack','Stack','🧊',(A,B,k)=>{let t=0;const stay=[];for(let s=k-1;s>=0;s--){for(let i=0;i<s;i++){B(A[i],t,90);t+=110}stay.push([s,t]);t+=200}
+  const end=t+400;stay.forEach(([s,a])=>B(A[s],a,end-a));A.forEach(p=>{B(p,end+250,120);B(p,end+500,120)});return end+800});
+gdef('thunder','Thunder','🌩️',(A,B,k)=>{const r=srand(29+k);let t=700;A.forEach(p=>{B(p,t,80);B(p,t+160,60)});const free={};A.forEach(p=>free[p]=t+260);
+  for(let q=0;q<4*k;q++){const p=A[Math.floor(r()*k)],a=Math.max(t+300+Math.floor(r()*1400),free[p]);B(p,a,40+r()*50);free[p]=a+150}
+  const e=Math.max(...Object.values(free))+400;A.forEach(p=>B(p,e,300));return e+500});
+gdef('drum','Drumroll','🥁',(A,B,k)=>{const r=srand(31+k);let t=0,st=220;const free={};while(st>50){const p=A[Math.floor(r()*k)],a=Math.max(t,free[p]||0);B(p,a,Math.min(60,st*.6));free[p]=a+Math.min(60,st*.6)+30;t+=st;st=Math.round(st*.93)}
+  t=Math.max(t,...Object.values(free))+150;A.forEach(p=>B(p,t,900));return t+1000});
+gdef('sparkler','Sparkler','🎇',(A,B,k)=>{const r=srand(37+k),M=A[k-1];let t=0;while(t<3000){B(M,t,40);t+=100}const free={};
+  for(let q=0;q<8*(k-1);q++){const p=A[Math.floor(r()*(k-1))],a=Math.max(Math.floor(r()*3000),free[p]||0);if(a>3000)continue;B(p,a,35);free[p]=a+120}return 3200});
+gdef('bounce','Bouncing ball','🏀',(A,B,k)=>{const path=[];for(let i=0;i<k;i++)path.push(i);let h=k-1;while(h>=1){h=Math.floor(h*.6);if(h<1)break;for(let i=k-2;i>=k-1-h;i--)path.push(i);for(let i=k-h;i<k;i++)path.push(i)}
+  let t=0;path.forEach(i=>{B(A[i],t,100);t+=120});for(const g of [520,380,270,190,130,90]){t+=g;B(A[k-1],t,60)}return t+300});   // the ball bounces on the floor, faster and faster
+gdef('tick','Tick-tock','🕰️',(A,B,k)=>{let t=0;for(let q=0;q<6;q++){B(A[q%2?k-1:0],t,250);t+=600}A.forEach(p=>B(p,t,600));return t+700});
+gdef('disco','Disco','🪩',(A,B,k)=>{const r=srand(41+k);let t=0;for(let q=0;q<16;q++){const n=Math.max(1,Math.ceil(k/2)),pick=A.slice().sort(()=>r()-.5).slice(0,n);pick.forEach(p=>B(p,t,220));t+=300}return t+100});
+gdef('teleport','Teleport','🌀',(A,B,k)=>{const a=A[0],b=A[k-1];B(a,0,800);B(a,900,60);B(a,1020,50);B(b,1150,1000);B(b,2250,60);B(b,2370,50);B(a,2500,1000);return 3700});
+gdef('glitch','Glitch','📺',(A,B,k)=>{const r=srand(43+k),free={};const sync=[900,1900,2700];
+  for(const p of A){let t=0;while(t<3000){const d=20+r()*90;if(!sync.some(x=>x<t+d+30&&x+40>t-30)){B(p,t,d)}t+=d+40+r()*260}}sync.forEach(x=>A.forEach(p=>B(p,x,40)));return 3200});
+gdef('reveal','Grand reveal','🎩',(A,B,k)=>{const M=A[k-1];let t=0;for(const [on,off] of [[300,700],[500,500],[800,300],[1200,200]]){B(M,t,on);t+=on+off}A.forEach(p=>B(p,t,1500));return t+1600});
 function genEv(key,n){const A=[...Array(n)].map((_,i)=>String(i+1)).concat('M'),e=[];
   const B=(tg,a,d)=>{e.push([Math.round(a),tg,1],[Math.round(a+Math.max(30,d)),tg,0])};
   const len=GEN[key].f(A,B,A.length);e.sort((x,y)=>x[0]-y[0]||x[2]-y[2]);return{ev:e,len:Math.round(Math.max(len,...e.map(x=>x[0])))}}
@@ -859,6 +885,9 @@ if((P.samplesV||0)<2){const OLD=['ping','heart','wave','count','storm','morse','
   for(const key of GL){const fresh=genRoutine(key,1),old=P.routines.find(x=>x.id===fresh.id||(key==='count'&&x.id==='s-countdown-'));
     if(old){if(old.name==='Countdown 3-2-1')old.name='Countdown';old.gen=key;old.n=1;old.ev=fresh.ev;old.len=fresh.len}else if(!(had&&OLD.includes(key)))P.routines.push(fresh)}   // a ready-made routine you deleted stays deleted
   P.samplesV=2;P.rtT=Date.now();saveP()}
+/* more ready-made routines (added one time) */
+if(P.samplesV<3){for(const key of GL)if(!P.routines.some(x=>x.gen===key)&&!['ping','heart','wave','count','storm','morse','chase','strobe','build','scan','police','rain','chosen','domino','breathe','call','vanish','spot','binary','twinkle','meteor','applause','zip','firework'].includes(key))P.routines.push(genRoutine(key,1));
+  P.samplesV=3;P.rtT=Date.now();saveP()}
 
 /* ---------- routines list with live previews ---------- */
 function used(r){return [...new Set(r.ev.map(e=>e[1]))].sort((a,b)=>a==='M'?1:b==='M'?-1:a-b)}
@@ -872,13 +901,17 @@ function cardHTML(r,i,pop){const u=lineOf(r),np=u.filter(x=>x!=='M').length,ps=p
     <div class="mlanes">${u.map(t=>`<div class="ml${pop&&t===pop?' pop':''}">${bars.filter(b=>b.tg===t).map(b=>`<u style="left:${b.s/r.len*100}%;width:${Math.max(1,(b.e-b.s)/r.len*100)}%"></u>`).join('')}</div>`).join('')}<div class="mph"></div></div></div></div>`}
 function drawRoutines(){const L=$('rlist');
   if(!P.routines.length){L.innerHTML='<div class="rempty">No routines yet.<br>Tap <b>+ Record new</b>, select phones and play with the light buttons.</div>';return}
-  let list=P.routines.map((r,i)=>[r,i]).sort((x,y)=>x[0].name.localeCompare(y[0].name,undefined,{numeric:true,sensitivity:'base'}));   // A to Z
+  const az=(x,y)=>x[0].name.localeCompare(y[0].name,undefined,{numeric:true,sensitivity:'base'}),rec=(x,y)=>((y[0].used||y[0].made||0)-(x[0].used||x[0].made||0))||az(x,y);
+  let list=P.routines.map((r,i)=>[r,i]).sort(P.rSort==='recent'?rec:az);   // A to Z, or the last used / made first
   if(rTab==='fav')list=list.filter(([r])=>favs().has(r.id));
   if(!list.length){L.innerHTML='<div class="rempty">No favorites yet.<br>Tap <b>☆</b> on a routine to add it here.</div>';return}
   L.innerHTML=list.map(([r,i])=>cardHTML(r,i)).join('');
   L.querySelectorAll('.rc').forEach(c=>{c.querySelector('b').textContent=P.routines[+c.dataset.i].name})}
 /* favorites (kept on this phone) and the All / Favorites tabs */
 let rTab='all';
+if(P.rSort!=='recent')P.rSort='az';
+function sortUI(){$('rSort').querySelector('b').textContent=P.rSort==='recent'?'Recent':'A–Z'}sortUI();
+$('rSort').addEventListener('click',()=>{P.rSort=P.rSort==='recent'?'az':'recent';saveP();sortUI();hap('light');drawRoutines();$('rlist').scrollTop=0});
 function favs(){if(!Array.isArray(P.favs))P.favs=[];return new Set(P.favs)}
 function favToggle(c,btn){const r=P.routines[+c.dataset.i];if(!r)return;const f=favs();f.has(r.id)?f.delete(r.id):f.add(r.id);P.favs=[...f];saveP();hap('light');
   if(rTab==='fav'&&!f.has(r.id)){c.style.transition='opacity .2s,transform .2s';c.style.opacity='0';c.style.transform='scale(.95)';setTimeout(drawRoutines,200);return}
@@ -927,6 +960,7 @@ $('rNew').addEventListener('click',()=>{showPg('pgPhones');recCountdown()});
 /* ---------- run: black screen, countdown buzz, routine on all phones, back to the list ---------- */
 let running=null,runTimers=[],prevOn=false,prevState={},prevTimers=[];
 function runRoutine(r){if(!r)return;if(running){runStop(true);return}
+  r.used=Date.now();saveP();
   running=r;runTimers=[];$('runBlack').classList.add('on');try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
   guests.forEach((g,id)=>ping(id));
   const n=+r.cd||0,gap=+r.gap||1000,lead=650;
