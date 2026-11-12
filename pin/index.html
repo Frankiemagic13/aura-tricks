@@ -263,11 +263,11 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
     <div class="r" id="conTextRow">Text<input type="text" id="conText" autocapitalize="characters" autocorrect="off" placeholder="PIN" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
   </div>
-  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = black screen on/off (see "Side button hold"). The black screen stops all taps. You can also hold the top of the screen (not the time) with 1 finger for 0.8 s: black screen on/off. Hold the black screen with 2 fingers for 1.5 s to show the page again. "Peek only after the tilt": codes typed before you tilt the phone up do not go to the PeekSmith or the online peeks; only the code typed after the tilt does (with "Tilt straight up" set to "Next code unlocks").</div>
+  <div class="snote" id="bleNote">PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = black screen on/off (see "Side button hold"). The black screen stops all taps. You can also hold the top of the screen (not the time) with 1 finger for 0.8 s: black screen on. Tap the black screen once to show the page again. "Peek only after the tilt": codes typed before you tilt the phone up do not go to the PeekSmith or the online peeks; only the code typed after the tilt does (with "Tilt straight up" set to "Next code unlocks").</div>
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
-  <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. Hold the top of the screen 0.8 s = black screen on/off. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v25</div>
+  <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. Hold the top of the screen 0.8 s = black screen. Tap the black screen = page again. If you forget to freeze, the time freezes at the first digit.</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v26</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -584,15 +584,20 @@ else{const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibility
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(auto,300)})}
 
 /* ---------- black screen: PeekSmith side button hold = on/off ---------- */
-let black=false;
-function setBlack(on){black=!!on;B.classList.toggle('black',black);
+let black=false,blackAt=0;
+function setBlack(on){black=!!on;if(black)blackAt=Date.now();B.classList.toggle('black',black);
   if(bleOn())aps.vibrate(black?'.':'..').catch(()=>{})}
 function toggleBlack(){setBlack(!black)}
-/* safety: hold the black screen with 2 fingers 1.5 s = page again (for when the PeekSmith is not connected) */
-(function(){const k=$('blk');let tm=null;
+/* black screen: one tap anywhere = page again (the tap does not go to the page) */
+(function(){const k=$('blk');let x0=0,y0=0,t0=0;
   const stop=e=>{e.preventDefault();e.stopPropagation()};
-  k.addEventListener('touchstart',e=>{stop(e);clearTimeout(tm);if(e.touches.length===2)tm=setTimeout(()=>{setBlack(false);haptic('medium')},1500);else topStart(e)},{passive:false});
-  ['touchmove','touchend','touchcancel'].forEach(t=>k.addEventListener(t,e=>{stop(e);if(t!=='touchmove'&&e.touches.length<2)clearTimeout(tm)},{passive:false}));
+  const tap=(x,y)=>{if(black&&Date.now()-blackAt>400&&Date.now()-t0<700&&Math.hypot(x-x0,y-y0)<20){setBlack(false);haptic('light')}};
+  k.addEventListener('touchstart',e=>{stop(e);const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now()},{passive:false});
+  k.addEventListener('touchmove',stop,{passive:false});
+  k.addEventListener('touchend',e=>{stop(e);const t=e.changedTouches[0];tap(t.clientX,t.clientY)},{passive:false});
+  k.addEventListener('touchcancel',stop,{passive:false});
+  k.addEventListener('mousedown',e=>{stop(e);if(touchUsed)return;x0=e.clientX;y0=e.clientY;t0=Date.now()});
+  k.addEventListener('mouseup',e=>{stop(e);if(!touchUsed)tap(e.clientX,e.clientY)});
   ['click','dblclick','contextmenu'].forEach(t=>k.addEventListener(t,stop))})();
 
 /* hold the top of the screen 0.8 s (1 finger, not on the time) = black screen on/off */
