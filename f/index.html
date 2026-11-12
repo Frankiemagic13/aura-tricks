@@ -116,6 +116,17 @@ body.studio #studio{display:flex}
 .ml{height:6px;border-radius:3px;background:rgba(255,255,255,.06);margin:3px 0;position:relative;overflow:hidden}
 .ml u{position:absolute;top:0;bottom:0;border-radius:3px;background:#ffe9a8}
 .mph{position:absolute;top:0;bottom:0;width:2px;background:#ff453a;border-radius:1px}
+.rc .rtx{min-width:0;flex:1}.rct small em{font-style:normal;color:#ff9f0a}
+.rn{display:flex;gap:6px;margin-left:auto}
+.rn button{width:34px;height:34px;border-radius:50%;border:0;background:#2c2c30;color:#fff;font:600 22px/1 -apple-system;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);transition:transform .12s}
+.rn button:active{transform:scale(.88);background:#3a3a40}.rn button.off{opacity:.3}
+.rc.many .rpv{flex-direction:column;align-items:stretch;gap:8px}.rc.many .minis{gap:4px}.rc.many .mlanes{width:100%}
+.mp.pop{animation:mpPop .45s cubic-bezier(.3,1.6,.5,1) both}.ml.pop{animation:mlPop .35s ease-out both}
+.mp.out{animation:mpOut .2s ease-in both}.ml.out{animation:mlOut .2s ease-in both}
+@keyframes mpPop{0%{transform:scale(0) translateY(10px);opacity:0}100%{transform:none;opacity:1}}
+@keyframes mpOut{to{transform:scale(0);opacity:0}}
+@keyframes mlPop{from{height:0;margin:0;opacity:0}to{height:6px;opacity:1}}
+@keyframes mlOut{to{height:0;margin:0;opacity:0}}
 .rempty{color:#8e8e93;text-align:center;font:500 15px -apple-system;padding:60px 30px;line-height:1.4}
 .pks{padding:6px 16px;overflow-y:auto}
 .pkc{background:#1e1e22;border-radius:18px;padding:4px 14px;margin-bottom:12px}
@@ -318,7 +329,7 @@ body.studio #studio{display:flex}
   <li><b>Tap a card</b>: the screen goes black, the countdown buzzes (phone and PeekSmith), the routine plays on all phones at the same time, then the list comes back.</li>
   <li><b>Tap the black screen</b> to stop.</li>
   <li><b>Hold a card</b> (0.6 s) to edit or delete it.</li></ol>
-  <p>Ready-made routines (Ping-pong, Heartbeat, Wave, Countdown 3-2-1, Lightning storm, Morse: MAGIC, Chase finale, Strobe party) are in the list. They use phones 1–3 and M; a phone that is not connected is skipped. Edit or delete them like your own.</p>
+  <p>There are 24 ready-made routines, for example Ping-pong, Wave, Countdown, Police, The chosen one, Vanish, Spotlight, Applause and Firework. Each one starts with 2 phones (M + 1). Tap <b>+</b> on the card to add a phone (up to M + 9) and <b>−</b> to remove one. The routine and its preview change to fit. A phone that is not connected is skipped. You can edit or delete them like your own routines.</p>
   <h4>5. From the PeekSmith</h4>
   <p>PeekSmith tab: select a routine for a button (or set it in the Save sheet). Press the button to run it from your pocket. Press it again to stop.</p>
   <h4>Light buttons (PeekSmith)</h4>
@@ -721,37 +732,71 @@ $('svDel').addEventListener('click',()=>{if(!draft)return;
   P.routines=P.routines.filter(x=>x.id!==draft.id);for(const k in P.btns)if(P.btns[k]==='r:'+draft.id)P.btns[k]='none';
   P.rtT=Date.now();saveP();rCloudSave();refreshBtnOptions();closeSave();draft=null;drawRoutines()});
 
-/* ---------- ready-made routines (added one time; edit or delete them like your own) ---------- */
-function makeSamples(){
-  const R=[],B=(ev,tg,a,d)=>{ev.push([Math.round(a),tg,1],[Math.round(a+d),tg,0])};
-  const mk=(name,icon,ev,len,cd)=>{ev.sort((x,y)=>x[0]-y[0]||x[2]-y[2]);R.push({id:'s-'+name.toLowerCase().replace(/[^a-z]+/g,'-'),name,icon,ev,len:Math.round(len),loop:false,cd:cd??3,gap:1000})};
-  const ALL=['1','2','3','M'];
-  {const e=[];[0,1,2].forEach(k=>{const t=k*900;B(e,'1',t,120);B(e,'M',t+180,120);B(e,'1',t+420,120);B(e,'M',t+600,120)});mk('Ping-pong','🏓',e,2800)}           // 2 phones: 1 and M
-  {const e=[];let t=0;for(let k=0;k<4;k++){B(e,'M',t,140);B(e,'M',t+260,140);B(e,'1',t,140);B(e,'1',t+260,140);t+=1100-k*180}mk('Heartbeat','❤️',e,t+200)}
-  {const e=[],o=['1','2','3','M','3','2','1'];o.forEach((p,i)=>B(e,p,i*220,260));o.forEach((p,i)=>B(e,p,1700+i*160,200));ALL.forEach(p=>B(e,p,2900,700));mk('Wave','🌊',e,3700)}
-  {const e=[];B(e,'3',0,500);B(e,'2',900,500);B(e,'1',1800,500);ALL.forEach(p=>{B(e,p,2800,120);B(e,p,3050,120);B(e,p,3300,1400)});mk('Countdown 3-2-1','⏱️',e,4800)}
-  {const e=[];let seed=7;const r=()=>(seed=(seed*16807)%2147483647)/2147483647;let t=0;
-   for(let k=0;k<14;k++){const p=ALL[Math.floor(r()*4)];B(e,p,t,60+r()*90);if(r()<.35)B(e,p,t+170,50);t+=180+r()*520}
-   ALL.forEach(p=>B(e,p,t+200,90));ALL.forEach(p=>B(e,p,t+420,600));mk('Lightning storm','⚡',e,t+1100)}
-  {const e=[];const dit=150,dah=450,gap=150,L=[['M','--'],['A','.-'],['G','--.'],['I','..'],['C','-.-.']];let t=0;
-   for(const [,code] of L){for(const c of code){B(e,'M',t,c==='.'?dit:dah);t+=(c==='.'?dit:dah)+gap}t+=gap*2}mk('Morse: MAGIC','📡',e,t+100,2)}
-  {const e=[];let t=0;for(let k=0;k<3;k++)for(const p of ['1','2','3','M']){B(e,p,t,170);t+=Math.max(70,190-k*55)}
-   ALL.forEach(p=>B(e,p,t+150,1200));mk('Chase finale','🏁',e,t+1500)}
-  {const e=[],O=['M','1','2','3'];let t=0;for(let k=0;k<5;k++){O.forEach((p,i)=>B(e,p,t+i*60,90));t+=420}
-   for(let k=0;k<10;k++){ALL.forEach(p=>B(e,p,t,45));t+=110}mk('Strobe party','🎉',e,t+200)}
-  return R}
-if(!P.samplesV){const have=new Set(P.routines.map(r=>r.id));makeSamples().forEach(r=>{if(!have.has(r.id))P.routines.push(r)});P.samplesV=1;P.rtT=Date.now();saveP()}
+/* ---------- ready-made routines: each one is made for any number of phones (default M + 1; − / + on the card) ---------- */
+const GEN={},GL=[];
+const gdef=(key,name,icon,f,cd)=>{GEN[key]={name,icon,f,cd:cd??3};GL.push(key)};
+const srand=s=>()=>(s=(s*16807)%2147483647)/2147483647;
+const bounce=k=>{const o=[];for(let i=0;i<k;i++)o.push(i);for(let i=k-2;i>0;i--)o.push(i);return o};
+gdef('ping','Ping-pong','🏓',(A,B,k)=>{let t=0;const st=Math.max(170,420-k*30);for(let r=0;r<3;r++)for(const i of bounce(k)){B(A[i],t,st*.6);t+=st}B(A[0],t,st*.6);return t+400});
+gdef('heart','Heartbeat','❤️',(A,B)=>{let t=0;for(let q=0;q<4;q++){A.forEach(p=>{B(p,t,140);B(p,t+260,140)});t+=1100-q*180}return t+200});
+gdef('wave','Wave','🌊',(A,B,k)=>{let t=0;const o=bounce(k).concat(0);o.forEach((i,j)=>B(A[i],j*220,200));t=o.length*220+300;o.forEach((i,j)=>B(A[i],t+j*150,130));t+=o.length*150+250;A.forEach(p=>B(p,t,700));return t+800});
+gdef('count','Countdown','⏱️',(A,B,k)=>{let t=0;for(let i=k-2;i>=0;i--){B(A[i],t,500);t+=900}A.forEach(p=>{B(p,t,120);B(p,t+250,120);B(p,t+500,1400)});return t+2000});
+gdef('storm','Lightning storm','⚡',(A,B,k)=>{const r=srand(7+k);let t=0,free={};for(let q=0;q<10+3*k;q++){const p=A[Math.floor(r()*k)];const a=Math.max(t,free[p]||0),d=60+r()*90;B(p,a,d);free[p]=a+d+40;if(r()<.35){B(p,a+d+60,50);free[p]=a+d+150}t+=160+r()*420}
+  t=Math.max(t,...Object.values(free))+200;A.forEach(p=>B(p,t,90));A.forEach(p=>B(p,t+220,600));return t+900});
+gdef('morse','Morse: MAGIC','📡',(A,B)=>{const dit=150,dah=450,gap=150;let t=0;for(const code of ['--','.-','--.','..','-.-.']){for(const c of code){const d=c==='.'?dit:dah;A.forEach(p=>B(p,t,d));t+=d+gap}t+=gap*2}return t+100},2);
+gdef('chase','Chase finale','🏁',(A,B,k)=>{let t=0;for(let q=0;q<3;q++)for(let i=0;i<k;i++){B(A[i],t,Math.min(170,Math.max(60,190-q*55)-10));t+=Math.max(70,190-q*55)}A.forEach(p=>B(p,t+150,1200));return t+1500});
+gdef('strobe','Strobe party','🎉',(A,B)=>{let t=0;for(let q=0;q<5;q++){A.forEach((p,i)=>B(p,t+i*60,50));t+=Math.max(420,A.length*60+120)}for(let q=0;q<10;q++){A.forEach(p=>B(p,t,45));t+=110}return t+200});
+gdef('build','Build-up','📈',(A,B,k)=>{const st=450;A.forEach((p,i)=>B(p,i*st,(k-i)*st+500));let t=k*st+700;A.forEach(p=>{B(p,t,120);B(p,t+250,120)});return t+500});
+gdef('scan','Scanner','🛸',(A,B,k)=>{let t=0;for(let q=0;q<4;q++)for(const i of bounce(k)){B(A[i],t,k>2?200:140);t+=k>2?110:220}return t+300});
+gdef('police','Police','🚨',(A,B,k)=>{const a=A.filter((_,i)=>i%2===0),b=A.filter((_,i)=>i%2===1);let t=0;for(let q=0;q<4;q++)for(const g of [a,b]){for(let f=0;f<3;f++){g.forEach(p=>B(p,t,60));t+=110}t+=90}return t+200});
+gdef('rain','Raindrops','🌧️',(A,B,k)=>{const r=srand(3+k);let t=0,free={};for(let q=0;q<24;q++){const p=A[Math.floor(r()*k)];const a=Math.max(t,free[p]||0);B(p,a,70);free[p]=a+120;t+=Math.max(70,500-q*20)}t=Math.max(t,...Object.values(free))+200;A.forEach(p=>B(p,t,600));return t+700});
+gdef('chosen','The chosen one','🎯',(A,B,k)=>{const r=srand(11+k),ph=Math.max(1,k-1),pick=Math.floor(r()*ph);let t=0,last=-1,st=80;const seq=[];
+  for(let q=0;q<18;q++){let i;do{i=Math.floor(r()*k)}while(i===last&&k>1);last=i;seq.push(i)}seq.push(pick);
+  seq.forEach((i,j)=>{const fin=j===seq.length-1;B(A[i],t,fin?2200:Math.min(st-20,160));t+=fin?2200:st;st=Math.round(st*1.1)});return t+200});
+gdef('domino','Domino','🧱',(A,B,k)=>{const st=300;A.forEach((p,i)=>B(p,i*st,k*st+300));return k*st*2+600});
+gdef('breathe','Breathing','🌬️',(A,B)=>{let t=0;for(let q=0;q<3;q++){A.forEach((p,i)=>B(p,t+i*70,1200));t+=2000+A.length*70}return t});
+gdef('call','Call & answer','🗣️',(A,B,k)=>{const M=A[k-1],ph=k>1?A.slice(0,k-1):[M];let t=0;for(let q=0;q<2;q++){[0,320,480,640,960].forEach(d=>B(M,t+d,110));t+=1500;[0,320].forEach(d=>ph.forEach(p=>B(p,t+d,150)));t+=1100}return t});
+gdef('vanish','Vanish','🫥',(A,B,k)=>{const r=srand(5+k),o=A.slice(0,k-1).sort(()=>r()-.5);let t=0;const st=650;o.forEach((p,i)=>B(p,0,1000+i*st));const end=1000+(k-1)*st;
+  B(A[k-1],0,end);B(A[k-1],end+250,120);B(A[k-1],end+500,120);return end+900});
+gdef('spot','Spotlight','🔦',(A,B,k)=>{const r=srand(9+k);let free={};for(let q=0;q<6*k+8;q++){const p=A[Math.floor(r()*k)];const a=Math.max(Math.floor(r()*2000),free[p]||0);if(a>2100)continue;B(p,a,60+r()*60);free[p]=a+180}B(A[k-1],2900,2200);return 5300});
+gdef('binary','Binary count','🔢',(A,B,k)=>{let t=0;const max=Math.min(15,2**k-1);for(let v=1;v<=max;v++){A.forEach((p,i)=>{if(v>>i&1)B(p,t,450)});t+=800}return t});
+gdef('twinkle','Twinkle','✨',(A,B,k)=>{const r=srand(13+k);const free={};for(let q=0;q<10*k+10;q++){const p=A[Math.floor(r()*k)],a=Math.max(Math.floor(r()*4000),free[p]||0);if(a>4100)continue;B(p,a,40+r()*80);free[p]=a+200}return 4400});
+gdef('meteor','Meteor shower','☄️',(A,B,k)=>{const r=srand(17+k);let t=0;for(let q=0;q<5;q++){A.forEach((p,i)=>B(p,t+i*70,150));t+=k*70+250+r()*500}return t+200});
+gdef('applause','Applause','👏',(A,B)=>{let t=0,st=320;while(st>55){A.forEach(p=>B(p,t,Math.min(120,st*.5)));t+=st;st=Math.round(st*.86)}t+=700;A.forEach(p=>B(p,t,900));return t+1000});
+gdef('zip','Zipper','🤐',(A,B,k)=>{let t=0;const h=Math.ceil(k/2);for(let q=0;q<2;q++){for(let j=0;j<h;j++){B(A[j],t,200);if(k-1-j!==j)B(A[k-1-j],t,200);t+=230}for(let j=h-1;j>=0;j--){B(A[j],t,200);if(k-1-j!==j)B(A[k-1-j],t,200);t+=230}}return t+200});
+gdef('firework','Firework','🎆',(A,B,k)=>{const r=srand(19+k),c=Math.floor((k-1)/2);let t=0;for(let q=0;q<3;q++){B(A[c],t,60);t+=200}t+=200;
+  for(let d=0;d<=k;d++){const s=[c-d,c+d+(k%2?0:1)].filter((x,i,a)=>x>=0&&x<k&&a.indexOf(x)===i);if(!s.length)break;s.forEach(i=>B(A[i],t,180));t+=200}
+  const free={};for(let q=0;q<4*k+4;q++){const p=A[Math.floor(r()*k)],a=Math.max(t+Math.floor(r()*1500),free[p]||0);B(p,a,50);free[p]=a+110}return t+1800});
+function genEv(key,n){const A=[...Array(n)].map((_,i)=>String(i+1)).concat('M'),e=[];
+  const B=(tg,a,d)=>{e.push([Math.round(a),tg,1],[Math.round(a+Math.max(30,d)),tg,0])};
+  const len=GEN[key].f(A,B,A.length);e.sort((x,y)=>x[0]-y[0]||x[2]-y[2]);return{ev:e,len:Math.round(Math.max(len,...e.map(x=>x[0])))}}
+function genRoutine(key,n){const g=GEN[key],{ev,len}=genEv(key,n);return{id:'s-'+g.name.toLowerCase().replace(/[^a-z]+/g,'-'),name:g.name,icon:g.icon,gen:key,n,ev,len,loop:false,cd:g.cd,gap:1000}}
+function setPhones(r,n){n=Math.max(1,Math.min(9,n));if(!r.gen||!GEN[r.gen]||n===r.n)return false;const g=genEv(r.gen,n);r.n=n;r.ev=g.ev;r.len=g.len;P.rtT=Date.now();saveP();rCloudSave();return true}
+/* one time: the first 8 ready-made routines become "any number of phones"; the new ones are added. Your names, icons and settings stay. */
+if((P.samplesV||0)<2){const OLD=['ping','heart','wave','count','storm','morse','chase','strobe'],had=!!P.samplesV;
+  for(const key of GL){const fresh=genRoutine(key,1),old=P.routines.find(x=>x.id===fresh.id||(key==='count'&&x.id==='s-countdown-'));
+    if(old){if(old.name==='Countdown 3-2-1')old.name='Countdown';old.gen=key;old.n=1;old.ev=fresh.ev;old.len=fresh.len}else if(!(had&&OLD.includes(key)))P.routines.push(fresh)}   // a ready-made routine you deleted stays deleted
+  P.samplesV=2;P.rtT=Date.now();saveP()}
 
 /* ---------- routines list with live previews ---------- */
 function used(r){return [...new Set(r.ev.map(e=>e[1]))].sort((a,b)=>a==='M'?1:b==='M'?-1:a-b)}
+function lineOf(r){return r.gen?[...Array(r.n||1)].map((_,i)=>String(i+1)).concat('M'):used(r)}
 function psName(r){const k=Object.keys(P.btns).find(k=>P.btns[k]==='r:'+r.id);return k?({'1.click':'Left – tap','1.longpress':'Left – hold','2.click':'Right – tap','2.longpress':'Right – hold','0.click':'Side – tap','0.longpress':'Side – hold'})[k]:''}
+function cardHTML(r,i,pop){const u=lineOf(r),np=u.filter(x=>x!=='M').length,ps=psName(r),G=!!r.gen,bars=barsOf(r.ev,r.len);
+  const info=G?`${np+1} phones (M + ${np})`:`${np} phone${np===1?'':'s'}${u.includes('M')?' + M':''}`;
+  return `<div class="rc${u.length>6?' many':''}" data-i="${i}"><div class="rct"><span class="ri">${r.icon||'✨'}</span><div class="rtx"><b></b><small>${info} · ${(r.len/1000).toFixed(1)} s${r.loop?' · loop':''}${G&&ps?` · <em>PeekSmith ${ps}</em>`:''}</small></div>${!G&&ps?`<span class="rps">PeekSmith ${ps}</span>`:''}
+    ${G?`<span class="rn"><button data-d="-1"${np<=1?' class="off"':''}>−</button><button data-d="1"${np>=9?' class="off"':''}>+</button></span>`:''}</div>
+    <div class="rpv"><div class="minis">${u.map(t=>`<div class="mp${t==='M'?' mm':''}${pop&&t===pop?' pop':''}" data-t="${t}"><i></i><span>${t}</span></div>`).join('')}</div>
+    <div class="mlanes">${u.map(t=>`<div class="ml${pop&&t===pop?' pop':''}">${bars.filter(b=>b.tg===t).map(b=>`<u style="left:${b.s/r.len*100}%;width:${Math.max(1,(b.e-b.s)/r.len*100)}%"></u>`).join('')}</div>`).join('')}<div class="mph"></div></div></div></div>`}
 function drawRoutines(){const L=$('rlist');
   if(!P.routines.length){L.innerHTML='<div class="rempty">No routines yet.<br>Tap <b>+ Record new</b>, select phones and play with the light buttons.</div>';return}
-  L.innerHTML=P.routines.map((r,i)=>{const u=used(r),np=u.filter(x=>x!=='M').length,ps=psName(r);
-    return `<div class="rc" data-i="${i}"><div class="rct"><span class="ri">${r.icon||'✨'}</span><div><b></b><small>${np} phone${np===1?'':'s'}${u.includes('M')?' + M':''} · ${r.ev.length} changes · ${(r.len/1000).toFixed(1)} s${r.loop?' · loop':''}</small></div>${ps?`<span class="rps">PeekSmith ${ps}</span>`:''}</div>
-    <div class="rpv"><div class="minis">${u.map(t=>`<div class="mp${t==='M'?' mm':''}" data-t="${t}"><i></i><span>${t}</span></div>`).join('')}</div>
-    <div class="mlanes">${u.map(t=>`<div class="ml">${barsOf(r.ev,r.len).filter(b=>b.tg===t).map(b=>`<u style="left:${b.s/r.len*100}%;width:${Math.max(1,(b.e-b.s)/r.len*100)}%"></u>`).join('')}</div>`).join('')}<div class="mph"></div></div></div></div>`}).join('');
+  L.innerHTML=P.routines.map((r,i)=>cardHTML(r,i)).join('');
   L.querySelectorAll('.rc').forEach(c=>{c.querySelector('b').textContent=P.routines[+c.dataset.i].name})}
+/* − / + on a ready-made routine: one phone less / more. A new phone pops in at the side, a removed one shrinks away. */
+function stepPhones(c,d){const i=+c.dataset.i,r=P.routines[i];if(!r||!r.gen)return;const n=(r.n||1)+d;if(n<1||n>9){hap('light');return}
+  const swap=pop=>{setPhones(r,n);const t=document.createElement('div');t.innerHTML=cardHTML(r,i,pop);const nc=t.firstElementChild;nc.querySelector('b').textContent=r.name;c.replaceWith(nc)};
+  hap('light');if(d>0){swap(String(n));return}
+  const gone=c.querySelectorAll('.mp')[n],lane=c.querySelectorAll('.ml')[n];if(gone)gone.classList.add('out');if(lane)lane.classList.add('out');setTimeout(()=>swap(),200)}
 /* preview loop: the mini phones light up as the routine will do */
 function animate(){requestAnimationFrame(animate);if(!isMag()||!$('pgRoutines').classList.contains('on'))return;
   const T=now();document.querySelectorAll('#rlist .rc').forEach(c=>{const r=P.routines[+c.dataset.i];if(!r)return;
@@ -761,11 +806,11 @@ function animate(){requestAnimationFrame(animate);if(!isMag()||!$('pgRoutines').
 requestAnimationFrame(animate);
 /* tap = run, hold 0.6 s = edit */
 {let ht=null,held=false,pc=null;const L=$('rlist');
-  L.addEventListener('touchstart',e=>{pc=e.target.closest('.rc');if(!pc)return;held=false;pc.classList.add('press');
+  L.addEventListener('touchstart',e=>{if(e.target.closest('.rn')){pc=null;return}pc=e.target.closest('.rc');if(!pc)return;held=false;pc.classList.add('press');
     ht=setTimeout(()=>{held=true;pc.classList.remove('press');hap('medium');openSave(P.routines[+pc.dataset.i],false)},600)},{passive:true});
   L.addEventListener('touchmove',()=>{clearTimeout(ht);if(pc)pc.classList.remove('press');pc=null},{passive:true});
   L.addEventListener('touchend',e=>{clearTimeout(ht);if(!pc)return;pc.classList.remove('press');if(!held){e.preventDefault();runRoutine(P.routines[+pc.dataset.i])}pc=null},{passive:false});
-  L.addEventListener('click',e=>{const c=e.target.closest('.rc');if(!c||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;runRoutine(P.routines[+c.dataset.i])})}
+  L.addEventListener('click',e=>{const sb=e.target.closest('.rn button');if(sb){e.stopPropagation();stepPhones(sb.closest('.rc'),+sb.dataset.d);return}const c=e.target.closest('.rc');if(!c||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;runRoutine(P.routines[+c.dataset.i])})}
 $('rNew').addEventListener('click',()=>{showPg('pgPhones');sRecStart()});
 
 /* ---------- run: black screen, countdown buzz, routine on all phones, back to the list ---------- */
