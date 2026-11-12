@@ -284,7 +284,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v22</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v23</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -296,9 +296,11 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   method:Q.get('m')==='flip'?'flip':'add',autoEq:Q.get('auto')==='1',
   sb:Q.get('sb')!=='0',ps:Q.get('ps')!=='0',bat:parseInt(Q.get('bat')??'78',10)||78,net:Q.get('net')||'5GUC',bars:parseInt(Q.get('bars')??'2',10),
   onLock:(Q.get('lock')==='calc'?'none':Q.get('lock'))||'none',bleAuto:Q.get('ble')!=='0',lockUrl:Q.get('lockurl')||'https://www.google.com',
-  inj:Q.get('inj')==='1',injWhat:Q.get('iw')||'force',injN:Math.min(9,Math.max(1,parseInt(Q.get('ip')??'1',10)||1)),
+  inj:Q.get('inj')!=='0',injWhat:Q.get('iw')||'force',injN:Math.min(9,Math.max(1,parseInt(Q.get('ip')??'1',10)||1)),
   injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,''),px:Q.get('px')!=='0'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
+if(!S.injOnV){S.inj=Q.get('inj')!=='0';S.injOnV=1;saveS()}   // Inject on by default (also for settings saved before)
+if(Q.get('inj')==='0')S.inj=false;
 if(Q.has('r')){S.mode='custom';S.custom=Q.get('r')}
 S.px=Q.get('px')!=='0';   // the sensor toggle is not kept: each page load starts with the sensor on
 function saveS(){try{localStorage.setItem('cset',JSON.stringify(S))}catch(e){}}
@@ -734,7 +736,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v22. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v23. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
