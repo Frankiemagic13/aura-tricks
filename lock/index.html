@@ -98,14 +98,14 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Passcode</div>
   <div class="grp">
     <div class="r">Digits<select id="sLen"><option value="4">4</option><option value="6">6</option></select></div>
-    <div class="r">After the last digit<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="unlock">Unlock → open a web page</option><option value="close">Unlock → close (black screen)</option><option value="home">Unlock → show home photo</option><option value="shortcut">Run a Shortcut (code as input)</option></select></div>
+    <div class="r">After the last digit<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="unlock">Unlock → open a web page</option><option value="close">Unlock → close (black screen)</option><option value="home">Unlock → show home photo</option><option value="notes">Open the Notes app</option><option value="shortcut">Run a Shortcut (code as input)</option></select></div>
     <div class="r" id="rowDoneSc">Shortcut name<input type="text" id="sDoneSc" placeholder="Shortcut name" autocapitalize="off" autocorrect="off"></div>
     <div class="r" id="rowUrl">Web page<input type="text" id="sUrl" placeholder="https://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
   </div>
   <div class="snote">"Wrong passcode": the spectator can try again (each try is a new peek). "Close": the screen goes black like a closed app; tap 3 times to come back. "Show home photo": shows a photo without blur, for example a screenshot of their home screen.</div>
   <div class="lbl">When the screen is touched</div>
   <div class="grp">
-    <div class="r">Action<select id="tAct"><option value="none">Nothing</option><option value="shortcut">Run a Shortcut</option><option value="url">Open a link / app</option><option value="buzz">Buzz the PeekSmith</option><option value="peek">Send online peek "Touched"</option></select></div>
+    <div class="r">Action<select id="tAct"><option value="none">Nothing</option><option value="notes">Open the Notes app</option><option value="shortcut">Run a Shortcut</option><option value="url">Open a link / app</option><option value="buzz">Buzz the PeekSmith</option><option value="peek">Send online peek "Touched"</option></select></div>
     <div class="r" id="rowTSc">Shortcut name<input type="text" id="tSc" placeholder="Shortcut name" autocapitalize="off" autocorrect="off"></div>
     <div class="r" id="rowTIn">Shortcut input<input type="text" id="tIn" placeholder="(optional text)" autocapitalize="off" autocorrect="off"></div>
     <div class="r" id="rowTUrl">Link<input type="text" id="tUrl" placeholder="https://… or app://…" autocapitalize="off" autocorrect="off" inputmode="url"></div>
@@ -212,6 +212,7 @@ function digit(k){
   if(code.length===P.len){locked=true;setTimeout(complete,180)}}
 function complete(){
   lastCode=code;peekDone(code);
+  if(P.after==='notes'){openLink('mobilenotes://');setTimeout(()=>{code='';locked=false;drawDots()},800);return}
   if(P.after==='shortcut'){runShortcut(P.doneSc,code);setTimeout(()=>{code='';locked=false;drawDots()},800);return}
   if(P.after!=='shake'){finish(P.after,P.url);return}
   const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
@@ -233,7 +234,8 @@ function touchAction(){
   if(P.tAct==='none'||document.body.classList.contains('open'))return;
   if(P.tWhen==='first'&&touchDone)return;touchDone=true;
   const go=()=>{
-    if(P.tAct==='shortcut')runShortcut(P.tSc,P.tIn);
+    if(P.tAct==='notes')openLink('mobilenotes://');
+    else if(P.tAct==='shortcut')runShortcut(P.tSc,P.tIn);
     else if(P.tAct==='url')openLink(P.tUrl);
     else if(P.tAct==='buzz'){if(bleOn())aps.vibrate('.').catch(()=>{})}
     else if(P.tAct==='peek'){try{PeekRelay.send(TOPIC,'Touched',Q.get('nt')||'Peek')}catch(e){}}};
