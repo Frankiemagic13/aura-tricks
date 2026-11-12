@@ -316,6 +316,7 @@ body.studio #studio{display:flex}
   <li><b>Tap a card</b>: the screen goes black, the countdown buzzes (phone and PeekSmith), the routine plays on all phones at the same time, then the list comes back.</li>
   <li><b>Tap the black screen</b> to stop.</li>
   <li><b>Hold a card</b> (0.6 s) to edit or delete it.</li></ol>
+  <p>Ready-made routines (Ping-pong, Heartbeat, Wave, Countdown 3-2-1, Lightning storm, Morse: MAGIC, Chase finale, Strobe party) are in the list. They use phones 1–3 and M; a phone that is not connected is skipped. Edit or delete them like your own.</p>
   <h4>5. From the PeekSmith</h4>
   <p>PeekSmith tab: select a routine for a button (or set it in the Save sheet). Press the button to run it from your pocket. Press it again to stop.</p>
   <h4>6. Problems</h4>
@@ -711,6 +712,27 @@ $('svDel').addEventListener('click',()=>{if(!draft)return;
   delReset();
   P.routines=P.routines.filter(x=>x.id!==draft.id);for(const k in P.btns)if(P.btns[k]==='r:'+draft.id)P.btns[k]='none';
   P.rtT=Date.now();saveP();rCloudSave();refreshBtnOptions();closeSave();draft=null;drawRoutines()});
+
+/* ---------- ready-made routines (added one time; edit or delete them like your own) ---------- */
+function makeSamples(){
+  const R=[],B=(ev,tg,a,d)=>{ev.push([Math.round(a),tg,1],[Math.round(a+d),tg,0])};
+  const mk=(name,icon,ev,len,cd)=>{ev.sort((x,y)=>x[0]-y[0]||x[2]-y[2]);R.push({id:'s-'+name.toLowerCase().replace(/[^a-z]+/g,'-'),name,icon,ev,len:Math.round(len),loop:false,cd:cd??3,gap:1000})};
+  const ALL=['1','2','3','M'];
+  {const e=[];[0,1,2].forEach(k=>{const t=k*900;B(e,'1',t,120);B(e,'M',t+180,120);B(e,'1',t+420,120);B(e,'M',t+600,120)});mk('Ping-pong','🏓',e,2800)}           // 2 phones: 1 and M
+  {const e=[];let t=0;for(let k=0;k<4;k++){B(e,'M',t,140);B(e,'M',t+260,140);B(e,'1',t,140);B(e,'1',t+260,140);t+=1100-k*180}mk('Heartbeat','❤️',e,t+200)}
+  {const e=[],o=['1','2','3','M','3','2','1'];o.forEach((p,i)=>B(e,p,i*220,260));o.forEach((p,i)=>B(e,p,1700+i*160,200));ALL.forEach(p=>B(e,p,2900,700));mk('Wave','🌊',e,3700)}
+  {const e=[];B(e,'3',0,500);B(e,'2',900,500);B(e,'1',1800,500);ALL.forEach(p=>{B(e,p,2800,120);B(e,p,3050,120);B(e,p,3300,1400)});mk('Countdown 3-2-1','⏱️',e,4800)}
+  {const e=[];let seed=7;const r=()=>(seed=(seed*16807)%2147483647)/2147483647;let t=0;
+   for(let k=0;k<14;k++){const p=ALL[Math.floor(r()*4)];B(e,p,t,60+r()*90);if(r()<.35)B(e,p,t+170,50);t+=180+r()*520}
+   ALL.forEach(p=>B(e,p,t+200,90));ALL.forEach(p=>B(e,p,t+420,600));mk('Lightning storm','⚡',e,t+1100)}
+  {const e=[];const dit=150,dah=450,gap=150,L=[['M','--'],['A','.-'],['G','--.'],['I','..'],['C','-.-.']];let t=0;
+   for(const [,code] of L){for(const c of code){B(e,'M',t,c==='.'?dit:dah);t+=(c==='.'?dit:dah)+gap}t+=gap*2}mk('Morse: MAGIC','📡',e,t+100,2)}
+  {const e=[];let t=0;for(let k=0;k<3;k++)for(const p of ['1','2','3','M']){B(e,p,t,170);t+=Math.max(70,190-k*55)}
+   ALL.forEach(p=>B(e,p,t+150,1200));mk('Chase finale','🏁',e,t+1500)}
+  {const e=[],O=['M','1','2','3'];let t=0;for(let k=0;k<5;k++){O.forEach((p,i)=>B(e,p,t+i*60,90));t+=420}
+   for(let k=0;k<10;k++){ALL.forEach(p=>B(e,p,t,45));t+=110}mk('Strobe party','🎉',e,t+200)}
+  return R}
+if(!P.samplesV){const have=new Set(P.routines.map(r=>r.id));makeSamples().forEach(r=>{if(!have.has(r.id))P.routines.push(r)});P.samplesV=1;P.rtT=Date.now();saveP()}
 
 /* ---------- routines list with live previews ---------- */
 function used(r){return [...new Set(r.ev.map(e=>e[1]))].sort((a,b)=>a==='M'?1:b==='M'?-1:a-b)}
