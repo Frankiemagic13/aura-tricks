@@ -242,10 +242,17 @@ svg{display:block}
   <p>Hold the <b>share</b> button for 1 second to open these settings. Hold <b>•••</b> (or the date) for 1 second to clear the note.</p>
   <h4>Peeks</h4>
   <p>Each word goes to your PeekSmith (live peek), to PeekLink / Peek Island (online) and to your iPhone with Aura peer. Drawings go to the PeekSmith screen.</p>
-  <h4>Back button (top left)</h4>
-  <ul><li><b>Double tap</b>: Spectator ↔ Magician on the two devices.</li>
-  <li><b>Tap</b>: mirror on / off on the two devices.</li>
-  <li><b>Hold 1 second</b> (Magician phone): prediction on / off.</li></ul>
+  <h4>Buttons</h4>
+  <div class="glist">
+    <div><span class="g" data-g="#back"></span><span><b>Back</b>: tap = mirror on/off · double tap = swap Spectator ↔ Magician · hold 1 s = prediction on/off</span></div>
+    <div><span class="g" data-g="#share"></span><span><b>Share</b>: hold 1 s = these settings</span></div>
+    <div><span class="g" data-g="#more"></span><span><b>•••</b>: hold 1 s = clear the note (the date does the same)</span></div>
+    <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = change the prediction type</span></div>
+    <div><span class="g" data-g="#penBtn"></span><span><b>Markup</b>: draw (drawings go to the PeekSmith)</span></div>
+    <div><span class="g" data-g="#compose"></span><span><b>New note</b>: clears the note</span></div>
+    <div><span class="g" data-g="#undoBtn"></span><span><b>Undo</b>: undo the last change</span></div>
+    <div><span class="g" data-g="#kbar i"></span><span><b>Aa</b>, table and paperclip: no function (only for the look)</span></div>
+  </div>
   <h4>Prediction: "My prediction is…"</h4>
   <ol><li>Hold back. The spectator's note changes to the prediction text.</li>
   <li>Type on your phone. Each letter shows on their phone after the prediction text (case: opposite of their text, by default).</li>
@@ -324,7 +331,7 @@ setInterval(()=>{if(document.body.classList.contains('editing'))kbarPlace()},300
 note.addEventListener('focus',()=>[60,250,600].forEach(ms=>setTimeout(kbarPlace,ms)));
 /* taps on the toolbar and undo do not close the keyboard */
 ['kbar','undoBtn'].forEach(id=>{const el=document.getElementById(id);
-  el.addEventListener('mousedown',e=>e.preventDefault());el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();el.dispatchEvent(new MouseEvent('click',{bubbles:true}))})});
+  el.addEventListener('mousedown',e=>e.preventDefault());el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();if(e.__dt)return;(e.target.closest&&e.target.closest('i')||el).dispatchEvent(new MouseEvent('click',{bubbles:true}))})});   // the click goes to the button that was touched
 document.getElementById('undoBtn').addEventListener('click',()=>{try{document.execCommand('undo')}catch(e){}topIcons();soon()});
 document.getElementById('kPen').addEventListener('click',()=>{note.blur();document.getElementById('penBtn').click()});
 note.addEventListener('focus',()=>editing(true));
@@ -793,8 +800,12 @@ function typeSwap(){if(predMode||acroMode){qtoast('Stop the prediction first');r
   P.predType=P.predType==='acro'?'text':'acro';saveP();$('predType').value=P.predType;
   qtoast(P.predType==='acro'?'Acrostic':'My prediction is…');qbuzz()}
 /* double tap = next prediction type (a single tap does nothing, so a spectator cannot change it by accident) */
-['typeBtn','kType'].forEach(id=>{let last=0;$(id).addEventListener('click',e=>{e.preventDefault();const t=Date.now();
-  if(t-last<350){last=0;typeSwap()}else last=t})});$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
+/* iOS can drop the second click of a fast double tap, so the taps are counted on touchend */
+function dblTap(el,fn){let last=0,touch=0;
+  const tap=()=>{const t=Date.now();if(t-last<400){last=0;fn()}else last=t};
+  el.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();e.__dt=1;touch=Date.now();tap()},{passive:false});
+  el.addEventListener('click',e=>{e.preventDefault();if(Date.now()-touch<800)return;tap()})}
+['typeBtn','kType'].forEach(id=>dblTap($(id),typeSwap));$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
 async function swapRole(){predMode=false;acroMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
 function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
@@ -857,6 +868,11 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
   try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
+</script>
+<script>
+/* Help: copy the real button icons into the button list */
+document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.querySelector(g.dataset.g);const v=src&&src.querySelector('svg');
+  if(v){const c=v.cloneNode(true);c.removeAttribute('id');c.removeAttribute('style');c.setAttribute('width','18');c.setAttribute('height','18');g.appendChild(c)}});
 </script>
 <script src="../hui.js"></script>
 </body>
