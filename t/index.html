@@ -94,6 +94,9 @@ svg{display:block}
 #qtoast.on{opacity:1;transform:translateX(-50%) scale(1)}
 #acroHint{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 108px);transform:translateX(-50%);z-index:19;display:none;white-space:nowrap;
   padding:8px 16px;border-radius:999px;background:rgba(40,40,42,.92);color:#fff;font:600 15px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.1);pointer-events:none}
+/* Acrostic swipe input: the page does not move */
+html.freeze,html.freeze body{overflow:hidden!important;touch-action:none!important;overscroll-behavior:none!important;height:100%}
+html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:none!important;overscroll-behavior:none!important;-webkit-user-select:none;user-select:none}
 #acroHint.on{display:block}#acroHint b{color:#FFD60A;margin-left:6px}
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
@@ -761,7 +764,13 @@ function acroIn(h){h=String(h??'');
 function acroDone(all){if(!acroMode||!acroText(acroRaw,all))return false;acroToggle();return true}
 /* swipe up or down above the keyboard and the toolbars = +1 letter position (max 5), with a buzz each time */
 let acroSwipes=0;const ACRO_MAX=5;
-function acroHintShow(){const el=$('acroHint');el.classList.toggle('on',acroMode);
+/* freeze the page while the Acrostic waits for the swipes and the word; the scroll position is kept */
+let frozenTop=0;
+function freeze(on){const r=document.documentElement,sc=$('scroll');if(on===r.classList.contains('freeze'))return;
+  if(on){frozenTop=sc?sc.scrollTop:0;r.classList.add('freeze')}else{r.classList.remove('freeze');if(sc)sc.scrollTop=frozenTop}}
+const noMove=e=>{if(document.documentElement.classList.contains('freeze')&&e.cancelable&&!(e.target.closest&&e.target.closest('#sheet')))e.preventDefault()};
+document.addEventListener('touchmove',noMove,{passive:false});window.addEventListener('scroll',()=>{if(document.documentElement.classList.contains('freeze'))scrollTo(0,0)});
+function acroHintShow(){const el=$('acroHint');el.classList.toggle('on',acroMode);freeze(acroMode);
   el.innerHTML='Swipe to input number'+(acroSwipes?'<b>'+acroSwipes+'</b>':'')}
 (function(){let x0=0,y0=0,on=false;
   const skip=t=>t.closest&&t.closest('.bar,#kbar,#dbar,#dnav,#sheet,#sheetBg,.nav');
