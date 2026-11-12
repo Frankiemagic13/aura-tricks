@@ -295,7 +295,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v26</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v27</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -760,7 +760,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v26. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v27. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -883,7 +883,7 @@ async function peerJoin(manual){
   peerHook();
   if(peerOk||peerBusy||(!manual&&document.visibilityState!=='visible'))return;
   peerBusy=true;peerStatus('Searching…');
-  try{const o={name:'Calculator',timeout:30};if(S.peerRoom)o.room=S.peerRoom;
+  try{const o={name:'Calculator',timeout:6};if(S.peerRoom)o.room=S.peerRoom;
     const h=await P.join(o);peerOk=true;peerHost=(h&&h.name)||'';
     peerStatus('Connected'+(peerHost?' to '+peerHost:''));peerRaw(peerState());peerDisp(true)}
   catch(e){peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
@@ -898,7 +898,7 @@ $('peerTest').onclick=()=>{if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))
 peerSync();
 /* Aura can add window.Aura a moment after the page loads */
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
-setInterval(()=>peerJoin(),5000);
+setInterval(()=>peerJoin(),2000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>peerJoin(),300)});
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
