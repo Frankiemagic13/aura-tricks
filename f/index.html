@@ -61,7 +61,11 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
     <div class="r"><button class="btn" id="rRec">Record routine</button></div>
     <div class="r"><button class="btn" id="rPlay">Play routine</button></div>
     <div class="r">Repeat (loop)<input type="checkbox" id="rLoop"></div>
+    <div class="r">Countdown buzz<select id="cdN"><option value="0">Off</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></div>
+    <div class="r" id="cdGapRow">Time between buzzes<select id="cdGap"><option value="500">0.5 s</option><option value="750">0.75 s</option><option value="1000">1 s</option><option value="1500">1.5 s</option><option value="2000">2 s</option></select></div>
+    <div class="r" id="cdShowRow">Show count on PeekSmith<input type="checkbox" id="cdShow"></div>
   </div>
+  <div class="note">Countdown buzz: before the routine starts, the PeekSmith buzzes this number of times. The light starts on the next beat after the last buzz, so you can count along. Press Play again during the countdown to stop it.</div>
   <div class="note">Record: tap Record routine (or the PeekSmith button set to Record). While recording, touch the screen = light on, lift your finger = light off. The PeekSmith buttons also work. Tap the screen with two fingers, or press the Record button again, to stop. The routine starts at the first light change. Play it with a PeekSmith button set to Play.</div>
 
   <div class="lbl">PeekSmith</div>
@@ -91,7 +95,7 @@ html,body{height:100%;background:#000;color:#fff;overflow:hidden;overscroll-beha
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const DEF={tapAct:'none',showSt:true,vib:true,conMode:'text',conText:'LIGHT',
-  rLoop:false,routine:null,
+  rLoop:false,routine:null,cdN:3,cdGap:1000,cdShow:false,
   btns:{'1.click':'toggle','1.longpress':'off','2.click':'toggle','2.longpress':'off','0.click':'play','0.longpress':'rec'}};
 const P=Object.assign({},DEF,store.get('fset',{}));P.btns=Object.assign({},DEF.btns,P.btns||{});
 if(P.conText==='Ready')P.conText='LIGHT';
@@ -174,7 +178,7 @@ async function bleToggle(){
   if(!AURA){bleStatus('Only in Aura');return}
   if(bleOn()){bleOff=true;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
   bleOff=false;bleSearch()}
-function bleShow(t){if(!bleOn())return;aps.text(String(t),{raw:true}).catch(()=>{})}
+function bleShow(t){if(!bleOn())return;if(t===''){aps.clear().catch(()=>{});return}aps.text(String(t),{raw:true}).catch(()=>{})}
 function conShow(){if(!bleOn())return;
   if(P.conMode==='text'&&P.conText)aps.text(String(P.conText),{raw:true}).catch(()=>{});
   else if(P.conMode==='blank')aps.clear().catch(()=>{})}
@@ -212,20 +216,31 @@ async function playStart(){
   const R=P.routine;if(!R||!R.ev||!R.ev.length){bleShow('No routine');return}
   if(recOn)return;
   if(!camAlive()&&!(await openCamera())){bleShow('Light: tap screen first');return}
-  playStop(false);playing=true;bleShow('Playing');rSync();
+  playStop(false);playing=true;rSync();
+  const n=+P.cdN||0,gap=+P.cdGap||1000;
+  if(n>0){if(!P.cdShow)bleShow('');
+    for(let i=0;i<n;i++)playTimers.push(setTimeout(()=>{
+      if(P.cdShow)bleShow(String(n-i));
+      if(bleOn())aps.vibrate('.').catch(()=>{})},i*gap))}
+  const go=()=>{bleShow(P.cdShow||!n?'Playing':'');run()};
   const run=()=>{
     for(const e of R.ev)playTimers.push(setTimeout(()=>setLight(e.on,true),e.t));
     playTimers.push(setTimeout(()=>{playTimers=[];
       if(playing&&P.rLoop)run();else{playing=false;setLight(false,true);bleShow('Done');rSync()}},R.len+(P.rLoop?400:30)))};
-  run()}
+  if(n>0)playTimers.push(setTimeout(go,n*gap));else go()}
 function playStop(show){playTimers.forEach(clearTimeout);playTimers=[];
   if(!playing)return;playing=false;setLight(false,true);if(show)bleShow('Stopped');rSync()}
 function rSync(){
   const R=P.routine;$('rInfo').textContent=R&&R.ev&&R.ev.length?Math.ceil(R.ev.length/2)+' flashes, '+(R.len/1000).toFixed(1)+' s':'None';
-  $('rRec').textContent=recOn?'Stop recording':'Record routine';$('rPlay').textContent=playing?'Stop':'Play routine';$('rLoop').checked=!!P.rLoop}
+  $('rRec').textContent=recOn?'Stop recording':'Record routine';$('rPlay').textContent=playing?'Stop':'Play routine';$('rLoop').checked=!!P.rLoop;
+  $('cdN').value=String(P.cdN);$('cdGap').value=String(P.cdGap);$('cdShow').checked=!!P.cdShow;
+  $('cdGapRow').style.display=$('cdShowRow').style.display=+P.cdN?'':'none'}
 $('rRec').onclick=()=>recOn?recStop():recStart();
 $('rPlay').onclick=()=>{if(playing)playStop(true);else{closeSheet();setTimeout(playStart,400)}};
 $('rLoop').onchange=e=>{P.rLoop=e.target.checked;saveP();cloudSave()};
+$('cdN').onchange=e=>{P.cdN=+e.target.value;saveP();rSync()};
+$('cdGap').onchange=e=>{P.cdGap=+e.target.value;saveP()};
+$('cdShow').onchange=e=>{P.cdShow=e.target.checked;saveP()};
 /* the routine is also kept online (same Firebase as the peeks), so it stays after a refresh */
 const R_URL='https://peek-island-default-rtdb.firebaseio.com/peeks/'+encodeURIComponent((new URLSearchParams(location.search).get('pk')||'fvt-c-k27x9m4q8w')+'-routine')+'.json';
 function cloudSave(){try{fetch(R_URL,{method:'PUT',keepalive:true,body:JSON.stringify({routine:P.routine,rLoop:!!P.rLoop,t:(P.routine&&P.routine.t)||Date.now()})}).catch(()=>{})}catch(e){}}
