@@ -30,7 +30,8 @@ const CSS=`
 .hui .grab,.hui>.shead,.hui>.hd,.hui>h1{display:none!important}
 .hui .hui-top{position:sticky;top:0;z-index:3;background:var(--hb);padding:calc(env(safe-area-inset-top) + 14px) 18px 8px}
 .hui .hui-row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
-.hui .hui-title{font-size:28px;font-weight:700;letter-spacing:.2px;color:var(--ht)}
+.hui .hui-title{font-size:28px;font-weight:700;letter-spacing:.2px;color:var(--ht);line-height:1.1}
+.hui .hui-sub{font-size:14px;font-weight:600;color:var(--ha);margin-top:3px;letter-spacing:.2px}
 .hui .hui-done{padding:8px 16px!important;width:auto!important;border-radius:18px!important;border:0!important;background:var(--hb)!important;color:var(--ha)!important;
   box-shadow:4px 4px 10px var(--hd),-4px -4px 10px var(--hl)!important;font:600 15px -apple-system,system-ui!important;text-align:center!important;height:auto!important}
 .hui .hui-tabs{display:flex;gap:8px;padding:12px 0 8px}
@@ -101,7 +102,8 @@ function build(box){
   /* 3. header + tabs + panes */
   const top=document.createElement('div');top.className='hui-top';
   const row=document.createElement('div');row.className='hui-row';
-  const title=document.createElement('div');title.className='hui-title';row.appendChild(title);
+  const tw=document.createElement('div');const title=document.createElement('div');title.className='hui-title';title.textContent=cfg.title||document.title||'Settings';
+  const sub=document.createElement('div');sub.className='hui-sub';tw.appendChild(title);tw.appendChild(sub);row.appendChild(tw);
   const done=head&&head.querySelector('button');
   if(done){done.classList.add('hui-done');row.appendChild(done)}
   top.appendChild(row);
@@ -115,9 +117,10 @@ function build(box){
     if(s.t&&s.t[0]==='#')tab=tabs.find(t=>norm(t.n)===norm(s.t.slice(1)));
     if(!tab&&s.t)tab=tabs.find(t=>t.s.some(w=>s.t.startsWith(w)));
     (tab||tabs[tabs.length-1]).el.append(...s.els)});
+  if(!cfg.ver){const vn=[...box.querySelectorAll('.note,.snote,small')].map(e=>e.textContent.trim()).find(t=>/^[\w ]+ v\d+$/.test(t));if(vn)cfg.ver=vn.split(' ').pop()}
   const KEY='hui-tab:'+location.pathname;
   function show(i){tabs.forEach((t,j)=>{t.el.classList.toggle('on',i===j);t.btn.classList.toggle('on',i===j)});
-    title.textContent=tabs.length>1?tabs[i].n:(cfg.title||'Settings');box.scrollTop=0;try{localStorage.setItem(KEY,String(i))}catch(e){}}
+    sub.textContent=tabs.length>1?tabs[i].n+(cfg.ver?'  ·  '+cfg.ver:''):(cfg.ver||'Settings');box.scrollTop=0;try{localStorage.setItem(KEY,String(i))}catch(e){}}
   let start=0;try{start=+localStorage.getItem(KEY)||0}catch(e){}
   show(start<tabs.length?start:0);
   box.classList.add('hui')}
