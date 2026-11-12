@@ -185,7 +185,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Hold time<select id="sTiltMs"><option value="300">0.3 s</option><option value="500">0.5 s</option><option value="800">0.8 s</option></select></div>
     <div class="r">Motion<span><span class="val" id="sMotion">Not allowed yet</span> <button class="sbtn" id="sMotionBtn">Allow</button></span></div>
   </div>
-  <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: hold the home photo for 1.5 s, or tap it 3 times quickly.</div>
+  <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: hold the home photo with 2 fingers (you can change this under "Tap the home photo"), or tap it 3 times quickly.</div>
 
   <div class="lbl">Send to Inject</div>
   <div class="grp">
@@ -211,11 +211,13 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Action<select id="sUAct"><option value="none">Nothing</option><option value="app">Open an app</option></select></div>
     <div class="r" id="rowUApp">App<select id="sUApp"><option value="notes">Notes</option><option value="photos">Photos</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="custom">Other (app link)</option></select></div>
     <div class="r" id="rowUUrl">App link<input type="text" id="sUUrl" placeholder="app://" autocapitalize="off" autocorrect="off" inputmode="url" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
+    <div class="r">Go back to the PIN screen<select id="sBack"><option value="two">Hold with 2 fingers</option><option value="one">Hold with 1 finger</option><option value="any">Hold with 1 or 2 fingers</option></select></div>
+    <div class="r">Hold time<select id="sBackMs"><option value="800">0.8 s</option><option value="1500">1.5 s</option><option value="2500">2.5 s</option></select></div>
     <div class="r">Open animation<select id="sUAnim"><option value="ios">iOS (icon zooms open)</option><option value="none">None</option></select></div>
     <div class="r">Launch color<select id="sUCol"><option value="auto">Auto</option><option value="#ffffff">White</option><option value="#000000">Black</option><option value="#1c1c1e">Dark gray</option></select></div>
     <div class="r"><button class="sbtn" id="sUTest">Test: open the app</button></div>
   </div>
-  <div class="snote">After the phone unlocks, one tap on the home photo opens this app. When this is on, 3 quick taps do not go back; hold the home photo for 1.5 s, or tap the PeekSmith side button. "Other": type the app's link (URL scheme), for example fb:// .</div>
+  <div class="snote">After the phone unlocks, one tap on the home photo opens this app. When this is on, 3 quick taps do not go back; hold the home photo (see "Go back to the PIN screen"), or tap the PeekSmith side button. "Other": type the app's link (URL scheme), for example fb:// .</div>
 
   <div class="lbl">Look</div>
   <div class="grp">
@@ -260,7 +262,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v21</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v22</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -272,7 +274,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto'},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto',back:'two',backMs:1500},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
@@ -412,15 +414,18 @@ function homeTap(e){if(P.uAct!=='app'||placing||view!=='home')return false;
     setTimeout(()=>{if(document.visibilityState==='visible')launchReset()},2500)});
   return true}
 /* hold the home photo 1.5 s = back to the PIN screen (always works, also when a tap opens an app) */
-let homeHeld=false;
+let homeHeld=false,multiTouch=false;
 (function(){const h=$('home');let tm=null,x0=0,y0=0;
-  const go=(x,y)=>{homeHeld=false;x0=x;y0=y;clearTimeout(tm);tm=setTimeout(()=>{if(view==='home'&&!placing&&!launching){homeHeld=true;haptic('medium');toLock(true)}},1500)};
+  const go=(x,y)=>{x0=x;y0=y;clearTimeout(tm);tm=setTimeout(()=>{if(view==='home'&&!placing&&!launching){homeHeld=true;haptic('medium');toLock(true)}},+P.backMs||1500)};
   const stop=()=>clearTimeout(tm);
-  h.addEventListener('touchstart',e=>{const t=e.touches[0];go(t.clientX,t.clientY)},{passive:true});
-  h.addEventListener('touchmove',e=>{const t=e.touches[0];if(Math.hypot(t.clientX-x0,t.clientY-y0)>12)stop()},{passive:true});
-  h.addEventListener('touchend',stop);h.addEventListener('touchcancel',stop);
-  h.addEventListener('mousedown',e=>go(e.clientX,e.clientY));h.addEventListener('mouseup',stop)})();
-(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeHeld){homeHeld=false;return}if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
+  h.addEventListener('touchstart',e=>{const n=e.touches.length,t=e.touches[0];
+    if(n===1){homeHeld=false;multiTouch=false}else multiTouch=true;   // a 2-finger touch never opens the app
+    const ok=P.back==='any'?true:P.back==='two'?n===2:n===1;
+    if(ok)go(t.clientX,t.clientY);else stop()},{passive:true});
+  h.addEventListener('touchmove',e=>{const t=e.touches[0];if(Math.hypot(t.clientX-x0,t.clientY-y0)>20)stop()},{passive:true});
+  h.addEventListener('touchend',e=>{if(P.back==='two'&&e.touches.length<2)stop();else if(!e.touches.length)stop()});h.addEventListener('touchcancel',stop);
+  h.addEventListener('mousedown',e=>{homeHeld=false;multiTouch=false;if(P.back!=='two')go(e.clientX,e.clientY)});h.addEventListener('mouseup',stop)})();
+(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeHeld||multiTouch){homeHeld=false;return}if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
 
 /* ---------- passcode ---------- */
 const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
@@ -577,7 +582,7 @@ function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
-  $('sUAct').value=P.uAct;$('sUAnim').value=P.uAnim;$('sUCol').value=P.uCol;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
+  $('sUAct').value=P.uAct;$('sUAnim').value=P.uAnim;$('sBack').value=P.back;$('sBackMs').value=String(P.backMs);$('sUCol').value=P.uCol;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
 $('sH24').onchange=e=>{P.h24=e.target.value==='1';saveP();if(frozen){const f=frozen;frozen=null;/* keep the same moment, new format */const h=Math.floor(f.num/100),m=f.num%100;frozen={str:(P.h24?pad2(h):h)+':'+pad2(m),num:f.num}}drawClock()};
@@ -633,6 +638,8 @@ $('sBadgePos').onclick=placeBadge;
 $('sPkTilt').onchange=e=>{P.pkTilt=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
+$('sBack').onchange=e=>{P.back=e.target.value;saveP()};
+$('sBackMs').onchange=e=>{P.backMs=+e.target.value;saveP()};
 $('sUAnim').onchange=e=>{P.uAnim=e.target.value;saveP()};
 $('sUCol').onchange=e=>{P.uCol=e.target.value;saveP()};
 $('sUAct').onchange=e=>{P.uAct=e.target.value;saveP();syncSheet()};
