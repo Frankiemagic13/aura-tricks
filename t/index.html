@@ -88,6 +88,9 @@ svg{display:block}
 .cdot.on{border-color:var(--tint);transform:scale(1.12)}
 .dis{opacity:.35;pointer-events:none}
 /* secret settings sheet (hold the share button) */
+#qtoast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%) scale(.9);opacity:0;pointer-events:none;z-index:20;
+  padding:9px 18px;border-radius:999px;background:#212121;color:#fff;font:600 16px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.09);transition:opacity .25s,transform .25s}
+#qtoast.on{opacity:1;transform:translateX(-50%) scale(1)}
 #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
 #sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
   padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
@@ -153,6 +156,7 @@ svg{display:block}
     <div class="cdot on" data-c="ink"></div><div class="cdot" data-c="#0A84FF" style="background:#0A84FF"></div><div class="cdot" data-c="#30D158" style="background:#30D158"></div><div class="cdot" data-c="#FFD60A" style="background:#FFD60A"></div><div class="cdot" data-c="#FF453A" style="background:#FF453A"></div>
   </div>
 </div>
+<div id="qtoast"></div>
 <div id="sheetBg"></div>
 <div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
   <div class="grab"></div>
@@ -589,7 +593,7 @@ function drawMsg(){
   while(JSON.stringify(m).length>60000&&step<64);
   return m}
 function peerSync(force){
-  if(P.peerRole!=='spect'||!P.peer||!peerOk)return;
+  if(P.peerRole!=='spect'||!P.peer||!peerOk||P.mirr===false)return;
   const h=note.innerText;if(force||h!==lastNote){lastNote=h;peerRaw({type:'note',h})}
   if(cur)return;   // the drawing goes when the stroke ends
   const ds=drawSig();if(force||ds!==lastDraw){lastDraw=ds;peerRaw(drawMsg())}}
@@ -616,8 +620,19 @@ function peerHook(){
   A.on('peer.message',({kind,data})=>{
     let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
     if((kind!=='json'&&kind!=='text')||!d||typeof d!=='object')return;
-    if(P.peerRole==='mirror'){if(d.type==='note')mirrorNote(d.h);else if(d.type==='draw')mirrorDraw(d);return}
+    if(d.cmd==='mirr'||d.cmd==='swap'){peerRemote(d);return}
+    if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note')mirrorNote(d.h);else if(d.type==='draw')mirrorDraw(d);return}
     if(d.cmd==='sync'||d.cmd==='ping')peerSync(true)})}
+/* send to the other device: the host sends to all its guests, a guest sends to its host */
+function peerOut(o){const Pp=peerApi();if(!Pp)return false;
+  if(P.peerRole==='mirror'){if(!hosting||!guests.size)return false;try{const r=Pp.send(o);if(r&&r.catch)r.catch(()=>{})}catch(e){return false}return true}
+  return peerRaw(o)}
+/* mirror on/off and Spectator/Magician swap: the same change on this device and on the other device */
+function setMirr(on){P.mirr=on;saveP();
+  if(!on)return;if(P.peerRole==='mirror')peerOut({cmd:'sync'});else peerSync(true)}
+async function swapRole(){P.peerRole=P.peerRole==='mirror'?'spect':'mirror';P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
+/* a change that comes from the other device: no message on this screen (the spectator holds it) */
+function peerRemote(d){if(d.cmd==='mirr')setMirr(!!d.on);else if(d.cmd==='swap')setTimeout(swapRole,150)}
 async function peerHostStart(){
   const Pp=peerApi();if(!Pp||typeof Pp.host!=='function'){peerStatus('Only in Aura');return}
   peerHook();if(hosting||peerBusy)return;peerBusy=true;
@@ -643,6 +658,25 @@ $('peerRoom').onchange=async()=>{P.peerRoom=$('peerRoom').value.trim().slice(0,6
 $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};
 $('peerTest').onclick=()=>{if(P.peerRole==='mirror'){hostShow();return}if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
 peerUI();
+/* quick toggle on the back button (top left): tap = mirror on / off, double tap = Spectator <-> Magician.
+   The other device does the same. The back button still closes the keyboard as before. */
+let qtT=null;
+function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
+function qbuzz(){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
+(function(){const b=$('back');let n=0,tm=null;
+  function single(){const on=P.mirr===false;
+    if(!P.peer){P.peer=true;saveP();peerUI();peerJoin(true)}
+    setMirr(on);const both=peerOut({cmd:'mirr',on});
+    qtoast((on?'Mirror on':'Mirror off')+(both?'':' (this phone)'));qbuzz()}
+  async function dbl(){const both=peerOut({cmd:'swap'});
+    qtoast((P.peerRole==='mirror'?'Spectator':'Magician')+(both?'':' (this phone)'));qbuzz();
+    if(both)await new Promise(z=>setTimeout(z,300));   // let the message go before the link closes
+    swapRole()}
+  function tap(e){if(e){e.preventDefault();e.stopPropagation()}now();note.blur();n++;clearTimeout(tm);
+    if(n>=2){n=0;dbl();return}tm=setTimeout(()=>{n=0;single()},320)}
+  let touched=false;
+  b.addEventListener('touchend',e=>{touched=true;tap(e)},{passive:false});
+  b.addEventListener('click',e=>{if(touched){touched=false;return}tap(e)},true)})();
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
 setInterval(()=>peerJoin(),2000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>peerJoin(),300)});
