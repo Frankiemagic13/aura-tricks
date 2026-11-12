@@ -295,7 +295,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v28</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v29</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -342,7 +342,7 @@ function unit(){return parseFloat(getComputedStyle(document.getElementById('keys
 const BACK='<svg class="bk" viewBox="0 0 34 27" fill="none" stroke="#fff" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"><path d="M11.5 2.5h17.5a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H11.5L2 13.5z"/><path d="m15.8 8.8 9.4 9.4M25.2 8.8l-9.4 9.4"/></svg>';
 function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=1;el.style.fontSize=s+'px'}}
 function render(){
-  if(S.peerRole==='mirror'&&mirrorD)return renderMirror();
+  if(S.peerRole==='mirror'&&mirrorD&&S.mirr!==false)return renderMirror();
   let main;
   if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
   else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
@@ -760,7 +760,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v28. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v29. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -822,7 +822,7 @@ if(S.peerRole!=='mirror')S.peerRole='spect';
 let peerGen=0,peerOk=false,peerBusy=false,peerHooked=false,peerHost='',hosting=false,lastDisp='';const guests=new Map();
 /* spectator: send the display to the mirror after each change */
 function peerDisp(force){
-  if(S.peerRole==='mirror'||!S.peer||!peerOk)return;
+  if(S.peerRole==='mirror'||!S.peer||!peerOk||S.mirr===false)return;
   const sel=document.querySelector('.k.o.sel');
   const d={type:'disp',m:$mt.textContent,e:$e.textContent,r:result!==null,ac:$ac.textContent,op:sel?sel.dataset.k:''};
   const k=JSON.stringify(d);if(!force&&k===lastDisp)return;lastDisp=k;peerRaw(d)}
@@ -872,10 +872,25 @@ function peerHook(){
     let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
     if(kind!=='json'&&kind!=='text')return;
     if(S.peerRole==='mirror'){if(!d||typeof d!=='object')return;
+      if(d.cmd){peerRemote(d);return}
       if(d.type==='disp'){mirrorD=d;render()}
       else if(d.type==='peek'&&d.m){try{bleSend(String(d.m))}catch(e){}}
       return}
+    if(d&&(d.cmd==='mirr'||d.cmd==='swap')){peerRemote(d);return}
     peerCmd(d)})}
+/* send to the other device: the host sends to all its guests, a guest sends to its host */
+function peerOut(o){const P=peerApi();if(!P)return false;
+  if(S.peerRole==='mirror'){if(!hosting||!guests.size)return false;try{const r=P.send(o);if(r&&r.catch)r.catch(()=>{})}catch(e){return false}return true}
+  return peerRaw(o)}
+/* mirror on/off and Spectator/Magician swap: the same change on this device and on the other device */
+function setMirr(on){S.mirr=on;saveS();
+  if(S.peerRole==='mirror'){render();if(on)peerOut({cmd:'disp'})}else if(on)peerDisp(true)}
+async function swapRole(){S.peerRole=S.peerRole==='mirror'?'spect':'mirror';S.peer=true;S.mirr=true;saveS();peerSync();
+  mirrorD=null;await peerLeave();render();peerJoin(true)}
+/* a change that comes from the other device: no message on this screen (the spectator holds it) */
+function peerRemote(d){
+  if(d.cmd==='mirr')setMirr(!!d.on);
+  else if(d.cmd==='swap')setTimeout(swapRole,150)}
 async function peerJoin(manual){
   if(!S.peer){peerStatus('Off');return}
   if(S.peerRole==='mirror')return peerHostStart();
@@ -897,12 +912,18 @@ $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(tru
 $('peerTest').onclick=()=>{if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
 peerSync();
 /* quick toggle on the top right button:
-   tap = Aura peer (mirror) on / off,  double tap = this phone: Spectator <-> Magician (mirror) */
+   tap = mirror on / off,  double tap = Spectator <-> Magician. The other device does the same. */
 (function(){const b=$('modeBtn');let n=0,tm=null;
-  function single(){S.peer=!S.peer;saveS();peerSync();
-    if(S.peer){toast('Mirror on');peerJoin(true)}else{toast('Mirror off');mirrorD=null;peerLeave();render()}buzz()}
-  async function dbl(){S.peerRole=S.peerRole==='mirror'?'spect':'mirror';S.peer=true;saveS();peerSync();
-    toast(S.peerRole==='mirror'?'Magician':'Spectator');buzz();mirrorD=null;await peerLeave();render();peerJoin(true)}
+  /* tap: mirror on/off here and on the other device (the Bluetooth link stays on) */
+  function single(){const on=S.mirr===false;
+    if(!S.peer){S.peer=true;saveS();peerSync();peerJoin(true)}
+    setMirr(on);const both=peerOut({cmd:'mirr',on});
+    toast((on?'Mirror on':'Mirror off')+(both?'':' (this phone)'));buzz()}
+  /* double tap: Spectator <-> Magician here, and the opposite on the other device */
+  async function dbl(){const both=peerOut({cmd:'swap'});
+    const r=S.peerRole==='mirror'?'Spectator':'Magician';toast(r+(both?'':' (this phone)'));buzz();
+    if(both)await new Promise(z=>setTimeout(z,300));   // let the message go before the link closes
+    swapRole()}
   function tap(e){if(e){e.preventDefault();e.stopPropagation()}n++;clearTimeout(tm);
     if(n>=2){n=0;dbl();return}tm=setTimeout(()=>{n=0;single()},320)}
   let touched=false;
