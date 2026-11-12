@@ -299,7 +299,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v38</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v39</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -786,7 +786,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v38. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v39. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -873,8 +873,13 @@ function peerErr(e){let m=(e&&(e.message||e.code||e.name))||e;try{if(typeof m===
 function peerDbgShow(){const el=$('peerDbg');if(!el)return;const A=window.Aura,P=A&&A.peer;
   let f='—';try{if(P)f=Object.keys(P).concat(Object.getOwnPropertyNames(Object.getPrototypeOf(P)||{})).filter(k=>k!=='constructor').join(', ')}catch(e){}
   el.textContent='Peer test: Aura '+(A?'yes':'no')+', Aura.peer: '+f+'. Role: '+S.peerRole+'. Room: '+(S.peerRoom||'automatic')+'. Last error: '+(peerLastErr||'none')+'. Events: '+(peerEv.slice(-4).join(' | ')||'none')}
-function peerRaw(o){const P=peerApi();if(!P||!peerOk)return false;
-  try{const r=P.send(o);if(r&&r.catch)r.catch(()=>{peerOk=false;peerStatus('Connection lost');setTimeout(peerJoin,1500)})}catch(e){return false}
+/* "overloaded" (too many messages): wait 1.5 s and send the newest state again, do not disconnect */
+let peerHold=0;
+function peerBusy_(e){const m=String((e&&(e.message||e.code))||e||'');return /overload|busy|rate|too many|full|limit/i.test(m)}
+function peerSlow(){peerHold=Date.now()+1500;peerStatus('Busy – slowing down');lastDisp='';setTimeout(()=>{if(Date.now()>=peerHold&&peerOk)peerStatus('Connected')},1600)}
+function peerRaw(o){const P=peerApi();if(!P||!peerOk||Date.now()<peerHold)return false;
+  try{const r=P.send(o);if(r&&r.catch)r.catch(e=>{if(peerBusy_(e)){peerSlow();return}peerOk=false;peerStatus('Connection lost');setTimeout(peerJoin,1500)})}
+  catch(e){if(peerBusy_(e))peerSlow();return false}
   return true}
 function peerSend(t){if(!S.peer)return;peerRaw({type:'peek',m:String(t),t:Date.now()})}
 function peerState(){return{type:'state',mode:S.mode,custom:S.custom,force:Number.isFinite(target())?String(target()):''}}
