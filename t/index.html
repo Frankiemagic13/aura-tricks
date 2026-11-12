@@ -193,6 +193,7 @@ svg{display:block}
     <div class="r">Use Aura peer<input type="checkbox" id="peerOn"></div>
     <div class="r">Status<span id="peerSt" class="dim">—</span></div>
     <div class="r">Prediction type<select id="predType"><option value="text">My prediction is…</option><option value="acro">Acrostic</option></select></div>
+    <div class="r">Stop prediction after<select id="predStop"><option value="0">Off (hold back)</option><option value="3">3 s with no typing</option><option value="5">5 s with no typing</option><option value="10">10 s with no typing</option><option value="20">20 s with no typing</option><option value="30">30 s with no typing</option></select></div>
     <div class="r">Prediction text<input class="tx" id="predText" autocapitalize="sentences" autocorrect="off" placeholder="My prediction is"></div>
     <div class="r">Prediction case<select id="predCase"><option value="opp">Opposite of spectator</option><option value="same">Same as spectator</option><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
     <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
@@ -202,7 +203,7 @@ svg{display:block}
     <li>Your iPhone: Aura Browser, <b>My phone (mirror)</b>. Spectator: AuraClip, <b>Spectator</b>.</li>
     <li>Same room on both (default fvt-calc). Keep both pages on screen.</li>
     <li>Back button: <b>tap</b> = mirror on/off, <b>double tap</b> = swap roles, <b>hold</b> = prediction.</li>
-    <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop.</li>
+    <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop, or set <b>Stop prediction after</b>.</li>
     <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
     <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
     <li>Checklist button: <b>double tap</b> = change the prediction type. More in the Help tab.</li>
@@ -248,7 +249,8 @@ svg{display:block}
   <h4>Prediction: "My prediction is…"</h4>
   <ol><li>Hold back. The spectator's note changes to the prediction text.</li>
   <li>Type on your phone. Each letter shows on their phone after the prediction text (case: opposite of their text, by default).</li>
-  <li>Hold back again to stop. Hold ••• to clear your text and type again.</li></ol>
+  <li>Hold back again to stop. Or set <b>Stop prediction after</b>: it stops by itself when you do not type for that time.</li>
+  <li>Hold ••• to clear your text and type again.</li></ol>
   <h4>Prediction: Acrostic</h4>
   <ol><li>Hold back. The spectator types a word.</li>
   <li>Your note shows common words, one on each line. Their first letters spell the spectator's word.</li>
@@ -736,7 +738,10 @@ function acroOf(word,i){const key=i+':'+word.toLowerCase();if(acroCache.has(key)
 function acroText(h,all){const t=String(h).replace(/\u00a0/g,' ');let words=t.split(/\s+/).filter(Boolean);
   if(!all&&!/\s$/.test(t))words=words.slice(0,-1);   // the word that is still being typed is not shown yet
   return words.map((w,i)=>acroOf(w,i)).filter(Boolean).join('\n\n')}
-function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;predLast=h;
+/* stop by itself: after the set time with no typing (the timer starts again at each letter) */
+let predStopT=null;
+function predStopArm(){clearTimeout(predStopT);const sec=+P.predStop||0;if(predMode&&sec>0)predStopT=setTimeout(()=>{if(predMode)predToggle()},sec*1000)}
+function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;if(h!==predLast)predStopArm();predLast=h;
   peerOut({type:'predtext',h:predCase(h)})}
 note.addEventListener('input',()=>predSend());
 setInterval(()=>predSend(),200);
@@ -777,10 +782,11 @@ function predToggle(){
     predSpecCase=caseOf(note.innerText);   // this phone shows the spectator's note (mirror)
     predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast(P.predType==='acro'?'Acrostic':'Prediction');qbuzz();
     setTimeout(()=>{note.focus();placeEnd()},50)}
-  else{predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}
+  else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
 if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP()};
+if(P.predStop==null)P.predStop=5;$('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
 $('predText').value=P.predText;
 /* quick change of the prediction type: the checklist button (bottom bar and keyboard bar) */
 function typeSwap(){if(predMode||acroMode){qtoast('Stop the prediction first');return}
