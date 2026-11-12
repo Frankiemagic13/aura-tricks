@@ -191,13 +191,14 @@ svg{display:block}
     <div class="r">This phone<select id="peerRole"><option value="spect">Spectator (sends)</option><option value="mirror">My phone (mirror)</option></select></div>
     <div class="r">Use Aura peer<input type="checkbox" id="peerOn"></div>
     <div class="r">Status<span id="peerSt" class="dim">—</span></div>
+    <div class="r">Prediction type<select id="predType"><option value="text">My prediction is…</option><option value="acro">Acrostic</option></select></div>
     <div class="r">Prediction text<input class="tx" id="predText" autocapitalize="sentences" autocorrect="off" placeholder="My prediction is"></div>
     <div class="r">Prediction case<select id="predCase"><option value="opp">Opposite of spectator</option><option value="same">Same as spectator</option><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
     <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
     <div class="r"><button class="sbtn" id="peerBtn">Connect now</button><button class="sbtn" id="peerTest">Test</button></div>
   </div>
   <div class="snote">Bluetooth from the spectator's phone directly to your iPhone. No internet is necessary. Your iPhone: open this page in Aura Browser and set "This phone" to "My phone (mirror)" (or add ?mirror=1 to the link). Your Notes then shows the spectator's note and drawings live, and the peeks go to your PeekSmith from your phone. The spectator's phone stays "Spectator". Use the same room on the two phones (default fvt-calc, the same as the calculator and PeekLink). Keep the two pages open and on screen.</div>
-  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case: "Opposite of spectator" looks at the spectator's note before the prediction: if they typed in capitals, your text shows in small letters, and if they typed in small letters, your text shows in capitals. "Same as spectator" uses their case. "Swap" changes each letter you type (A ↔ a).</div>
+  <div class="snote">Prediction (on your phone, as Magician): hold the back button for 1 second. The spectator's note changes to the prediction text. Then everything you type on your phone shows on the spectator's phone after that text. Hold the back button again to stop: the normal mirror starts again. Prediction case: "Opposite of spectator" looks at the spectator's note before the prediction: if they typed in capitals, your text shows in small letters, and if they typed in small letters, your text shows in capitals. "Same as spectator" uses their case. "Swap" changes each letter you type (A ↔ a). Acrostic: type the spectator's word on your phone. When the word is complete (space, or hold back to stop), the spectator's note shows common words, one on each line. The first letters of the words spell the word. Prediction text and case are not used for Acrostic.</div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
@@ -658,19 +659,62 @@ function predCase(h){const m=P.predCase;
   if(m==='asis')return h;if(m==='swap')return swapCase(h);
   const c=predSpecCase;if(!c)return h;   // the spectator typed no letters: as typed
   const up=(m==='opp')?(c==='low'):(c==='up');return up?h.toUpperCase():h.toLowerCase()}
-function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;predLast=h;peerOut({type:'predtext',h:predCase(h)})}
+/* ---------- Acrostic: common words, the first letters spell the word that was typed ---------- */
+const ACRO={
+a:'apple anchor arrow autumn ocean? artist actor album angel animal answer army attic avenue',
+b:'banana bottle bridge butter blanket bicycle basket bread beach button bucket bell',
+c:'candle castle carpet cookie cotton circle cloud camera corner coffee cherry clock',
+d:'doctor dragon desert dinner dollar diamond door dolphin drum daisy dust dream',
+e:'eagle engine envelope evening elbow eleven echo empire easel egg earth elephant',
+f:'flower forest feather finger garden? family farmer fire friend fountain frame fork',
+g:'garden guitar glove galaxy giant ginger grass ghost gold glass grape gravel',
+h:'hammer harbor honey helmet hotel horse hollow heart hill house hunter harvest',
+i:'island iron ink insect igloo idea image inch ivory iceberg ivy index',
+j:'jacket jungle jelly journey jewel juice jar jigsaw judge jasmine joke jeans',
+k:'kitten kettle kingdom ketchup kite knife koala kayak kernel kiwi knot key',
+l:'lemon ladder lantern lizard lobster letter library lion leaf lake lamp lunch',
+m:'mirror mountain marble monkey melon magnet market meadow music moon mango map',
+n:'needle number napkin nature night nest noodle nickel north novel nurse nut',
+o:'orange ocean orchard oyster office olive onion otter oven owl oak opera',
+p:'pencil pillow planet pepper pocket puzzle parrot piano pirate pumpkin river? paper',
+q:'queen quilt quarter question quiet quiz quail quarry',
+r:'rabbit river rocket ribbon rainbow robot rose rice ruler riddle radio ring',
+s:'summer silver sugar spider shadow sunset stone saddle salmon spoon star sock',
+t:'tiger table tomato ticket tunnel turtle teapot thunder tower train tree tulip',
+u:'umbrella uncle unicorn uniform universe valley? utensil umpire upstairs urchin',
+v:'violin velvet valley village volcano vase vanilla vest voyage vine visitor van',
+w:'window winter wallet whistle walrus wagon water wheel wizard wolf wood wire',
+x:'xylophone xray',
+y:'yellow yogurt yacht yarn year yard yoga yolk youth yawn',
+z:'zebra zipper zero zoo zone zigzag zinnia zucchini'};
+for(const k in ACRO)ACRO[k]=ACRO[k].split(' ').filter(w=>w&&!w.endsWith('?')&&w[0]===k).map(w=>w==='xray'?'X-ray':w);
+const cap=w=>w.charAt(0).toUpperCase()+w.slice(1);
+const acroCache=new Map();
+function acroOf(word,i){const key=i+':'+word.toLowerCase();if(acroCache.has(key))return acroCache.get(key);
+  const used=new Set(),out=[];
+  for(const ch of word.toLowerCase()){const list=ACRO[ch];if(!list)continue;
+    const free=list.filter(w=>!used.has(w)),pick=(free.length?free:list)[Math.floor(Math.random()*(free.length?free:list).length)];
+    used.add(pick);out.push(cap(pick))}
+  const r=out.join('\n');acroCache.set(key,r);return r}
+function acroText(h,all){const t=String(h).replace(/\u00a0/g,' ');let words=t.split(/\s+/).filter(Boolean);
+  if(!all&&!/\s$/.test(t))words=words.slice(0,-1);   // the word that is still being typed is not shown yet
+  return words.map((w,i)=>acroOf(w,i)).filter(Boolean).join('\n\n')}
+function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;predLast=h;
+  peerOut({type:'predtext',h:P.predType==='acro'?acroText(h,!!force):predCase(h)})}
 note.addEventListener('input',()=>predSend());
 setInterval(()=>predSend(),200);
 function predToggle(){
   if(P.peerRole!=='mirror'){qtoast('Prediction: only on the Magician phone');return}
   if(!predMode){
-    if(!peerOut({cmd:'pred',on:true,pre:predPrefix()})){qtoast('Not connected');return}
+    if(!peerOut({cmd:'pred',on:true,pre:P.predType==='acro'?'':predPrefix()})){qtoast('Not connected');return}
+    acroCache.clear();
     predSpecCase=caseOf(note.innerText);   // this phone shows the spectator's note (mirror)
-    predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast('Prediction');qbuzz();
+    predMode=true;predLast=null;note.setAttribute('autocapitalize','off');note.textContent='';last='';lastBle='';newNote();qtoast(P.predType==='acro'?'Acrostic':'Prediction');qbuzz();
     setTimeout(()=>{note.focus();placeEnd()},50)}
   else{predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
+if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP()};
 $('predText').value=P.predText;$('predText').onchange=e=>{P.predText=e.target.value;saveP()};
 async function swapRole(){predMode=false;predOn=false;note.setAttribute('autocapitalize','sentences');P.peerRole=P.peerRole==='mirror'?'spect':'mirror';roleSave(P.peerRole);P.peer=true;P.mirr=true;saveP();peerUI();await peerLeave();peerJoin(true)}
 /* a change that comes from the other device: no message on this screen (the spectator holds it) */
