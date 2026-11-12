@@ -146,7 +146,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="top">
     <div id="toast">Saved</div>
     <div class="tb" id="histBtn"><svg viewBox="0 0 26 26" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="13" r="10.6"/><path id="hand" d="M13 6.8V13H8.6"/></svg></div>
-    <div class="tb"><svg viewBox="0 0 26 26" fill="none"><rect x="5.6" y="2.4" width="14.8" height="21.2" rx="3.4" stroke="#fff" stroke-width="2.1"/><rect x="8.4" y="5.2" width="9.2" height="3.6" rx=".9" fill="#fff"/>
+    <div class="tb" id="modeBtn"><svg viewBox="0 0 26 26" fill="none"><rect x="5.6" y="2.4" width="14.8" height="21.2" rx="3.4" stroke="#fff" stroke-width="2.1"/><rect x="8.4" y="5.2" width="9.2" height="3.6" rx=".9" fill="#fff"/>
       <g fill="#fff"><circle cx="9.3" cy="12.2" r="1.25"/><circle cx="13" cy="12.2" r="1.25"/><circle cx="16.7" cy="12.2" r="1.25"/><circle cx="9.3" cy="15.6" r="1.25"/><circle cx="13" cy="15.6" r="1.25"/><circle cx="16.7" cy="15.6" r="1.25"/><circle cx="9.3" cy="19" r="1.25"/><circle cx="13" cy="19" r="1.25"/><circle cx="16.7" cy="19" r="1.25"/></g></svg></div>
   </div>
   <div class="disp"><div id="expr"></div><div id="main">0</div></div>
@@ -295,7 +295,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v27</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v28</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -760,7 +760,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v27. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v28. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -819,7 +819,7 @@ if(!S.peerRoomV){S.peerRoom=S.peerRoom||'fvt-calc';S.peerRoomV=1;saveS()}
 if(S.peerRoom==null)S.peerRoom='';
 if(Q.get('mirror')==='1')S.peerRole='mirror';else if(Q.get('mirror')==='0')S.peerRole='spect';
 if(S.peerRole!=='mirror')S.peerRole='spect';
-let peerOk=false,peerBusy=false,peerHooked=false,peerHost='',hosting=false,lastDisp='';const guests=new Map();
+let peerGen=0,peerOk=false,peerBusy=false,peerHooked=false,peerHost='',hosting=false,lastDisp='';const guests=new Map();
 /* spectator: send the display to the mirror after each change */
 function peerDisp(force){
   if(S.peerRole==='mirror'||!S.peer||!peerOk)return;
@@ -830,9 +830,9 @@ function hostShow(){if(!S.peer){peerStatus('Off');return}if(!hosting)return;
   peerStatus(guests.size?'Mirroring '+[...guests.values()].join(', '):'Waiting for spectator…')}
 async function peerHostStart(){
   const P=peerApi();if(!P||typeof P.host!=='function'){peerStatus('Only in Aura');return}
-  peerHook();if(hosting||peerBusy)return;peerBusy=true;
-  try{const o={name:'Magician'};if(S.peerRoom)o.room=S.peerRoom;await P.host(o);hosting=true;hostShow()}
-  catch(e){peerStatus('Error');peerErr(e)}
+  peerHook();if(hosting||peerBusy)return;peerBusy=true;const g=peerGen;
+  try{const o={name:'Magician'};if(S.peerRoom)o.room=S.peerRoom;await P.host(o);if(g!==peerGen)return;hosting=true;hostShow()}
+  catch(e){if(g!==peerGen)return;peerStatus('Error');peerErr(e)}
   peerBusy=false}
 const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
 function peerStatus(t){const el=$('peerSt');if(el)el.textContent=t;peerDbgShow()}
@@ -882,13 +882,13 @@ async function peerJoin(manual){
   const P=peerApi();if(!P){peerStatus('Only in Aura');return}
   peerHook();
   if(peerOk||peerBusy||(!manual&&document.visibilityState!=='visible'))return;
-  peerBusy=true;peerStatus('Searching…');
+  peerBusy=true;peerStatus('Searching…');const g=peerGen;
   try{const o={name:'Calculator',timeout:6};if(S.peerRoom)o.room=S.peerRoom;
-    const h=await P.join(o);peerOk=true;peerHost=(h&&h.name)||'';
+    const h=await P.join(o);if(g!==peerGen)return;peerOk=true;peerHost=(h&&h.name)||'';
     peerStatus('Connected'+(peerHost?' to '+peerHost:''));peerRaw(peerState());peerDisp(true)}
-  catch(e){peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
+  catch(e){if(g!==peerGen)return;peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
   peerBusy=false}
-async function peerLeave(){const P=peerApi();peerOk=false;hosting=false;guests.clear();lastDisp='';if(P)try{await P.leave()}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
+async function peerLeave(){const P=peerApi();peerGen++;peerBusy=false;peerOk=false;hosting=false;guests.clear();lastDisp='';if(P)try{await P.leave()}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
 function peerSync(){$('peerOn').checked=!!S.peer;$('peerRoom').value=S.peerRoom||'';$('peerRole').value=S.peerRole}
 $('peerRole').onchange=async()=>{S.peerRole=$('peerRole').value;saveS();mirrorD=null;await peerLeave();render();peerJoin(true)};
 $('peerOn').onchange=()=>{S.peer=$('peerOn').checked;saveS();if(S.peer)peerJoin(true);else peerLeave()};
@@ -896,6 +896,18 @@ $('peerRoom').onchange=async()=>{S.peerRoom=$('peerRoom').value.trim().slice(0,6
 $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(true)};
 $('peerTest').onclick=()=>{if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
 peerSync();
+/* quick toggle on the top right button:
+   tap = Aura peer (mirror) on / off,  double tap = this phone: Spectator <-> Magician (mirror) */
+(function(){const b=$('modeBtn');let n=0,tm=null;
+  function single(){S.peer=!S.peer;saveS();peerSync();
+    if(S.peer){toast('Mirror on');peerJoin(true)}else{toast('Mirror off');mirrorD=null;peerLeave();render()}buzz()}
+  async function dbl(){S.peerRole=S.peerRole==='mirror'?'spect':'mirror';S.peer=true;saveS();peerSync();
+    toast(S.peerRole==='mirror'?'Magician':'Spectator');buzz();mirrorD=null;await peerLeave();render();peerJoin(true)}
+  function tap(e){if(e){e.preventDefault();e.stopPropagation()}n++;clearTimeout(tm);
+    if(n>=2){n=0;dbl();return}tm=setTimeout(()=>{n=0;single()},320)}
+  let touched=false;
+  b.addEventListener('touchend',e=>{touched=true;tap(e)},{passive:false});
+  b.addEventListener('click',e=>{if(touched){touched=false;return}tap(e)})})();
 /* Aura can add window.Aura a moment after the page loads */
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
 setInterval(()=>peerJoin(),2000);
