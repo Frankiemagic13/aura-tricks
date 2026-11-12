@@ -245,7 +245,7 @@ svg{display:block}
   <h4>Buttons</h4>
   <div class="glist">
     <div><span class="g" data-g="#kAa"></span><span><b>Aa</b> (keyboard bar): double tap = swap Spectator ↔ Magician (both devices)</span></div>
-    <div><span class="g" data-g="#kTable"></span><span><b>Table</b> (keyboard bar): double tap = mirror on/off (both devices) · hold 1 s = prediction on/off</span></div>
+    <div><span class="g" data-g="#kTable"></span><span><b>Table</b> (keyboard bar): double tap = mirror on/off (both devices; on = this phone becomes the Magician) · hold 1 s = prediction on/off</span></div>
     <div><span class="g" data-g="#share"></span><span><b>Share</b>: hold 1 s = these settings</span></div>
     <div><span class="g" data-g="#more"></span><span><b>•••</b>: hold 1 s = clear the note (the date does the same)</span></div>
     <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = change the prediction type, and this phone becomes the Magician</span></div>
@@ -847,6 +847,7 @@ let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
 function qbuzz(){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('success');if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
 function mirrorToggle(){const on=P.mirr===false;
+  if(on&&P.peerRole!=='mirror'){if(!P.peer){P.peer=true;saveP();peerUI()}beMagician('Mirror on');return}   // mirror on: this phone becomes the Magician
   if(!P.peer){P.peer=true;saveP();peerUI();peerJoin(true)}
   setMirr(on);const both=peerOut({cmd:'mirr',on});
   qtoast((on?'Mirror on':'Mirror off')+(both?'':' (this phone)'));qbuzz()}

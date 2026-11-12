@@ -250,7 +250,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="note"><ul style="margin:0;padding-left:18px">
     <li>Your iPhone: Aura Browser, <b>My phone (mirror)</b> (or PeekLink). Spectator: AuraClip, <b>Spectator</b>.</li>
     <li>Same room on both (default fvt-calc). Keep both pages on screen.</li>
-    <li>Top right button: <b>tap</b> = mirror on/off, <b>double tap</b> = swap roles (both devices).</li>
+    <li>Top right button: <b>tap</b> = mirror on/off (on = this phone becomes the Magician), <b>double tap</b> = swap roles (both devices).</li>
     <li>The mirror shows their display live. Peeks go to your PeekSmith. More in the Help tab.</li>
   </ul></div>
   <div class="note" id="peerDbg" style="word-break:break-word"></div>
@@ -299,7 +299,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v33</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v34</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -312,7 +312,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
   <h4>Aura peer mirror (top right button)</h4>
   <ul><li><b>Double tap</b>: this phone switches Spectator ↔ Magician. The other device switches too.</li>
-  <li><b>Tap</b>: mirror on / off on the two devices.</li>
+  <li><b>Tap</b>: mirror on / off on the two devices. Mirror on makes this phone the Magician.</li>
   <li>Your iPhone (Magician, in Aura Browser) shows the spectator's display live. The spectator's device (AuraClip) is Spectator.</li>
   <li>The two devices must use the same room (default fvt-calc) and stay on screen.</li></ul>
   <h4>Inject</h4>
@@ -785,7 +785,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v33. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v34. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -945,6 +945,8 @@ peerSync();
 (function(){const b=$('modeBtn');let n=0,tm=null;
   /* tap: mirror on/off here and on the other device (the Bluetooth link stays on) */
   function single(){const on=S.mirr===false;
+    if(on&&S.peerRole!=='mirror'){S.peer=true;const both=peerOut({cmd:'swap'});toast('Mirror on · Magician'+(both?'':' (this phone)'));buzz();   // mirror on: this phone becomes the Magician
+      setTimeout(swapRole,both?300:0);return}
     if(!S.peer){S.peer=true;saveS();peerSync();peerJoin(true)}
     setMirr(on);const both=peerOut({cmd:'mirr',on});
     toast((on?'Mirror on':'Mirror off')+(both?'':' (this phone)'));buzz()}
