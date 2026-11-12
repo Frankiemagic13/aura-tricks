@@ -61,7 +61,7 @@ body.studio #studio{display:flex}
 .tile .ts{position:absolute;top:42px;left:0;right:0;text-align:center;font:600 10px -apple-system;color:#8e8e93}
 .tile .tn{position:absolute;bottom:8px;left:0;right:0;text-align:center;font:800 27px -apple-system;color:rgba(255,255,255,.14)}
 .tile.ready .ts{color:#30d158}.tile.tap .ts{color:#ffd60a}
-.tile.empty{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12)}.tile.empty .cm{opacity:.25}
+.tile.empty{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12)}.tile.empty .cm{opacity:.25}.tile.empty.lit .cm{opacity:1}
 .tile.m{background:linear-gradient(160deg,#3a3a40,#2a2a2e)}.tile.m .tn{color:rgba(255,255,255,.24)}
 .tile.sel{box-shadow:0 8px 18px rgba(0,0,0,.5),0 0 0 3px #ff9f0a}
 .tile.lit .cm{background:#fff;box-shadow:0 0 14px 5px rgba(255,244,214,.9),0 0 40px 14px rgba(255,236,190,.3)}
@@ -83,6 +83,56 @@ body.studio #studio{display:flex}
 .recording .tools{display:flex}
 .tools button{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;color:#8e8e93;font:600 11px -apple-system}
 .tools b{width:40px;height:40px;border-radius:12px;background:#26262a;display:flex;align-items:center;justify-content:center;font:700 16px -apple-system;color:#fff}
+/* record countdown (4 looks) */
+#recCd{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;flex-direction:column}
+#recCd.on{display:flex}
+#recCd .n{font-variant-numeric:tabular-nums}
+/* film leader (After Effects) */
+#recCd[data-cd=film]{background:rgba(10,10,12,.88)}
+#recCd .fl{position:relative;width:260px;height:260px;border-radius:50%;background:#2b2b2e;overflow:hidden;box-shadow:0 0 0 6px #1c1c1e,0 0 0 8px #3a3a3e}
+#recCd .fl .cx,#recCd .fl .cy{position:absolute;background:rgba(255,255,255,.35)}#recCd .fl .cx{left:0;right:0;top:50%;height:2px}#recCd .fl .cy{top:0;bottom:0;left:50%;width:2px}
+#recCd .fl .c1,#recCd .fl .c2{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.5)}#recCd .fl .c1{inset:18px}#recCd .fl .c2{inset:44px}
+#recCd .fl .sw{position:absolute;inset:-40%;background:conic-gradient(rgba(255,255,255,.22) 0deg,rgba(255,255,255,.22) var(--a,0deg),transparent var(--a,0deg));animation:flSw 1s linear infinite}
+@property --a{syntax:'<angle>';inherits:false;initial-value:0deg}
+@keyframes flSw{from{--a:0deg}to{--a:360deg}}
+#recCd .fl .n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:800 150px/1 -apple-system;color:#fff;text-shadow:0 2px 0 #000}
+/* ring timer */
+#recCd[data-cd=ring]{background:rgba(0,0,0,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#recCd .rg{position:absolute;width:250px;height:250px;transform:rotate(-90deg)}
+#recCd .rg circle{fill:none;stroke-width:8}#recCd .rg .bg{stroke:rgba(255,255,255,.12)}
+#recCd .rg .fg{stroke:#ff453a;stroke-linecap:round;stroke-dasharray:553;stroke-dashoffset:0;filter:drop-shadow(0 0 6px rgba(255,69,58,.8))}
+#recCd.run .rg .fg{transition:stroke-dashoffset 3s linear;stroke-dashoffset:553}
+#recCd[data-cd=ring] .n{font:700 110px/1 -apple-system;color:#fff;animation:rgN .35s ease-out both}
+#recCd[data-cd=ring] small{position:absolute;top:calc(50% + 150px);font:600 15px -apple-system;color:#8e8e93}
+@keyframes rgN{from{transform:scale(.6);opacity:0}to{transform:none;opacity:1}}
+/* flash burst */
+#recCd[data-cd=flash]{background:#000}
+#recCd .burst{position:absolute;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,#fff 0,#fff6dc 18%,rgba(255,236,190,.35) 40%,transparent 70%);animation:bu 1s ease-out infinite}
+@keyframes bu{0%{transform:scale(.2);opacity:1}35%{transform:scale(1.15);opacity:1}100%{transform:scale(1.6);opacity:0}}
+#recCd[data-cd=flash] .n{position:relative;font:900 160px/1 -apple-system;color:#000;animation:fN 1s ease-out both}
+@keyframes fN{0%{color:#000;transform:scale(1.3)}30%{color:#000;transform:none}100%{color:#fff;text-shadow:0 0 30px #fff}}
+/* small pill (the layers stay visible) */
+#recCd[data-cd=pill]{background:transparent;justify-content:flex-start;padding-top:calc(env(safe-area-inset-top) + 150px);pointer-events:none}
+#recCd .pl{pointer-events:auto;display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:999px;background:#2a1414;box-shadow:inset 0 0 0 1.5px #ff453a,0 8px 30px rgba(255,69,58,.35);font:700 22px -apple-system;color:#fff;animation:plIn .3s cubic-bezier(.3,1.6,.5,1) both}
+#recCd .pl i{width:14px;height:14px;border-radius:50%;background:#ff453a;animation:plDot 1s ease-in-out infinite}
+#recCd .pl .n{display:inline-block;min-width:16px;color:#ff453a;animation:rgN .3s ease-out both}
+@keyframes plIn{from{transform:translateY(-30px) scale(.8);opacity:0}to{transform:none;opacity:1}}
+@keyframes plDot{50%{opacity:.25}}
+/* layers: common */
+.ly{overflow:hidden}.phd{transition:none}
+.tools button.on b{background:#3a3420;color:#ffd60a}
+@keyframes aIn{from{transform:scaleX(0);opacity:0}to{transform:none;opacity:1}}
+/* layers: Pro (After Effects) animations */
+.bar.in{animation:cIn .25s linear both}@keyframes cIn{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.ly.in{animation:cLy .25s ease-out both}@keyframes cLy{from{transform:translateY(-8px);opacity:0}to{transform:none;opacity:1}}
+.ly.gone{animation:cLy .2s ease-in reverse both}
+.bar.out{animation:cOut .3s linear both}@keyframes cOut{to{clip-path:inset(0 0 0 100%);opacity:.3}}
+.bar.out.del{animation:cDel .35s both}@keyframes cDel{0%{background:#ff453a}40%{background:#ff453a;clip-path:inset(0 0 0 0)}to{background:#ff453a;clip-path:inset(50% 50% 50% 50%)}}
+#tUndo.go b{animation:cRew .35s}@keyframes cRew{40%{transform:translateX(-5px)}}
+#tDel.go b{animation:cRew .35s}
+.pv .bar{filter:saturate(.3) brightness(.7);transition:filter .1s}
+.pv .bar.hit{filter:none;box-shadow:inset 0 0 0 2px #fff,0 0 10px rgba(255,255,255,.6)}
+.pv .phd::after{content:attr(data-t);position:absolute;top:-21px;left:6px;font:700 10px -apple-system;color:#fff;background:#ff453a;padding:1px 4px;border-radius:4px}
 .st-hint{margin-top:auto;text-align:center;font:500 12.5px -apple-system;color:#8e8e93;padding:8px 16px}
 .ctl{flex:none;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 0 26px}
 .cb{width:60px;height:60px;border-radius:50%;border:0;display:flex;align-items:center;justify-content:center;background:#2a2a2e;position:relative;touch-action:none}
@@ -92,6 +142,11 @@ body.studio #studio{display:flex}
 .recording .cb.rec{box-shadow:inset 0 0 0 2.5px #ff453a}.recording .cb.rec i{border-radius:6px;background:#ff453a}
 .cb.on{box-shadow:inset 0 0 0 2.5px #ffd60a}.cb.all{box-shadow:inset 0 0 0 2.5px #ffd60a;background:#3a3420}.cb.fl{box-shadow:inset 0 0 0 2.5px #ff6b3d}.cb.off{box-shadow:inset 0 0 0 2.5px #636366}
 .cb.down{filter:brightness(1.5)}
+#pgPhones .tiles{margin-top:auto}#pgPhones .st-hint{margin-top:auto}   /* phones + layers in the middle of the free space */
+.cb[hidden]{display:none}.ctl{gap:22px}.cb{width:66px;height:66px}
+.cb.all.lit{background:#ffd60a}.cb.all.lit svg{fill:#000}.cb.all.lit svg g{stroke:#000}
+.tile[data-t]{touch-action:none;-webkit-user-select:none;user-select:none;transition:transform .1s}.tile.press{transform:scale(.94)}
+.tile .tx{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:50%;background:#3a3a40;color:#fff;font:700 14px/24px -apple-system;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.5)}
 .csep{width:1px;height:44px;background:rgba(255,255,255,.12)}
 .tabbar{flex:none;display:flex;justify-content:space-around;background:rgba(28,28,31,.96);border-radius:26px 26px 0 0;padding:10px 20px calc(env(safe-area-inset-bottom) + 8px)}
 .tabbar button{display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:0;font:600 11px -apple-system;color:#8e8e93}
@@ -172,6 +227,7 @@ body.studio #studio{display:flex}
   </div>
   <div id="stSub">Waiting for phones…</div>
 
+  <div id="recCd"></div>
   <div class="pg on" id="pgPhones">
     <div class="tiles" id="tiles"></div>
     <div class="tl" id="tl"><div class="ruler" id="ruler"></div><div id="lanes"></div><div class="phd" id="phd"></div></div>
@@ -180,14 +236,14 @@ body.studio #studio{display:flex}
       <button id="tDel"><b>✂︎</b>Delete bar</button>
       <button id="tPrev"><b>▶︎</b>Preview</button>
     </div>
-    <div class="st-hint" id="stHint">Tap phones to select · then tap a light button</div>
+    <div class="st-hint" id="stHint">Tap a phone = flash · hold = on while you hold</div>
     <div class="ctl">
       <button class="cb rec" id="cRec"><i></i><small id="cRecL">Record</small></button>
       <div class="csep"></div>
-      <button class="cb on" id="cOn"><svg width="24" height="28" viewBox="0 0 24 28" fill="#ffd60a"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><rect x="8.3" y="21.5" width="7.4" height="2.2" rx="1"/><rect x="9.3" y="25" width="5.4" height="2" rx="1"/></svg><small>On / hold</small></button>
-      <button class="cb fl" id="cFl"><svg width="26" height="20" viewBox="0 0 28 22" fill="none" stroke="#ff6b3d" stroke-width="2.4" stroke-linecap="round"><path d="M14 2v5M5 6l3 3M23 6l-3 3M3 18h7M18 18h7M12 18h4"/></svg><small>Flash</small></button>
+      <button class="cb on" id="cOn" hidden><svg width="24" height="28" viewBox="0 0 24 28" fill="#ffd60a"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><rect x="8.3" y="21.5" width="7.4" height="2.2" rx="1"/><rect x="9.3" y="25" width="5.4" height="2" rx="1"/></svg><small>On / hold</small></button>
+      <button class="cb fl" id="cFl"><svg width="26" height="20" viewBox="0 0 28 22" fill="none" stroke="#ff6b3d" stroke-width="2.4" stroke-linecap="round"><path d="M14 2v5M5 6l3 3M23 6l-3 3M3 18h7M18 18h7M12 18h4"/></svg><small>Flash / hold</small></button>
       <button class="cb all" id="cAll"><svg width="30" height="28" viewBox="0 0 30 28" fill="#ffd60a"><path d="M15 5a7 7 0 0 0-4.1 12.7c.6.5 1 1.3 1 2.1V21h6.2v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 15 5z"/><rect x="11.9" y="22.4" width="6.2" height="2" rx="1"/><g stroke="#ffd60a" stroke-width="2" stroke-linecap="round"><path d="M15 0v2M4 4l1.6 1.6M26 4l-1.6 1.6M0 12h2.3M28 12h2"/></g></svg><small>All on</small></button>
-      <button class="cb off" id="cOff"><svg width="24" height="28" viewBox="0 0 24 28" fill="none" stroke="#8e8e93" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><path d="M3 2l18 24"/></svg><small>Off</small></button>
+      <button class="cb off" id="cOff" hidden><svg width="24" height="28" viewBox="0 0 24 28" fill="none" stroke="#8e8e93" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><path d="M3 2l18 24"/></svg><small>Off</small></button>
     </div>
   </div>
 
@@ -307,20 +363,19 @@ body.studio #studio{display:flex}
   <li>Each phone gets a number (1, 2, 3…) in the order it connects.</li>
   <li><b>"Needs 1 tap"</b>: the spectator taps the black screen one time (iOS rule for the flash). Then the tile shows <b>Ready</b>. Tap your <b>M</b> tile one time too.</li>
   <li>Same room on all phones (default fvt-calc). Keep all pages on screen.</li>
-  <li><b>Start</b>: the screen shows M (your phone) + phone 1. <b>No phones yet?</b> You can still record: tap the tiles (they show "Waiting…") and record as normal. Tap <b>+ Add phone</b> for more layers (up to 9). Hold the last empty tile (0.7 s) to remove it, for example to start with 2 phones. When the phones connect later, the routine plays on them by their numbers.</li></ol>
+  <li><b>Start</b>: the screen shows M (your phone) + phone 1. <b>No phones yet?</b> You can still record: tap the tiles (they show "Waiting…") and record as normal. Tap <b>+ Add phone</b> for more layers (up to 9). Tap the <b>×</b> on the last empty tile to remove it, for example to start with 2 phones. When the phones connect later, the routine plays on them by their numbers.</li></ol>
   <h4>2. Buttons</h4>
   <div class="glist">
-    <div><span class="g g2" data-g="#cOn"></span><span><b>On</b>: tap = the selected phones stay on · hold = on while you hold</span></div>
-    <div><span class="g g2" data-g="#cFl"></span><span><b>Flash</b>: a short blink (0.2 s) on the selected phones</span></div>
-    <div><span class="g g2" data-g="#cAll"></span><span><b>All on</b>: every phone and M on at once (no need to select)</span></div>
-    <div><span class="g g2" data-g="#cOff"></span><span><b>Off</b>: the selected phones off · nothing selected = all off</span></div>
+    <div><span class="g g2" data-g="#tiles .tile[data-t]"></span><span><b>Phone tile</b>: tap = a short flash (0.2 s) on that phone · hold = on while you hold · use more fingers for more phones</span></div>
+    <div><span class="g g2" data-g="#cFl"></span><span><b>Flash</b>: tap = all phones flash · hold = all phones on while you hold</span></div>
+    <div><span class="g g2" data-g="#cAll"></span><span><b>All on</b>: tap = every phone and M on · tap again = all off</span></div>
     <div><span class="g"><i style="width:14px;height:14px;border-radius:50%;background:#30d158;display:block"></i></span><span><b>Record</b> / <b>Stop</b>: record a routine</span></div>
     <div><span class="g">?</span><span>This help · the gear opens the settings</span></div>
   </div>
-  <p>Tap a phone tile to select it (orange ring). Tap again to remove it. A tile glows when its flash is on.</p>
+  <p>Tap a phone tile = a short flash on that phone. Hold it = on while you hold. A tile glows when its flash is on.</p>
   <h4>3. Record a routine</h4>
   <ol><li>Tap <b>Record</b> (Phones tab) or <b>+ Record new</b> (Routines tab).</li>
-  <li>Select phones and use On, Flash and Off. Each phone has its own layer, with a bar for each light and a red playhead.</li>
+  <li>Tap and hold the phone tiles, or use Flash and All on. Each phone has its own layer, with a bar for each light and a red playhead.</li>
   <li>Mistake? <b>Undo</b> removes the last action. Or tap a bar, then <b>Delete bar</b>. <b>Preview</b> plays it on the tiles only.</li>
   <li>Tap <b>Stop</b>. Type a name, select an icon, a <b>PeekSmith button</b>, Loop and the <b>Countdown buzz</b>. Tap <b>Save</b>.</li>
   <li><b>Cancel</b> (top left) throws the recording away.</li></ol>
@@ -633,35 +688,38 @@ function drawTiles(){if(!isMag())return;
   const T=$('tiles');const maxS=slotsN();
   let h='';for(let n=1;n<=maxS;n++){const g=gOf(n);const st=!g?'empty':g.ready?'ready':'tap';
     const lit=prevOn?prevState[String(n)]:g?g.on:vOn[String(n)];
-    h+=`<div class="tile ${st}${sel.has(String(n))?' sel':''}${lit?' lit':''}" data-t="${n}"><div class="cm"></div><div class="ts">${!g?'Waiting…':g.ready?'Ready':'Needs 1 tap'}</div><div class="tn">${n}</div></div>`}
+    h+=`<div class="tile ${st}${sel.has(String(n))?' sel':''}${lit?' lit':''}" data-t="${n}"><div class="cm"></div><div class="ts">${!g?'Waiting…':g.ready?'Ready':'Needs 1 tap'}</div><div class="tn">${n}</div>${!g&&n===maxS&&n>1?'<div class="tx" data-x="1">×</div>':''}</div>`}
   const mLit=prevOn?prevState.M:mOn;
   h+=`<div class="tile m ${camAlive()?'ready':'tap'}${sel.has('M')?' sel':''}${mLit?' lit':''}" data-t="M"><div class="cm"></div><div class="ts">${camAlive()?'This phone':'Tap to prepare'}</div><div class="tn">M</div></div>`;
   if(maxS<9)h+=`<div class="tile empty add" data-add="1"><div class="tn" style="bottom:auto;top:36px;font-size:34px;color:rgba(255,255,255,.3)">+</div><div class="ts" style="top:84px">Add phone</div></div>`;
   T.innerHTML=h;
   const n=guests.size,r=[...guests.values()].filter(g=>g.ready).length;
   $('stSub').textContent=!hosting?'Starting…':n?`${n} phone${n>1?'s':''} connected · ${r} ready${sel.size?' · '+[...sel].sort().join(', ')+' selected':''}`:'No phones connected · you can still record';
-  const pk=$('pkSt');if(pk)pk.textContent=bleOn()?'Connected':AURA?'Searching…':'Only in Aura'}
-$('tiles').addEventListener('click',e=>{const t=e.target.closest('.tile');if(!t)return;
-  if(t.dataset.add){P.nSlots=Math.min(9,slotsN()+1);saveP();hap('light');drawTiles();drawTL();return}   // + = one more phone layer (also before it connects)
-  const k=t.dataset.t;if(k==='M'&&!camAlive())openCamera().then(drawTiles);   // the tap is the user action iOS needs for the camera
-  sel.has(k)?sel.delete(k):sel.add(k);hap('light');drawTiles()});
-{let ht=null;$('tiles').addEventListener('touchstart',e=>{const t=e.target.closest('.tile.empty[data-t]');if(!t||sRec)return;
-  ht=setTimeout(()=>{const n=+t.dataset.t;if(n===slotsN()&&n>1&&!gOf(n)){P.nSlots=n-1;sel.delete(String(n));saveP();drawTiles();stToast('Phone '+n+' removed')}},700)},{passive:true});
-  ['touchend','touchmove','touchcancel'].forEach(n=>$('tiles').addEventListener(n,()=>clearTimeout(ht),{passive:true}))}
-/* light buttons: On (tap = stays on, hold = on while held), Flash, Off (no phone selected = all off) */
-function selected(){return [...sel]}
+  const pk=$('pkSt');if(pk)pk.textContent=bleOn()?'Connected':AURA?'Searching…':'Only in Aura';try{allBtn()}catch(e){}}
+$('tiles').addEventListener('click',e=>{
+  if(e.target.closest('[data-x]')){const n=slotsN();if(n>1&&!gOf(n)){P.nSlots=n-1;delete vOn[String(n)];saveP();hap('light');drawTiles();drawTL();stToast('Phone '+n+' removed')}return}
+  const t=e.target.closest('.tile');if(!t)return;
+  if(t.dataset.add){P.nSlots=Math.min(9,slotsN()+1);saveP();hap('light');drawTiles();drawTL();return}});   // + = one more phone layer (also before it connects)
+/* light control: tap a phone = flash (0.2 s), hold = on while you hold. Many fingers can hold many phones. */
 function allT(){return targets().concat(['M'])}
-let onDownAt=0,onHeld=null;
+function isLit(t){if(t==='M')return mOn;const g=gOf(+t);return g?!!g.on:!!vOn[t]}
+function press(list){const at=now();list.forEach(t=>{act(t,true);sAdd(t,1)});hap('light');
+  return()=>{const d=now()-at,off=()=>{list.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++;allOn=false;allBtn()};
+    if(d<300)setTimeout(off,Math.max(0,FLASH_MS-d));else off()}}
+{const held=new Map(),T=$('tiles');
+  T.addEventListener('pointerdown',e=>{if(e.target.closest('[data-x]'))return;const t=e.target.closest('.tile[data-t]');if(!t)return;e.preventDefault();
+    try{T.setPointerCapture(e.pointerId)}catch(x){}const k=t.dataset.t;held.set(e.pointerId,{el:t,k,up:press([k])});t.classList.add('press')});
+  const up=e=>{const h=held.get(e.pointerId);if(!h)return;held.delete(e.pointerId);h.up();const el=T.querySelector(`.tile[data-t="${h.k}"]`);if(el)el.classList.remove('press')};
+  T.addEventListener('pointerup',up);T.addEventListener('pointercancel',up)}
+/* buttons: Flash (tap = all flash, hold = all on while you hold), All on (tap = all on, tap again = all off) */
 function btn(el,down,up){el.addEventListener('touchstart',e=>{e.preventDefault();el.classList.add('down');down()},{passive:false});
   el.addEventListener('touchend',e=>{e.preventDefault();el.classList.remove('down');up&&up()},{passive:false});
   el.addEventListener('mousedown',()=>{el.classList.add('down');down()});el.addEventListener('mouseup',()=>{el.classList.remove('down');up&&up()})}
-btn($('cOn'),()=>{const s=selected();if(!s.length){stToast('Select phones first');onHeld=null;return}
-  onDownAt=now();onHeld=s;s.forEach(t=>{act(t,true);sAdd(t,1)});hap('light')},
-  ()=>{if(!onHeld)return;if(now()-onDownAt>300)onHeld.forEach(t=>{act(t,false);sAdd(t,0)});onHeld=null;sGrp++});
-btn($('cFl'),()=>{const s=selected();if(!s.length){stToast('Select phones first');return}hap('light');
-  s.forEach(t=>{act(t,true);sAdd(t,1);setTimeout(()=>{act(t,false);sAdd(t,0)},FLASH_MS)});setTimeout(()=>sGrp++,FLASH_MS+5)});
-btn($('cAll'),()=>{hap('medium');allT().forEach(t=>{act(t,true);sAdd(t,1)});sGrp++});   // All on: every phone and M
-btn($('cOff'),()=>{const s=selected().length?selected():allT();if(!selected().length)for(const k in vOn)vOn[k]=false;hap('light');s.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++});
+let allOn=false;   // All on was tapped (and not turned off since)
+function allBtn(){const on=allOn;$('cAll').classList.toggle('lit',on);$('cAll').querySelector('small').textContent=on?'All off':'All on'}
+let flUp=null;
+btn($('cFl'),()=>{flUp=press(allT())},()=>{if(flUp){flUp();flUp=null}});
+btn($('cAll'),()=>{const on=!allOn;allOn=on;hap('medium');allT().forEach(t=>{act(t,on);sAdd(t,on?1:0)});if(!on)for(const k in vOn)vOn[k]=false;sGrp++;allBtn()});
 
 /* ---------- recording (one layer for each phone) ---------- */
 let sRec=false,sT0=0,sEv=[],sGrp=0,sTick=null,selBar=null,editId=null;
@@ -673,31 +731,68 @@ function sRecStart(){if(sRec)return;sRec=true;sEv=[];sGrp=0;selBar=null;editId=n
   $('cRecL').textContent='Stop';hap('medium');showPg('pgPhones');
   sTick=setInterval(()=>{$('stTime').textContent=fmt(now()-sT0);drawTL()},100);drawTL()}
 function sRecFinish(save){clearInterval(sTick);const end=Math.round(now()-sT0);sRec=false;document.body.classList.remove('recording');
-  $('cRecL').textContent='Record';$('stTime').textContent='00:00';allT().forEach(t=>act(t,false));sel.clear();
+  $('cRecL').textContent='Record';$('stTime').textContent='00:00';allT().forEach(t=>act(t,false));sel.clear();allOn=false;allBtn();
   if(!save){sEv=[];drawTL();return}
   const ev=sEv.filter(e=>e);if(!ev.length){stToast('Nothing recorded');return}
   const t0=ev[0][0];let len=end-t0;const out=ev.map(([t,tg,on])=>[t-t0,tg,on]);
   const st=stateAt(out,1e12);for(const k in st)if(st[k])out.push([len,k,0]);   // all off at the end
   len=Math.max(len,out[out.length-1][0]+50);
   openSave({id:'r'+Date.now().toString(36),name:'Routine '+(P.routines.length+1),icon:'✨',ev:out,len,ps:'',loop:false,cd:3,gap:1000},true)}
-$('cRec').addEventListener('click',()=>sRec?sRecFinish(true):sRecStart());
+/* Record: a 3 s countdown (3-2-1 with a buzz), then the recording starts. Tap Record or Cancel again = no recording. */
+let cdT=[];
+function recCountdown(){if(cdT.length){cdStop();return}showPg('pgPhones');const o=$('recCd');document.body.classList.add('cd');
+  o.dataset.cd=P.cdLook||'film';o.innerHTML=CDHTML[o.dataset.cd]||'';o.classList.add('on');void o.offsetWidth;o.classList.add('run');
+  [3,2,1].forEach((n,i)=>cdT.push(setTimeout(()=>{o.querySelectorAll('.n').forEach(e=>{e.textContent=n;e.style.animation='none';void e.offsetWidth;e.style.animation=''});
+    o.style.setProperty('--k',i);hap(n===1?'heavy':'medium')},i*1000)));
+  cdT.push(setTimeout(()=>{cdStop();sRecStart()},3000))}
+const CDHTML={
+  film:'<div class="fl"><div class="cx"></div><div class="cy"></div><div class="c1"></div><div class="c2"></div><div class="sw"></div><b class="n"></b></div>',
+  ring:'<svg class="rg" viewBox="0 0 200 200"><circle cx="100" cy="100" r="88" class="bg"/><circle cx="100" cy="100" r="88" class="fg"/></svg><b class="n"></b><small>Recording starts</small>',
+  flash:'<div class="burst"></div><b class="n"></b>',
+  pill:'<div class="pl"><i></i><span>REC in <b class="n"></b></span></div>'};
+function cdStop(){cdT.forEach(clearTimeout);cdT=[];const o=$('recCd');o.classList.remove('on','run');o.innerHTML='';document.body.classList.remove('cd')}
+$('recCd').addEventListener('click',cdStop);
+$('cRec').addEventListener('click',()=>sRec?sRecFinish(true):recCountdown());
 $('stCancel').addEventListener('click',()=>{if(sRec)sRecFinish(false)});
-$('tUndo').addEventListener('click',()=>{if(!sEv.length)return;const g=Math.max(...sEv.map(e=>e[3]));sEv=sEv.filter(e=>e[3]!==g);
-  const st=stateAt(sEv,1e12);allT().forEach(t=>act(t,!!st[t]));selBar=null;drawTL()});
+$('tUndo').addEventListener('click',()=>{if(!sEv.length)return;outKind='undo';onceAnim($('tUndo'),'go');const g=Math.max(...sEv.map(e=>e[3]));sEv=sEv.filter(e=>e[3]!==g);
+  const st=stateAt(sEv,1e12);allT().forEach(t=>act(t,!!st[t]));allOn=allT().every(t=>st[t]);allBtn();selBar=null;drawTL();outKind=''});
 $('tDel').addEventListener('click',()=>{if(!selBar){stToast('Tap a bar first');return}
-  sEv=sEv.filter(e=>e!==selBar.a&&e!==selBar.b);selBar=null;drawTL()});
-$('tPrev').addEventListener('click',()=>{if(!sEv.length)return;const t0=sEv[0][0];preview(sEv.map(([t,tg,on])=>[t-t0,tg,on]),sEv[sEv.length-1][0]-t0+300)});
+  outKind='del';onceAnim($('tDel'),'go');sEv=sEv.filter(e=>e!==selBar.a&&e!==selBar.b);selBar=null;drawTL();outKind=''});
+$('tPrev').addEventListener('click',()=>{if(!sEv.length)return;const t0=sEv[0][0],len=sEv[sEv.length-1][0]-t0+300;preview(sEv.map(([t,tg,on])=>[t-t0,tg,on]),len);tlPreview(t0,len)});
+/* preview on the layers: the playhead plays the recording, each bar lights up while the playhead is on it */
+function tlPreview(t0,len){const tl=$('tl'),go=now();tl.classList.add('pv');$('tPrev').classList.add('on');
+  (function f(){const t=now()-go;if(t>len||!prevOn){tl.classList.remove('pv');$('tPrev').classList.remove('on');tl.querySelectorAll('.bar.hit').forEach(b=>b.classList.remove('hit'));drawTL();return}
+    const at=t0+t,w=tl.clientWidth-54;$('phd').style.left=(54+w*Math.min(1,at/tlScale))+'px';$('phd').dataset.t=(t/1000).toFixed(1)+'s';
+    tl.querySelectorAll('.bar:not(.out)').forEach(b=>b.classList.toggle('hit',at>=+b.dataset.s&&at<=+b.dataset.e));requestAnimationFrame(f)})()}
 /* bars from events: each on .. off for one target */
 function barsOf(ev,len){const B=[],open={};for(const e of ev){const [t,tg,on]=e;if(on){if(!open[tg])open[tg]=e}else if(open[tg]){B.push({tg,a:open[tg],b:e,s:open[tg][0],e:t});open[tg]=null}}
   for(const tg in open)if(open[tg])B.push({tg,a:open[tg],b:null,s:open[tg][0],e:len});return B}
 const LC={M:'#ff9f0a'},PAL=['#64d2ff','#30d158','#bf5af2','#ff375f','#ffd60a','#5e5ce6','#ff9f0a','#66d4cf','#ac8e68'];
+/* the layers keep their elements between redraws, so a new bar / layer animates one time, and a removed one animates out */
+const barKey=new WeakMap();let barSeq=0,outKind='';
+const keyOf=e=>{if(!barKey.has(e))barKey.set(e,++barSeq);return String(barKey.get(e))};
+const onceAnim=(el,c)=>{el.classList.add(c);el.addEventListener('animationend',()=>el.classList.remove(c),{once:true})};
 function drawTL(){if(!isMag())return;const tl=$('tl');
-  const t=sRec?now()-sT0:0,scale=Math.max(6000,t+800),lanes=allT();
+  const t=sRec?now()-sT0:0,scale=Math.max(6000,t+800),lanes=allT();tlScale=scale;
   $('ruler').innerHTML=[0,.25,.5,.75].map(f=>`<span>${(scale*f/1000).toFixed(1).replace(/\.0$/,'')}s</span>`).join('');
-  const B=barsOf(sEv,t);
-  $('lanes').innerHTML=lanes.map(tg=>`<div class="ly"><div class="ln"><i style="background:${LC[tg]||PAL[(+tg-1)%PAL.length]}"></i>${tg}</div><div class="tr" data-tg="${tg}">${
-    B.filter(b=>b.tg===tg).map((b,i)=>`<div class="bar${selBar&&selBar.a===b.a?' selb':''}" data-k="${sEv.indexOf(b.a)}" style="left:${b.s/scale*100}%;width:${Math.max(.6,(b.e-b.s)/scale*100)}%"></div>`).join('')}</div></div>`).join('');
-  const w=tl.clientWidth-54;$('phd').style.left=(54+w*Math.min(1,t/scale))+'px'}
+  const B=barsOf(sEv,t),L=$('lanes'),old=new Map();
+  [...L.children].forEach(x=>{if(!x.classList.contains('gone'))old.set(x.dataset.ly,x)});
+  lanes.forEach((tg,i)=>{let ly=old.get(tg);
+    if(!ly){ly=document.createElement('div');ly.className='ly';ly.dataset.ly=tg;
+      ly.innerHTML=`<div class="ln"><i style="background:${LC[tg]||PAL[(+tg-1)%PAL.length]}"></i>${tg}</div><div class="tr" data-tg="${tg}"></div>`;
+      if(L.childElementCount)onceAnim(ly,'in')}
+    old.delete(tg);
+    const live=[...L.children].filter(x=>!x.classList.contains('gone'));if(live[i]!==ly)L.insertBefore(ly,live[i]||null);
+    const tr=ly.querySelector('.tr'),seen=new Set();
+    for(const bb of B.filter(x=>x.tg===tg)){const k=keyOf(bb.a);seen.add(k);let el=tr.querySelector(`.bar[data-id="${k}"]:not(.out)`);
+      if(!el){el=document.createElement('div');el.className='bar';el.dataset.id=k;tr.appendChild(el);onceAnim(el,'in')}
+      el.dataset.k=sEv.indexOf(bb.a);el.dataset.s=bb.s;el.dataset.e=bb.e;el.classList.toggle('selb',!!(selBar&&selBar.a===bb.a));
+      el.style.left=bb.s/scale*100+'%';el.style.width=Math.max(.6,(bb.e-bb.s)/scale*100)+'%'}
+    tr.querySelectorAll('.bar:not(.out)').forEach(el=>{if(seen.has(el.dataset.id))return;
+      el.classList.add('out');if(outKind)el.classList.add(outKind);setTimeout(()=>el.remove(),450)})});
+  old.forEach(ly=>{ly.classList.add('gone');setTimeout(()=>ly.remove(),350)});
+  if(!tl.classList.contains('pv')){const w=tl.clientWidth-54;$('phd').style.left=(54+w*Math.min(1,t/scale))+'px'}}
+let tlScale=6000;
 $('lanes').addEventListener('click',e=>{const b=e.target.closest('.bar');if(!b)return;const a=sEv[+b.dataset.k];
   const bar=barsOf(sEv,1e12).find(x=>x.a===a);selBar=bar&&(!selBar||selBar.a!==a)?bar:null;drawTL()});
 
@@ -811,7 +906,7 @@ requestAnimationFrame(animate);
   L.addEventListener('touchmove',()=>{clearTimeout(ht);if(pc)pc.classList.remove('press');pc=null},{passive:true});
   L.addEventListener('touchend',e=>{clearTimeout(ht);if(!pc)return;pc.classList.remove('press');if(!held){e.preventDefault();runRoutine(P.routines[+pc.dataset.i])}pc=null},{passive:false});
   L.addEventListener('click',e=>{const sb=e.target.closest('.rn button');if(sb){e.stopPropagation();stepPhones(sb.closest('.rc'),+sb.dataset.d);return}const c=e.target.closest('.rc');if(!c||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;runRoutine(P.routines[+c.dataset.i])})}
-$('rNew').addEventListener('click',()=>{showPg('pgPhones');sRecStart()});
+$('rNew').addEventListener('click',()=>{showPg('pgPhones');recCountdown()});
 
 /* ---------- run: black screen, countdown buzz, routine on all phones, back to the list ---------- */
 let running=null,runTimers=[],prevOn=false,prevState={},prevTimers=[];
