@@ -206,7 +206,7 @@ svg{display:block}
     <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop, or set <b>Stop prediction after</b>.</li>
     <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
     <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
-    <li>Checklist button: <b>double tap</b> = change the prediction type. More in the Help tab.</li>
+    <li>Checklist button: <b>double tap</b> = change the prediction type. This also makes this phone the Magician. More in the Help tab.</li>
   </ul></div>
   <div class="snote" id="peerDbg" style="word-break:break-word"></div>
   <div class="lbl">Send to Inject</div>
@@ -248,7 +248,7 @@ svg{display:block}
     <div><span class="g" data-g="#kTable"></span><span><b>Table</b> (keyboard bar): double tap = mirror on/off (both devices) · hold 1 s = prediction on/off</span></div>
     <div><span class="g" data-g="#share"></span><span><b>Share</b>: hold 1 s = these settings</span></div>
     <div><span class="g" data-g="#more"></span><span><b>•••</b>: hold 1 s = clear the note (the date does the same)</span></div>
-    <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = change the prediction type</span></div>
+    <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = change the prediction type, and this phone becomes the Magician</span></div>
     <div><span class="g" data-g="#penBtn"></span><span><b>Markup</b>: draw (drawings go to the PeekSmith)</span></div>
     <div><span class="g" data-g="#compose"></span><span><b>New note</b>: clears the note</span></div>
     <div><span class="g" data-g="#undoBtn"></span><span><b>Undo</b>: undo the last change</span></div>
@@ -793,13 +793,18 @@ function predToggle(){
   else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
-if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP()};
+if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP();setTimeout(()=>beMagician(''),0)};
 if(P.predStop==null)P.predStop=5;$('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
 $('predText').value=P.predText;
 /* quick change of the prediction type: the checklist button (bottom bar and keyboard bar) */
 function typeSwap(){if(predMode||acroMode){qtoast('Stop the prediction first');return}
   P.predType=P.predType==='acro'?'text':'acro';saveP();$('predType').value=P.predType;
-  qtoast(P.predType==='acro'?'Acrostic':'My prediction is…');qbuzz()}
+  const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();beMagician(t)}
+/* setting a prediction type makes this phone the Magician (the other device becomes the Spectator) */
+async function beMagician(label){if(P.peerRole==='mirror')return;
+  const both=peerOut({cmd:'swap'});qtoast((label?label+' · ':'')+'Magician'+(both?'':' (this phone)'));
+  if(both)await new Promise(z=>setTimeout(z,300));   // let the message go before the link closes
+  swapRole()}
 /* double tap = next prediction type (a single tap does nothing, so a spectator cannot change it by accident) */
 /* iOS can drop the second click of a fast double tap, so the taps are counted on touchend */
 function dblTap(el,fn){let last=0,touch=0;
