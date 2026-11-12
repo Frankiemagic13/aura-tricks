@@ -193,7 +193,7 @@ svg{display:block}
     <div class="r">Use Aura peer<input type="checkbox" id="peerOn"></div>
     <div class="r">Status<span id="peerSt" class="dim">—</span></div>
     <div class="r">Prediction type<select id="predType"><option value="text">My prediction is…</option><option value="acro">Acrostic</option></select></div>
-    <div class="r">Stop prediction after<select id="predStop"><option value="0">Off (hold Table)</option><option value="3">3 s with no typing</option><option value="5">5 s with no typing</option><option value="10">10 s with no typing</option><option value="20">20 s with no typing</option><option value="30">30 s with no typing</option></select></div>
+    <div class="r">Stop prediction after<select id="predStop"><option value="3">3 s with no typing</option><option value="5">5 s with no typing</option><option value="10">10 s with no typing</option><option value="20">20 s with no typing</option><option value="30">30 s with no typing</option></select></div>
     <div class="r">Prediction text<input class="tx" id="predText" autocapitalize="sentences" autocorrect="off" placeholder="My prediction is"></div>
     <div class="r">Prediction case<select id="predCase"><option value="opp">Opposite of spectator</option><option value="same">Same as spectator</option><option value="swap">Swap (A ↔ a)</option><option value="asis">As typed</option></select></div>
     <div class="r">Room<input class="tx" id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
@@ -202,7 +202,7 @@ svg{display:block}
   <div class="snote"><ul style="margin:0;padding-left:18px">
     <li>Your iPhone: Aura Browser, <b>My phone (mirror)</b>. Spectator: AuraClip, <b>Spectator</b>.</li>
     <li>Same room on both (default fvt-calc). Keep both pages on screen.</li>
-    <li>Keyboard bar: <b>Aa</b> double tap = swap roles. <b>Table</b> double tap = mirror on/off, hold 1 s = prediction.</li>
+    <li>Keyboard bar: <b>Aa</b> double tap = swap roles. <b>Table</b> double tap = mirror on/off.</li>
     <li><b>My prediction is…</b>: you type, it shows on their note after the prediction text. Hold again to stop, or set <b>Stop prediction after</b>.</li>
     <li><b>Acrostic</b>: they type a word, your note shows words that spell it. Turns off by itself.</li>
     <li>Case: <b>Opposite</b> / <b>Same</b> as their text, <b>Swap</b> (A↔a) or <b>As typed</b>.</li>
@@ -246,7 +246,7 @@ svg{display:block}
   <h4>Buttons</h4>
   <div class="glist">
     <div><span class="g" data-g="#kAa"></span><span><b>Aa</b> (keyboard bar): double tap = swap Spectator ↔ Magician (both devices)</span></div>
-    <div><span class="g" data-g="#kTable"></span><span><b>Table</b> (keyboard bar): double tap = mirror on/off (both devices; on = this phone becomes the Magician) · hold 1 s = prediction on/off</span></div>
+    <div><span class="g" data-g="#kTable"></span><span><b>Table</b> (keyboard bar): double tap = mirror on/off (both devices; on = this phone becomes the Magician)</span></div>
     <div><span class="g" data-g="#share"></span><span><b>Share</b>: hold 1 s = these settings</span></div>
     <div><span class="g" data-g="#more"></span><span><b>•••</b>: hold 1 s = clear the note (the date does the same)</span></div>
     <div><span class="g" data-g="#typeBtn"></span><span><b>Checklist</b> (bottom bar and keyboard bar): double tap = change the prediction type and start it at once. This phone becomes the Magician, and the mirror goes off.</span></div>
@@ -256,12 +256,12 @@ svg{display:block}
     <div><span class="g" data-g="#back"></span><span><b>Back</b> and <b>paperclip</b>: no secret function. The keyboard bar shows when you tap the note.</span></div>
   </div>
   <h4>Prediction: "My prediction is…"</h4>
-  <ol><li>Tap the note, then hold <b>Table</b> (keyboard bar) 1 s. The spectator's note changes to the prediction text.</li>
+  <ol><li>Double tap the <b>checklist</b> until your phone shows "My prediction is…". It starts at once: the spectator's note changes to the prediction text.</li>
   <li>Type on your phone. Each letter shows on their phone after the prediction text (case: opposite of their text, by default).</li>
-  <li>Hold Table again to stop. Or set <b>Stop prediction after</b>: it stops by itself when you do not type for that time.</li>
+  <li>It stops by itself when you do not type for the <b>Stop prediction after</b> time (default 5 s).</li>
   <li>Hold ••• to clear your text and type again.</li></ol>
   <h4>Prediction: Acrostic</h4>
-  <ol><li>Hold <b>Table</b> 1 s. The spectator types a word.</li>
+  <ol><li>Double tap the <b>checklist</b> until your phone shows "Acrostic". It starts at once. The spectator types a word.</li>
   <li>Your note shows common words, one on each line. Their first letters spell the spectator's word.</li>
   <li>Acrostic turns off by itself when the list is made. The words stay on your screen, and the mirror stops on your phone. Double tap <b>Table</b> to start it again.</li></ol>
   <h4>Quick change of the prediction type</h4>
@@ -432,7 +432,9 @@ $('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
   for(const [v,n] of Object.entries(BACT)){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
   s.value=P.btns[s.dataset.k]||'none';s.onchange=()=>{P.btns[s.dataset.k]=s.value;saveP()}});
-const openSheet=()=>{note.blur();document.body.classList.add('open')},closeSheet=()=>document.body.classList.remove('open');
+let predStartOnClose=false;
+const openSheet=()=>{note.blur();document.body.classList.add('open')},closeSheet=()=>{document.body.classList.remove('open');
+  if(predStartOnClose){predStartOnClose=false;setTimeout(()=>predStart(),300)}};   // a prediction type set in the settings starts when they close
 $('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
 (function(){const el=$('share');let tm=null;
   const go=()=>{tm=setTimeout(openSheet,1000)},stop=()=>clearTimeout(tm);
@@ -796,8 +798,8 @@ function predToggle(){
   else{clearTimeout(predStopT);predSend(true);predMode=false;note.setAttribute('autocapitalize','sentences');peerOut({cmd:'pred',on:false});note.blur();qtoast('Prediction done');qbuzz()}}   // the mirror stays off: double tap Table to turn it on
 if(!P.predCaseV){P.predCase='opp';P.predCaseV=1;saveP()}
 if(!['opp','same','swap','asis'].includes(P.predCase))P.predCase='opp';$('predCase').value=P.predCase;$('predCase').onchange=e=>{P.predCase=e.target.value;saveP()};
-if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP();setTimeout(async()=>{await beMagician('');if(await waitLink(15000))mirrorOff()},0)};
-if(P.predStop==null)P.predStop=5;$('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
+if(P.predType!=='acro')P.predType='text';$('predType').value=P.predType;$('predType').onchange=e=>{P.predType=e.target.value;saveP();predStartOnClose=true};
+if(!(+P.predStop>0))P.predStop=5;   // a prediction always stops by itself$('predStop').value=String(P.predStop);$('predStop').onchange=e=>{P.predStop=+e.target.value;saveP();predStopArm()};
 $('predText').value=P.predText;
 /* quick change of the prediction type: the checklist button (bottom bar and keyboard bar) */
 /* double tap the checklist: next prediction type -> this phone becomes the Magician -> mirror off -> the prediction starts */
@@ -806,6 +808,13 @@ async function typeSwap(){if(typeBusy)return;typeBusy=true;
   try{
     if(predMode)predToggle();else if(acroMode)acroToggle();   // a running prediction stops first
     P.predType=P.predType==='acro'?'text':'acro';saveP();$('predType').value=P.predType;
+    const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();
+    await beMagician(t);
+    if(!await waitLink(15000)){qtoast(t+' · not connected');return}
+    mirrorOff();predToggle()}
+  finally{typeBusy=false}}
+async function predStart(){if(typeBusy)return;typeBusy=true;
+  try{if(predMode)predToggle();else if(acroMode)acroToggle();
     const t=P.predType==='acro'?'Acrostic':'My prediction is…';qtoast(t);qbuzz();
     await beMagician(t);
     if(!await waitLink(15000)){qtoast(t+' · not connected');return}
@@ -855,7 +864,7 @@ $('peerBtn').onclick=async()=>{if(peerOk||hosting)await peerLeave();peerJoin(tru
 $('peerTest').onclick=()=>{if(P.peerRole==='mirror'){hostShow();return}if(!peerRaw({type:'peek',m:'Test 123',t:Date.now()}))peerStatus(peerApi()?'Connect first':'Only in Aura')};
 peerUI();
 /* quick controls on the keyboard bar (shows while you type):
-   Aa: double tap = Spectator <-> Magician.  Table: double tap = mirror on / off, hold 1 s = prediction on / off.
+   Aa: double tap = Spectator <-> Magician.  Table: double tap = mirror on / off. A prediction starts from the checklist (double tap) or the settings.
    The other device does the same. The back button has no secret function. */
 let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
@@ -880,7 +889,7 @@ function gesture(el,o){let last=0,touch=0,lt=null,longDone=false;
   el.addEventListener('mousedown',()=>{if(Date.now()-touch>800)hs()});el.addEventListener('mouseup',hx);
   el.addEventListener('click',e=>{e.preventDefault();if(Date.now()-touch<800)return;hx();tap()})}
 gesture($('kAa'),{dbl:swapBoth});
-gesture($('kTable'),{dbl:mirrorToggle,hold:()=>predToggle()});
+gesture($('kTable'),{dbl:mirrorToggle});
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
 setInterval(()=>peerJoin(),2000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>peerJoin(),300)});
