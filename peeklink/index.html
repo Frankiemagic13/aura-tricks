@@ -59,8 +59,8 @@ small{color:#636366;font-size:12px;line-height:1.5}
     <small id="audNote">Use AirPods or one earbud. The phone speaks each peek. Tap the screen once after you open the page, so iOS lets the page speak.</small>
     <div class="row">Keep screen on<input type="checkbox" id="wake" checked></div>
     <div class="row">Aura peer (iPhone to iPhone)<input type="checkbox" id="peerOn"></div>
-    <div class="row">Peer room<input id="room" autocapitalize="off" autocorrect="off" placeholder="Automatic" style="width:55%"></div>
-    <small>Aura peer: Bluetooth from the calculator on the other iPhone directly to this page. No internet is necessary. This page must be open in Aura Browser and on screen. Room: keep it empty for automatic pairing (the spectator opens your Aura tag or link in AuraClip). Else type the same room name here and in the calculator.</small>
+    <div class="row">Peer room<input id="room" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic" style="width:55%"></div>
+    <small>Aura peer: Bluetooth from the calculator on the other iPhone directly to this page. No internet is necessary. This page must be open in Aura Browser and on screen. Room: use the same room as the calculator (default fvt-calc). Empty = automatic pairing (only when the spectator opens your Aura tag or link in AuraClip).</small>
   </div>
   <div data-tab="Buttons" class="card" id="btnCard">
     <small>PeekSmith buttons</small>
@@ -262,7 +262,8 @@ function setP(t,c){$('pst').textContent=t;$('pd').className='dot '+(c||'')}
 function peerShow(){if(!$('peerOn').checked){setP('Off');return}
   if(!hosting)return;
   if(guests.size)setP([...guests.values()].join(', ')+' connected','on');else setP('Waiting for calculator…')}
-$('peerOn').checked=st.get('peerOn','1')==='1';$('room').value=st.get('room','');
+$('peerOn').checked=st.get('peerOn','1')==='1';if(st.get('roomV','')!=='1'){st.set('room',st.get('room','')||'fvt-calc');st.set('roomV','1')}
+$('room').value=st.get('room','fvt-calc');
 function peerHook(){
   const A=window.Aura;if(peerHooked||!A||typeof A.on!=='function')return;peerHooked=true;
   A.on('peer.connected',({id,name})=>{guests.set(id,name||'Guest');log('Aura peer: '+(name||'Guest')+' connected');peerShow();
@@ -282,7 +283,7 @@ async function peerHost(){
   peerHook();if(hosting)return;
   try{const o={name:'Magician'};const r=$('room').value.trim().slice(0,64);if(r)o.room=r;
     await P.host(o);hosting=true;log('Aura peer: waiting'+(r?' in room '+r:' (automatic pairing)'));peerShow()}
-  catch(e){setP('Error','err');log('Aura peer error: '+((e&&e.message)||e))}}
+  catch(e){setP('Error: '+String((e&&e.message)||e).slice(0,40),'err');log('Aura peer error: '+((e&&e.message)||e))}}
 async function peerLeave(){const P=peerApi();hosting=false;guests.clear();if(P)try{await P.leave()}catch(e){}peerShow()}
 $('peerOn').onchange=async()=>{st.set('peerOn',$('peerOn').checked?'1':'0');if($('peerOn').checked)peerHost();else peerLeave()};
 $('room').onchange=async()=>{st.set('room',$('room').value.trim());await peerLeave();peerHost()};

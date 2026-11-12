@@ -244,10 +244,11 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">This phone<select id="peerRole"><option value="spect">Spectator (sends)</option><option value="mirror">My phone (mirror)</option></select></div>
     <div class="r">Send peeks with Aura peer<label><input type="checkbox" id="peerOn" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r">Status<span id="peerSt" style="color:rgba(235,235,245,.6)">—</span></div>
-    <div class="r">Room<input id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Automatic"></div>
+    <div class="r">Room<input id="peerRoom" autocapitalize="off" autocorrect="off" placeholder="Empty = automatic"></div>
     <div class="r"><button class="done" id="peerBtn" style="width:auto;text-align:left">Connect now</button><button class="done" id="peerTest" style="width:auto">Test</button></div>
   </div>
-  <div class="note">Bluetooth from this phone directly to PeekLink on your iPhone. No internet is necessary. Open PeekLink in Aura Browser on your iPhone first, then open this page in AuraClip on the other iPhone. Keep the two pages open and on screen. Room: keep it empty when the spectator opens your Aura tag or link (automatic pairing). Type the same room name on the two pages for other cases (for example two browsers).</div>
+  <div class="note">Bluetooth from this phone directly to PeekLink on your iPhone. No internet is necessary. Open PeekLink in Aura Browser on your iPhone first, then open this page in AuraClip on the other iPhone. Keep the two pages open and on screen. Room: the two phones must use the same room (default "fvt-calc"). This works in AuraClip and in Aura Browser. Empty room = automatic pairing (only when the spectator opens your Aura tag or link in AuraClip).</div>
+  <div class="note" id="peerDbg" style="word-break:break-word"></div>
   <div class="note">Mirror: on your own iPhone, open this calculator in Aura Browser and set "This phone" to "My phone (mirror)" (or add ?mirror=1 to the link). Your calculator then shows the spectator's display live, and the peeks go to your PeekSmith from this page. Use the mirror OR PeekLink, not the two at the same time.</div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
@@ -294,7 +295,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v25</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v26</div>
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
@@ -759,7 +760,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v25. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v26. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -814,6 +815,7 @@ if(!S.px)setTimeout(pxApply,400);
 if(S.peer===undefined)S.peer=true;
 if(Q.get('peer')==='0')S.peer=false;else if(Q.get('peer')==='1')S.peer=true;
 if(Q.has('room'))S.peerRoom=Q.get('room');
+if(!S.peerRoomV){S.peerRoom=S.peerRoom||'fvt-calc';S.peerRoomV=1;saveS()}
 if(S.peerRoom==null)S.peerRoom='';
 if(Q.get('mirror')==='1')S.peerRole='mirror';else if(Q.get('mirror')==='0')S.peerRole='spect';
 if(S.peerRole!=='mirror')S.peerRole='spect';
@@ -830,10 +832,16 @@ async function peerHostStart(){
   const P=peerApi();if(!P||typeof P.host!=='function'){peerStatus('Only in Aura');return}
   peerHook();if(hosting||peerBusy)return;peerBusy=true;
   try{const o={name:'Magician'};if(S.peerRoom)o.room=S.peerRoom;await P.host(o);hosting=true;hostShow()}
-  catch(e){peerStatus('Error: '+((e&&e.message)||e))}
+  catch(e){peerStatus('Error');peerErr(e)}
   peerBusy=false}
 const peerApi=()=>{const A=window.Aura;return A&&A.peer&&typeof A.peer.join==='function'?A.peer:null};
-function peerStatus(t){const el=$('peerSt');if(el)el.textContent=t}
+function peerStatus(t){const el=$('peerSt');if(el)el.textContent=t;peerDbgShow()}
+/* details for a test: what Aura.peer has, the room, the last error and the last events */
+let peerLastErr='';const peerEv=[];
+function peerErr(e){let m=(e&&(e.message||e.code||e.name))||e;try{if(typeof m==='object')m=JSON.stringify(m)}catch(x){}peerLastErr=String(m).slice(0,120);peerDbgShow()}
+function peerDbgShow(){const el=$('peerDbg');if(!el)return;const A=window.Aura,P=A&&A.peer;
+  let f='—';try{if(P)f=Object.keys(P).concat(Object.getOwnPropertyNames(Object.getPrototypeOf(P)||{})).filter(k=>k!=='constructor').join(', ')}catch(e){}
+  el.textContent='Peer test: Aura '+(A?'yes':'no')+', Aura.peer: '+f+'. Role: '+S.peerRole+'. Room: '+(S.peerRoom||'automatic')+'. Last error: '+(peerLastErr||'none')+'. Events: '+(peerEv.slice(-4).join(' | ')||'none')}
 function peerRaw(o){const P=peerApi();if(!P||!peerOk)return false;
   try{const r=P.send(o);if(r&&r.catch)r.catch(()=>{peerOk=false;peerStatus('Connection lost');setTimeout(peerJoin,1500)})}catch(e){return false}
   return true}
@@ -853,6 +861,7 @@ function peerCmd(d){
   else if(d.cmd==='disp')peerDisp(true)}
 function peerHook(){
   const A=window.Aura;if(peerHooked||!A||typeof A.on!=='function')return;peerHooked=true;
+  ['peer.connected','peer.disconnected'].forEach(n=>A.on(n,d=>{peerEv.push(n.slice(5)+' '+((d&&d.name)||''));if(peerEv.length>10)peerEv.shift();peerDbgShow()}));
   A.on('peer.connected',({id,name})=>{
     if(S.peerRole==='mirror'){guests.set(id,name||'Spectator');hostShow();try{peerApi().send({cmd:'disp'},{to:id})}catch(e){}return}
     peerOk=true;peerHost=name||'';peerStatus('Connected'+(peerHost?' to '+peerHost:''));peerDisp(true)});
@@ -877,7 +886,7 @@ async function peerJoin(manual){
   try{const o={name:'Calculator',timeout:30};if(S.peerRoom)o.room=S.peerRoom;
     const h=await P.join(o);peerOk=true;peerHost=(h&&h.name)||'';
     peerStatus('Connected'+(peerHost?' to '+peerHost:''));peerRaw(peerState());peerDisp(true)}
-  catch(e){peerOk=false;peerStatus('Not found – trying again')}
+  catch(e){peerOk=false;peerStatus('Not found – trying again');peerErr(e)}
   peerBusy=false}
 async function peerLeave(){const P=peerApi();peerOk=false;hosting=false;guests.clear();lastDisp='';if(P)try{await P.leave()}catch(e){}peerStatus(S.peer?'Not connected':'Off')}
 function peerSync(){$('peerOn').checked=!!S.peer;$('peerRoom').value=S.peerRoom||'';$('peerRole').value=S.peerRole}
