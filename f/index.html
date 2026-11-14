@@ -121,6 +121,8 @@ body.studio #studio{display:flex}
 .cb.down{filter:brightness(1.5)}
 #pgPhones .tiles{margin-top:auto}#pgPhones .st-hint{margin-top:auto}   /* phones + layers in the middle of the free space */
 .cb[hidden]{display:none}.ctl{gap:22px}.cb{width:66px;height:66px}
+.cb.beat{box-shadow:inset 0 0 0 2.5px #bf5af2}.cb.beat.on{background:#3a2448;box-shadow:inset 0 0 0 2.5px #bf5af2,0 0 16px #bf5af2}.cb.beat.hit{background:#bf5af2}.cb.beat.hit svg{fill:#000}
+#bLvlW{width:150px;height:8px;border-radius:4px;background:#3a3a3c;overflow:hidden;flex:none}#bLvl{height:100%;width:0;background:#bf5af2;transition:width .08s}
 .cb.all.lit{background:#ffd60a}.cb.all.lit svg{fill:#000}.cb.all.lit svg g{stroke:#000}
 .tile[data-t]{touch-action:none;-webkit-user-select:none;user-select:none;transition:transform .1s}.tile.press{transform:scale(.94)}
 .tile .tx{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:50%;background:#3a3a40;color:#fff;font:700 14px/24px -apple-system;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.5)}
@@ -233,6 +235,7 @@ body.studio #studio{display:flex}
       <button class="cb on" id="cOn" hidden><svg width="24" height="28" viewBox="0 0 24 28" fill="#ffd60a"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><rect x="8.3" y="21.5" width="7.4" height="2.2" rx="1"/><rect x="9.3" y="25" width="5.4" height="2" rx="1"/></svg><small>On / hold</small></button>
       <button class="cb fl" id="cFl"><svg width="26" height="20" viewBox="0 0 28 22" fill="none" stroke="#ff6b3d" stroke-width="2.4" stroke-linecap="round"><path d="M14 2v5M5 6l3 3M23 6l-3 3M3 18h7M18 18h7M12 18h4"/></svg><small>Flash / hold</small></button>
       <button class="cb all" id="cAll"><svg width="30" height="28" viewBox="0 0 30 28" fill="#ffd60a"><path d="M15 5a7 7 0 0 0-4.1 12.7c.6.5 1 1.3 1 2.1V21h6.2v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 15 5z"/><rect x="11.9" y="22.4" width="6.2" height="2" rx="1"/><g stroke="#ffd60a" stroke-width="2" stroke-linecap="round"><path d="M15 0v2M4 4l1.6 1.6M26 4l-1.6 1.6M0 12h2.3M28 12h2"/></g></svg><small>All on</small></button>
+      <button class="cb beat" id="cBeat"><svg width="26" height="26" viewBox="0 0 24 24" fill="#bf5af2"><path d="M9 17.5V5.2l11-2.2v12" fill="none" stroke="#bf5af2" stroke-width="2"/><circle cx="6.5" cy="17.5" r="3"/><circle cx="17.5" cy="15" r="3"/></svg><small id="cBeatL">Beat</small></button>
       <button class="cb off" id="cOff" hidden><svg width="24" height="28" viewBox="0 0 24 28" fill="none" stroke="#8e8e93" stroke-width="1.8" stroke-linecap="round"><path d="M12 1a8.5 8.5 0 0 0-5 15.4c.8.6 1.3 1.6 1.3 2.6V20h7.4v-1c0-1 .5-2 1.3-2.6A8.5 8.5 0 0 0 12 1z"/><path d="M3 2l18 24"/></svg><small>Off</small></button>
     </div>
   </div>
@@ -282,7 +285,7 @@ body.studio #studio{display:flex}
 </div>
 
 <div id="bg"></div>
-<div id="sheet" data-hui='{"title":"Flashlight","tabs":[{"n":"Light","i":"light","s":["light"]},{"n":"Routine","i":"routine","s":["routine"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Phones","i":"phone","s":["aura peer"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Flashlight","tabs":[{"n":"Light","i":"light","s":["light"]},{"n":"Routine","i":"routine","s":["routine"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Phones","i":"phone","s":["aura peer"]},{"n":"Beat","i":"music","s":["beat"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
   <div class="hd"><b>Settings</b><button class="done" id="done">Done</button></div>
 
   <div class="lbl">Light</div>
@@ -329,6 +332,18 @@ body.studio #studio{display:flex}
   </div>
   <div class="note">Hold the screen for 1 second to open these settings.</div>
 
+  <div class="lbl">Beat (mic)</div>
+  <div class="grp">
+    <div class="r">Beat (mic)<input type="checkbox" id="bOn"></div>
+    <div class="r">Status<span id="bSt" class="dim">Off</span></div>
+    <div class="r">Mic level<div id="bLvlW"><div id="bLvl"></div></div></div>
+    <div class="r">Pattern<select id="bPat"><option value="all">All phones together</option><option value="chase">Chase (1, 2, 3…)</option><option value="bounce">Bounce (1→3→1)</option><option value="random">Random phone</option></select></div>
+    <div class="r">Include my phone (M)<input type="checkbox" id="bM"></div>
+    <div class="r">Flash length<select id="bLen"><option value="80">Very short</option><option value="150">Short</option><option value="250">Medium</option><option value="400">Long</option></select></div>
+    <div class="r">Sensitivity<select id="bSens"><option value="1.6">Less (loud room)</option><option value="1.4">Normal</option><option value="1.25">More (quiet music)</option></select></div>
+  </div>
+  <div class="note">Your phone listens to the music with the mic and flashes the phones on each beat. It listens to the low sounds (kick drum and bass), at most about 4 flashes a second. During a routine, Beat waits. While you record, the beats go into the routine. When the phone locks or the page goes to the background, the mic turns off.</div>
+
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -368,10 +383,16 @@ body.studio #studio{display:flex}
     <div><span class="g g2" data-g="#tiles .tile[data-t]"></span><span><b>Phone tile</b>: tap = a short flash (0.2 s) on that phone · hold = on while you hold · use more fingers for more phones</span></div>
     <div><span class="g g2" data-g="#cFl"></span><span><b>Flash</b>: tap = all phones flash · hold = all phones on while you hold</span></div>
     <div><span class="g g2" data-g="#cAll"></span><span><b>All on</b>: tap = every phone and M on · tap again = all off</span></div>
+    <div><span class="g g2" data-g="#cBeat"></span><span><b>Beat</b>: tap = the mic listens and the phones flash on the music beat · tap again = stop (settings: Beat tab)</span></div>
     <div><span class="g"><i style="width:14px;height:14px;border-radius:50%;background:#30d158;display:block"></i></span><span><b>Record</b> / <b>Stop</b>: record a routine</span></div>
     <div><span class="g">?</span><span>This help · the gear opens the settings</span></div>
   </div>
   <p>Tap a phone tile = a short flash on that phone. Hold it = on while you hold. A tile glows when its flash is on.</p>
+  <h4>Beat (mic)</h4>
+  <ol><li>Tap the purple <b>Beat</b> button (or Settings → <b>Beat</b> tab → Beat (mic)). iOS asks for mic access one time.</li>
+  <li>Play music near your phone. The phones flash on each beat. The button flashes too.</li>
+  <li>Pattern: all together, chase, bounce or random. Use Sensitivity if it misses beats or flashes too much.</li>
+  <li>During a routine, Beat waits. While you record, the beats are recorded into the routine.</li></ol>
   <h4>3. Record a routine</h4>
   <ol><li>Tap <b>Record</b> (Phones tab) or <b>+ Record new</b> (Routines tab).</li>
   <li>Tap and hold the phone tiles, or use Flash and All on. Each phone has its own layer, with a bar for each light and a red playhead.</li>
@@ -1086,6 +1107,44 @@ $('pRoom').onchange=async()=>{P.peerRoom=$('pRoom').value.trim().slice(0,64);sav
 $('pTest').onclick=()=>{if(isMag()){pStatus(hosting?(guests.size?'Hosting · '+guests.size+' phone(s): '+[...guests.values()].map(g=>g.slot+(g.ready?' ready':' needs tap')+' '+Math.round(g.rtt)+' ms').join(', '):'Hosting – no phone yet'):'Not hosting');return}
   pStatus(joined?'Connected · this is phone '+(mySlot||'?'):'Not connected')};
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){setTimeout(()=>link(),300);if(isMag())try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}}});
+/* ---------- Beat (mic): your phone listens to the music and the phones flash on the beat ---------- */
+const BD={bPat:'chase',bM:true,bLen:150,bSens:1.4};for(const k in BD)if(P[k]==null)P[k]=BD[k];
+let bCtx=null,bStream=null,bAn=null,bBuf=null,bRaf=0,bAvg=0,bLast=0,bStep=0,bDir=1,bLvlS=0;
+const beatOn=()=>!!bStream;
+function bSync(){const on=beatOn();$('cBeat').classList.toggle('on',on);$('bOn').checked=on;$('bSt').textContent=on?'Listening':'Off';if(!on)$('bLvl').style.width='0'}
+async function beatStart(){if(beatOn())return;
+  try{bStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false},video:false})}
+  catch(e){bStream=null;$('bSt').textContent='No mic access';stToast('No mic access');bSync();return}
+  const AC=window.AudioContext||window.webkitAudioContext;bCtx=new AC();try{await bCtx.resume()}catch(e){}
+  const src=bCtx.createMediaStreamSource(bStream);bAn=bCtx.createAnalyser();bAn.fftSize=1024;bAn.smoothingTimeConstant=0;src.connect(bAn);
+  bBuf=new Uint8Array(bAn.frequencyBinCount);bAvg=0;bLast=0;bStep=0;bDir=1;hap('light');bSync();bLoop()}
+function beatStop(){cancelAnimationFrame(bRaf);bRaf=0;if(bStream)bStream.getTracks().forEach(t=>t.stop());bStream=null;
+  if(bCtx)try{bCtx.close()}catch(e){}bCtx=null;bAn=null;bSync()}
+function bLoop(){if(!bAn)return;bRaf=requestAnimationFrame(bLoop);
+  bAn.getByteFrequencyData(bBuf);const hz=bCtx.sampleRate/bAn.fftSize,hi=Math.max(2,Math.round(150/hz));   // low sounds: up to 150 Hz
+  let e=0;for(let i=1;i<=hi;i++)e+=bBuf[i]*bBuf[i];e=Math.sqrt(e/hi);
+  bLvlS=bLvlS*.7+e*.3;$('bLvl').style.width=Math.min(100,bLvlS/2.2)+'%';
+  const t=now(),hit=e>bAvg*(+P.bSens)&&e>40&&t-bLast>250;   // max about 4 a second
+  bAvg=bAvg?bAvg*.96+e*.04:e;
+  if(hit){bLast=t;beatHit()}}
+function beatHit(){const b=$('cBeat');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),90);
+  if(running||prevOn)return;   // a routine plays: Beat waits
+  const ph=targets(),all=P.bM?ph.concat(['M']):ph.slice();if(!all.length)return;let list;
+  if(P.bPat==='all')list=all;
+  else if(P.bPat==='random')list=[all[Math.floor(Math.random()*all.length)]];
+  else if(P.bPat==='bounce'){const n=all.length;if(n<2)bStep=0;else{if(bStep>=n-1)bDir=-1;else if(bStep<=0)bDir=1}list=[all[Math.max(0,Math.min(n-1,bStep))]];bStep+=n<2?0:bDir}
+  else{const order=P.bM?['M'].concat(ph):ph;list=[order[bStep%order.length]];bStep++}
+  list.forEach(t=>{act(t,true);sAdd(t,1)});
+  setTimeout(()=>{list.forEach(t=>{act(t,false);sAdd(t,0)});sGrp++},+P.bLen)}
+btn($('cBeat'),()=>{beatOn()?beatStop():beatStart()});
+$('bOn').onchange=()=>{$('bOn').checked?beatStart():beatStop()};
+$('bPat').value=P.bPat;$('bM').checked=!!P.bM;$('bLen').value=String(P.bLen);$('bSens').value=String(P.bSens);
+$('bPat').onchange=()=>{P.bPat=$('bPat').value;bStep=0;bDir=1;saveP()};
+$('bM').onchange=()=>{P.bM=$('bM').checked;bStep=0;saveP()};
+$('bLen').onchange=()=>{P.bLen=+$('bLen').value;saveP()};
+$('bSens').onchange=()=>{P.bSens=+$('bSens').value;saveP()};
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')beatStop()});
+addEventListener('pagehide',beatStop);
 applyRole();
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);link()}},250)}
 setInterval(()=>link(),2000);
