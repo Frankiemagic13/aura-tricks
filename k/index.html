@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kill switch test</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#1c1d22;color:#e8e8ee;font:15px/1.4 -apple-system,system-ui,sans-serif;
+  padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px)}
+h1{font-size:26px;margin:0 0 2px}
+.sub{color:#ff9f0a;font-weight:600;margin-bottom:14px}
+.card{background:#24262c;border-radius:18px;padding:14px;margin:0 0 14px;box-shadow:6px 6px 14px rgba(0,0,0,.45),-4px -4px 10px rgba(255,255,255,.03)}
+.lbl{font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:#8e8e98;margin:0 0 8px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:9px 4px;border:0;border-radius:12px;background:#2e3037;color:#c9c9d2;font:600 13px -apple-system,system-ui}
+.seg button.on{background:#ff9f0a;color:#000}
+.t{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06)}
+.t:first-of-type{border-top:0}
+.t .n{width:24px;height:24px;border-radius:50%;background:#2e3037;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none}
+.t .x{flex:1;min-width:0}
+.t b{display:block;font-size:15px}
+.t code{display:block;font-size:12px;color:#8e8e98;word-break:break-all}
+.t .r{font-size:12px;font-weight:600;margin-top:2px}
+.ok{color:#30d158}.no{color:#ff453a}
+.go{border:0;border-radius:12px;padding:9px 14px;background:#ff9f0a;color:#000;font:700 14px -apple-system,system-ui;flex:none}
+input{width:100%;padding:10px 12px;border-radius:12px;border:0;background:#2e3037;color:#fff;font:14px ui-monospace,Menlo,monospace;margin:6px 0}
+.note{color:#8e8e98;font-size:13px;margin:6px 2px 0}
+#log{font:12px ui-monospace,Menlo,monospace;color:#b7b7c2;white-space:pre-wrap;max-height:220px;overflow:auto}
+.clr{background:#2e3037;color:#c9c9d2}
+</style>
+</head>
+<body>
+<h1>Kill switch test</h1>
+<div class="sub" id="where">—</div>
+
+<div class="card">
+  <div class="lbl">How to open the link</div>
+  <div class="seg" id="how">
+    <button data-v="href" class="on">location</button><button data-v="a">Link tap</button><button data-v="open">window.open</button>
+  </div>
+  <div class="note">If a test does nothing, change this and try the same test again. Aura can treat each way differently.</div>
+</div>
+
+<div class="card" id="tests">
+  <div class="lbl">Tests</div>
+</div>
+
+<div class="card">
+  <div class="lbl">App Clip bundle ID (for test 4)</div>
+  <input id="bid" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="for example fr.auraclip.app.Clip">
+  <div class="note">Optional. If you know Aura's App Clip bundle ID, type it here. Test 4 then tries to open that App Clip's own settings page.</div>
+</div>
+
+<div class="card">
+  <div class="lbl">Your own link</div>
+  <input id="own" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="App-prefs:…">
+  <button class="go" id="ownGo">Try</button>
+</div>
+
+<div class="card">
+  <div class="lbl">Results</div>
+  <div id="log"></div>
+  <div style="margin-top:10px;display:flex;gap:8px"><button class="go clr" id="logClr">Clear results</button><button class="go clr" id="logCopy">Copy results</button></div>
+  <div class="note">"Opened" means the page went to the background within 2 seconds (iOS opened something). "Nothing" means the page stayed on screen. When you come back from Settings, the result is still here.</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* where the page runs */
+const A=window.Aura,ua=navigator.userAgent;
+const where=(A?'Aura bridge: yes':'Aura bridge: no')+' · '+(/AuraClip|AppClip/i.test(ua)?'App Clip':/Aura/i.test(ua)?'Aura Browser':'browser')+' · iOS '+((ua.match(/OS (\d+)_(\d+)/)||[]).slice(1).join('.')||'?');
+$('where').textContent=where;
+
+const TESTS=[
+  ['App Clips list','App-Prefs:APP_CLIPS'],
+  ['App Clips list (small p)','App-prefs:APP_CLIPS'],
+  ['App Clips list (old style)','prefs:root=APP_CLIPS'],
+  ['This App Clip\'s settings','App-Prefs:APP_CLIPS&path={id}'],
+  ['Settings main screen','App-prefs:'],
+  ['Settings › General','App-prefs:General'],
+  ['Aura\'s own settings page','app-settings:'],
+];
+
+let how=store.get('ksHow','href');
+document.querySelectorAll('#how button').forEach(b=>{b.classList.toggle('on',b.dataset.v===how);
+  b.onclick=()=>{how=b.dataset.v;store.set('ksHow',how);document.querySelectorAll('#how button').forEach(x=>x.classList.toggle('on',x===b))}});
+$('bid').value=store.get('ksBid','');$('bid').oninput=()=>store.set('ksBid',$('bid').value.trim());
+
+const res=store.get('ksRes',{});   // last result for each test
+function draw(){const T=$('tests');T.querySelectorAll('.t').forEach(e=>e.remove());
+  TESTS.forEach(([name,url],i)=>{const r=res[i];const d=document.createElement('div');d.className='t';
+    d.innerHTML=`<div class="n">${i+1}</div><div class="x"><b></b><code></code><div class="r ${r?(r.ok?'ok':'no'):''}">${r?(r.ok?'Opened':'Nothing')+' ('+r.how+')':''}</div></div><button class="go">Try</button>`;
+    d.querySelector('b').textContent=name;d.querySelector('code').textContent=url;
+    d.querySelector('.go').onclick=()=>run(i,url.replace('{id}',$('bid').value.trim()||'com.example.Clip'));T.appendChild(d)})}
+draw();
+
+function log(t){const L=store.get('ksLog',[]);L.unshift(new Date().toLocaleTimeString()+'  '+t);store.set('ksLog',L.slice(0,60));showLog()}
+function showLog(){$('log').textContent=store.get('ksLog',[]).join('\n')||'No results yet.'}
+showLog();
+
+/* the test: open the link, then watch if the page goes to the background */
+let pending=null;
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden'&&pending&&Date.now()-pending.t<2000){finish(true)}});
+function finish(ok){if(!pending)return;const p=pending;pending=null;clearTimeout(p.timer);
+  if(p.i>=0){res[p.i]={ok,how:p.how};store.set('ksRes',res);draw()}
+  log((ok?'OPENED   ':'nothing  ')+p.how.padEnd(6)+' '+p.url)}
+function open(url){
+  if(how==='href'){location.href=url;return}
+  if(how==='a'){const a=document.createElement('a');a.href=url;a.style.display='none';document.body.appendChild(a);a.click();a.remove();return}
+  const w=window.open(url,'_blank');if(!w)throw new Error('window.open blocked')}
+function run(i,url){
+  if(pending)finish(false);
+  pending={i,url,how,t:Date.now(),timer:setTimeout(()=>finish(false),2000)};
+  try{open(url)}catch(e){log('error    '+how+' '+url+' ('+e.message+')');pending&&finish(false)}}
+$('ownGo').onclick=()=>{const u=$('own').value.trim();if(u)run(-1,u)};
+$('logClr').onclick=()=>{store.set('ksLog',[]);for(const k in res)delete res[k];store.set('ksRes',res);draw();showLog()};
+$('logCopy').onclick=()=>{const t=where+'\n'+store.get('ksLog',[]).join('\n');
+  try{navigator.clipboard.writeText(t).then(()=>$('logCopy').textContent='Copied',()=>{})}catch(e){}};
+</script>
+</body>
+</html>
