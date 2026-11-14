@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Lock screen</title>
+<style>
+:root{color-scheme:dark;--u:min(1px,calc(100vw / 402))}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-system,system-ui,sans-serif;overflow:hidden;touch-action:none}
+.scr{position:fixed;inset:0;display:none}
+.scr.on{display:block}
+
+/* 1. start: one button */
+#s1{display:none;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:24px;text-align:center}
+#s1.on{display:flex}
+#pick{border:0;border-radius:22px;padding:20px 28px;background:#0a84ff;color:#fff;font:600 20px -apple-system,system-ui;box-shadow:0 8px 30px rgba(10,132,255,.35)}
+#s1 p{color:rgba(235,235,245,.6);font-size:15px;max-width:300px;margin:0}
+
+/* 2. editor */
+#s2{background:#111}
+#view{position:absolute;left:0;right:0;top:0;bottom:200px;display:flex;align-items:center;justify-content:center}
+#cv{max-width:100%;max-height:100%;border-radius:14px;touch-action:none}
+#bar{position:absolute;left:0;right:0;bottom:0;padding:10px 14px calc(env(safe-area-inset-bottom) + 12px);background:#1c1c1e;display:flex;flex-direction:column;gap:10px}
+.row{display:flex;gap:8px;align-items:center}
+.row button{flex:1;border:0;border-radius:14px;padding:12px 6px;background:#2c2c2e;color:#fff;font:600 15px -apple-system,system-ui}
+.row button.on{background:#0a84ff}
+.row button.go{background:#30d158;color:#000}
+.row label{font-size:13px;color:rgba(235,235,245,.6);white-space:nowrap}
+.row input[type=range]{flex:1}
+#msg{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 14px);transform:translateX(-50%);background:rgba(0,0,0,.7);padding:8px 14px;border-radius:999px;font:600 14px -apple-system,system-ui;white-space:nowrap;display:none}
+#msg.on{display:block}
+#busy{position:absolute;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;font:600 16px -apple-system,system-ui}
+#busy.on{display:flex}
+#prog{width:200px;height:6px;border-radius:3px;background:#333;overflow:hidden}#prog i{display:block;height:100%;width:0;background:#0a84ff;transition:width .2s}
+
+/* 3. passcode screen (sharp wallpaper) */
+#s3{background:#000 center/cover no-repeat}
+#s3 .dim{position:absolute;inset:0;background:rgba(0,0,0,var(--dim,.28))}
+#s3 .in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;padding-top:calc(max(env(safe-area-inset-top),54px) + 70px)}
+#lock{width:22px;height:28px;margin-bottom:22px}
+#s3 h2{margin:0 0 22px;font:600 20px -apple-system,system-ui;letter-spacing:.2px;text-shadow:0 1px 6px rgba(0,0,0,.25)}
+#dots{display:flex;gap:24px;height:14px;margin-bottom:58px}
+#dots i{width:13px;height:13px;border-radius:50%;border:1.3px solid #fff;display:block}
+#dots i.f{background:#fff}
+#dots.shake{animation:sh .5s}
+@keyframes sh{0%,100%{transform:none}20%{transform:translateX(-14px)}40%{transform:translateX(12px)}60%{transform:translateX(-8px)}80%{transform:translateX(5px)}}
+#pad{display:grid;grid-template-columns:repeat(3,78px);gap:16px 26px}
+#pad b{width:78px;height:78px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.16);-webkit-backdrop-filter:blur(30px) saturate(1.6);backdrop-filter:blur(30px) saturate(1.6);font-weight:400;transition:background .25s}
+#pad b.dn{background:rgba(255,255,255,.55);transition:none}
+#pad b span{font-size:36px;line-height:38px}#pad b small{font-size:10px;font-weight:700;letter-spacing:2px;margin-top:1px}
+#pad b.z{grid-column:2}
+#s3 .ft{position:absolute;bottom:calc(env(safe-area-inset-bottom) + 38px);left:44px;right:44px;display:flex;justify-content:space-between;font-size:17px}
+#sbar{position:absolute;top:0;left:0;right:0;height:max(env(safe-area-inset-top),54px);display:flex;align-items:center;justify-content:space-between;padding:0 32px 0 50px;font:600 17px -apple-system,system-ui}
+</style>
+</head>
+<body>
+
+<!-- 1. start -->
+<div class="scr on" id="s1">
+  <button id="pick">Choose your lock screen</button>
+  <p>Take a screenshot of your lock screen first, then choose it here.</p>
+  <input type="file" id="file" accept="image/*" hidden>
+</div>
+
+<!-- 2. clean -->
+<div class="scr" id="s2">
+  <div id="view"><canvas id="cv"></canvas></div>
+  <div id="msg"></div>
+  <div id="bar">
+    <div class="row"><button id="bBefore">Before</button><button id="bAfter" class="on">After</button><button id="bFix">Fix</button></div>
+    <div class="row" id="fixRow" style="display:none"><button id="bPaint" class="on">Paint</button><button id="bErase">Erase</button><label>Size</label><input type="range" id="bSize" min="8" max="80" value="34"></div>
+    <div class="row"><label>Find</label><input type="range" id="bSens" min="8" max="60" value="24" style="direction:rtl"><label>Clock</label><input type="range" id="bClock" min="18" max="55" value="31"></div>
+    <div class="row"><button id="bClean">Clean again</button><button id="bUse" class="go">Use</button></div>
+  </div>
+  <div id="busy"><div id="busyT">Cleaning…</div><div id="prog"><i></i></div></div>
+</div>
+
+<!-- 3. passcode -->
+<div class="scr" id="s3">
+  <div class="dim"></div>
+  <div id="sbar"><span id="clk">9:41</span><span></span></div>
+  <div class="in">
+    <svg id="lock" viewBox="0 0 22 28" fill="#fff"><path d="M4 12V8a7 7 0 0 1 14 0v4h1.5A2.5 2.5 0 0 1 22 14.5v11a2.5 2.5 0 0 1-2.5 2.5h-17A2.5 2.5 0 0 1 0 25.5v-11A2.5 2.5 0 0 1 2.5 12zm3 0h8V8a4 4 0 0 0-8 0z"/></svg>
+    <h2>Enter Passcode</h2>
+    <div id="dots"><i></i><i></i><i></i><i></i></div>
+    <div id="pad"></div>
+  </div>
+  <div class="ft"><span>Emergency</span><span id="cancel">Cancel</span></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const show=id=>document.querySelectorAll('.scr').forEach(s=>s.classList.toggle('on',s.id===id));
+function toast(t,ms){const m=$('msg');m.textContent=t;m.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>m.classList.remove('on'),ms||1600)}
+
+/* ---------- state ---------- */
+const WORK=560;            // the cleaning runs at this width (fast on a phone); the result is put back at full size
+let full=null,FW=0,FH=0;   // the screenshot at full size (canvas)
+let W=0,H=0,src=null;      // the work-size copy: Uint8ClampedArray RGBA
+let mask=null;             // work-size mask: 1 = remove
+let out=null;              // the cleaned picture (full size canvas)
+let mode='after',tool='paint';
+
+/* ---------- 1. choose ---------- */
+$('pick').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files&&e.target.files[0];if(!f)return;
+  const im=new Image();im.onload=()=>{load(im);URL.revokeObjectURL(im.src)};im.onerror=()=>toast('That file is not a picture');im.src=URL.createObjectURL(f);e.target.value=''};
+
+function load(im){
+  FW=im.naturalWidth;FH=im.naturalHeight;
+  full=document.createElement('canvas');full.width=FW;full.height=FH;full.getContext('2d').drawImage(im,0,0);
+  const k=Math.min(1,WORK/FW);W=Math.round(FW*k);H=Math.round(FH*k);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,W,H);
+  src=x.getImageData(0,0,W,H).data;diffMap=null;painted=null;
+  autoMask();show('s2');sizeView();clean();
+}
+
+/* ---------- auto mask: find the iPhone lock screen parts (clock, date, status bar, buttons, home bar)
+   Only inside the zones where iOS puts them (fractions of the screen), and only the pixels that are
+   different from the wallpaper around them, so the wallpaper itself stays. ---------- */
+function zones(){const z=new Uint8Array(W*H);
+  const rect=(x0,y0,x1,y1)=>{for(let y=Math.max(0,Math.floor(y0*H));y<Math.min(H,Math.ceil(y1*H));y++)for(let x=Math.max(0,Math.floor(x0*W));x<Math.min(W,Math.ceil(x1*W));x++)z[y*W+x]=1};
+  const circ=(cx,cy,r)=>{const R=r*W;for(let y=Math.floor(cy*H-R);y<=cy*H+R;y++)for(let x=Math.floor(cx*W-R);x<=cx*W+R;x++)if(x>=0&&y>=0&&x<W&&y<H&&(x-cx*W)**2+(y-cy*H)**2<=R*R)z[y*W+x]=1};
+  rect(0,0,1,.062);                                  // status bar
+  rect(.04,.066,.96,+$('bClock').value/100);         // date, clock and widgets
+  circ(.163,.912,.095);circ(.837,.912,.095);         // flashlight and camera buttons
+  rect(.25,.962,.75,1);                              // home bar
+  return z}
+let diffMap=null;
+function buildDiff(){
+  /* the wallpaper "around" each pixel = a wide blur (integral image), per colour */
+  const R=Math.max(8,Math.round(W*.05)),n=W*H,ii=[0,1,2].map(()=>new Float64Array((W+1)*(H+1)));
+  for(let ch=0;ch<3;ch++){const I=ii[ch];for(let y=0;y<H;y++){let r=0;for(let x=0;x<W;x++){r+=src[(y*W+x)*4+ch];I[(y+1)*(W+1)+x+1]=I[y*(W+1)+x+1]+r}}}
+  diffMap=new Float32Array(n);
+  for(let y=0;y<H;y++){const y0=Math.max(0,y-R),y1=Math.min(H-1,y+R);for(let x=0;x<W;x++){const x0=Math.max(0,x-R),x1=Math.min(W-1,x+R),a=(x1-x0+1)*(y1-y0+1);let d=0;
+    for(let ch=0;ch<3;ch++){const I=ii[ch],m=(I[(y1+1)*(W+1)+x1+1]-I[y0*(W+1)+x1+1]-I[(y1+1)*(W+1)+x0]+I[y0*(W+1)+x0])/a;d=Math.max(d,Math.abs(src[(y*W+x)*4+ch]-m))}
+    diffMap[y*W+x]=d}}}
+function autoMask(){
+  if(!diffMap)buildDiff();
+  const z=zones(),T=+$('bSens').value,m0=new Uint8Array(W*H);
+  for(let i=0;i<W*H;i++)if(z[i]&&diffMap[i]>T)m0[i]=1;
+  /* the clock is one colour (white or a tint). Where it is over a part of the wallpaper with the same
+     colour (white clouds…), the blur test misses it: so also take the pixels with the clock colour,
+     inside the box of the clock that was found. */
+  {const y0z=Math.floor(.066*H),y1z=Math.ceil(+$('bClock').value/100*H);const pts=[];let bx0=W,bx1=0,by0=H,by1=0;
+    for(let y=y0z;y<y1z;y++)for(let x=0;x<W;x++){const i=y*W+x;if(diffMap[i]>T*1.6){pts.push(i);if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y}}
+    if(pts.length>W*.5){
+      const lum=i=>src[i*4]*.299+src[i*4+1]*.587+src[i*4+2]*.114;
+      pts.sort((a,b)=>lum(b)-lum(a));const top=pts.slice(0,Math.max(10,pts.length*.25|0));
+      let r=0,g=0,b=0;for(const i of top){r+=src[i*4];g+=src[i*4+1];b+=src[i*4+2]}r/=top.length;g/=top.length;b/=top.length;
+      const L=Math.max(r,g,b);
+      /* only near the clock edges that were found (about one letter-stroke wide), so white clouds far away stay */
+      const near=new Uint8Array(W*H),Rd=Math.max(4,Math.round(W*.03));
+      for(const i of pts){const px=i%W,py=(i/W)|0;for(let yy=Math.max(by0,py-Rd);yy<=Math.min(by1,py+Rd);yy++){const o=yy*W;for(let xx=Math.max(bx0,px-Rd);xx<=Math.min(bx1,px+Rd);xx++)near[o+xx]=1}}
+      if(L>170)for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++){const i=y*W+x;if(!near[i])continue;const dr=src[i*4]-r,dg=src[i*4+1]-g,db=src[i*4+2]-b;
+        if(dr*dr+dg*dg+db*db<26*26)m0[i]=1}}}
+  /* grow the found pixels so the soft edges of the letters go too */
+  const D=Math.max(3,Math.round(W*.007));mask=new Uint8Array(W*H);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(!m0[y*W+x])continue;
+    for(let yy=Math.max(0,y-D);yy<=Math.min(H-1,y+D);yy++)for(let xx=Math.max(0,x-D);xx<=Math.min(W-1,x+D);xx++)mask[yy*W+xx]=1}
+}
+/* ---------- view ---------- */
+const cv=$('cv'),cx=cv.getContext('2d');
+function sizeView(){cv.width=W;cv.height=H;draw()}
+function draw(){
+  if(!W)return;
+  if(mode==='before'||!out)cx.drawImage(full,0,0,W,H);else cx.drawImage(out,0,0,W,H);
+  if(mode==='fix'){const id=cx.getImageData(0,0,W,H),d=id.data;
+    for(let i=0;i<W*H;i++)if(mask[i]){d[i*4]=d[i*4]*.45+255*.55;d[i*4+1]*=.45;d[i*4+2]*=.45}cx.putImageData(id,0,0)}}
+function setMode(m){mode=m;['bBefore','bAfter','bFix'].forEach(id=>$(id).classList.toggle('on',id==='b'+m[0].toUpperCase()+m.slice(1)));
+  $('fixRow').style.display=m==='fix'?'flex':'none';draw();if(m==='fix')toast('Paint over what must go, then Clean again',2200)}
+$('bBefore').onclick=()=>setMode('before');$('bAfter').onclick=()=>setMode('after');$('bFix').onclick=()=>setMode('fix');
+$('bPaint').onclick=()=>{tool='paint';$('bPaint').classList.add('on');$('bErase').classList.remove('on')};
+$('bErase').onclick=()=>{tool='erase';$('bErase').classList.add('on');$('bPaint').classList.remove('on')};
+$('bClock').oninput=$('bSens').oninput=()=>{autoMaskKeepPaint();if(mode!=='fix')setMode('fix');else draw()};
+let painted=null;   // finger paint is kept when the clock area changes
+function autoMaskKeepPaint(){const p=painted;autoMask();if(p)for(let i=0;i<p.length;i++){if(p[i]===1)mask[i]=1;else if(p[i]===2)mask[i]=0}}
+/* finger paint on the mask */
+function brush(e){const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;if(!t)return;
+  const x=(t.clientX-r.left)/r.width*W,y=(t.clientY-r.top)/r.height*H,R=+$('bSize').value/2*(W/r.width);
+  if(!painted)painted=new Uint8Array(W*H);
+  for(let yy=Math.floor(y-R);yy<=y+R;yy++)for(let xx=Math.floor(x-R);xx<=x+R;xx++){if(xx<0||yy<0||xx>=W||yy>=H||(xx-x)**2+(yy-y)**2>R*R)continue;
+    const i=yy*W+xx;mask[i]=tool==='paint'?1:0;painted[i]=tool==='paint'?1:2}
+  draw()}
+cv.addEventListener('touchstart',e=>{if(mode!=='fix')return;e.preventDefault();brush(e)},{passive:false});
+cv.addEventListener('touchmove',e=>{if(mode!=='fix')return;e.preventDefault();brush(e)},{passive:false});
+let mdown=false;cv.addEventListener('mousedown',e=>{if(mode!=='fix')return;mdown=true;brush(e)});addEventListener('mousemove',e=>{if(mdown)brush(e)});addEventListener('mouseup',()=>mdown=false);
+
+/* ---------- clean (in a worker, so the screen does not freeze) ---------- */
+let worker=null;
+function clean(){
+  $('busy').classList.add('on');$('prog').firstChild.style.width='0';
+  if(worker)worker.terminate();
+  worker=new Worker(URL.createObjectURL(new Blob(['('+WORKER.toString()+')()'],{type:'text/javascript'})));
+  const t0=performance.now();
+  worker.onmessage=e=>{const d=e.data;
+    if(d.p!==undefined){$('prog').firstChild.style.width=Math.round(d.p*100)+'%';return}
+    worker.terminate();worker=null;compose(d.img);$('busy').classList.remove('on');
+    window.__cleanMs=Math.round(performance.now()-t0);setMode('after')};
+  worker.onerror=e=>{$('busy').classList.remove('on');toast('Cleaning failed: '+e.message,3000)};
+  worker.postMessage({W,H,img:src.slice(),mask:mask.slice(),smooth:isSmooth()});
+}
+$('bClean').onclick=clean;
+
+/* is the wallpaper near the holes smooth (colours, gradients) or detailed (photo)?
+   Measure the fine detail (difference to the 4 neighbours) in a band around the holes. */
+function isSmooth(){const band=Math.max(6,Math.round(W*.03));let sum=0,n=0;
+  const near=new Uint8Array(W*H);
+  for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){if(!mask[y*W+x])continue;for(let yy=Math.max(1,y-band);yy<Math.min(H-1,y+band);yy+=3)for(let xx=Math.max(1,x-band);xx<Math.min(W-1,x+band);xx+=3)near[yy*W+xx]=1}
+  for(let i=0;i<W*H;i++){if(!near[i]||mask[i]||mask[i-1]||mask[i+1]||mask[i-W]||mask[i+W])continue;
+    for(let ch=0;ch<3;ch++){const v=src[i*4+ch]*4-src[(i-1)*4+ch]-src[(i+1)*4+ch]-src[(i-W)*4+ch]-src[(i+W)*4+ch];sum+=Math.abs(v)}n+=3}
+  window.__detail=n?sum/n:0;return n>0&&sum/n<4}
+/* put the cleaned parts back into the full-size picture, with soft edges */
+function compose(res){
+  const k=document.createElement('canvas');k.width=W;k.height=H;const kx=k.getContext('2d');
+  const id=kx.createImageData(W,H);id.data.set(res);kx.putImageData(id,0,0);
+  /* soft mask: the mask, grown 2 px and blurred */
+  const m=document.createElement('canvas');m.width=W;m.height=H;const mx=m.getContext('2d');const md=mx.createImageData(W,H);
+  for(let i=0;i<W*H;i++){md.data[i*4+3]=mask[i]?255:0}mx.putImageData(md,0,0);
+  const m2=document.createElement('canvas');m2.width=FW;m2.height=FH;const m2x=m2.getContext('2d');
+  m2x.filter='blur('+Math.max(1,FW/W*1.2)+'px)';m2x.drawImage(m,0,0,FW,FH);m2x.drawImage(m,0,0,FW,FH);
+  /* cleaned picture (full size) masked by the soft mask, over the original */
+  const top=document.createElement('canvas');top.width=FW;top.height=FH;const tx=top.getContext('2d');
+  tx.imageSmoothingQuality='high';tx.drawImage(k,0,0,FW,FH);tx.globalCompositeOperation='destination-in';tx.drawImage(m2,0,0);
+  out=document.createElement('canvas');out.width=FW;out.height=FH;const ox=out.getContext('2d');ox.drawImage(full,0,0);ox.drawImage(top,0,0);
+}
+
+/* ---------- the cleaning: multi-size patch fill (PatchMatch + voting) ---------- */
+function WORKER(){
+  onmessage=e=>{const {W,H,img,mask,smooth}=e.data;postMessage({img:run(W,H,img,mask,smooth)})};
+  const P=3;   // patch radius (7 x 7)
+  let seed=1234567;const rnd=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/4294967296};
+  function down(L){const w=Math.max(1,L.w>>1),h=Math.max(1,L.h>>1),c=new Float32Array(w*h*3),m=new Uint8Array(w*h);
+    for(let y=0;y<h;y++)for(let x=0;x<w;x++){let s0=0,s1=0,s2=0,n=0,hole=0;
+      for(let dy=0;dy<2;dy++)for(let dx=0;dx<2;dx++){const X=Math.min(L.w-1,2*x+dx),Y=Math.min(L.h-1,2*y+dy),j=Y*L.w+X;
+        if(L.m[j]){hole=1;continue}s0+=L.c[j*3];s1+=L.c[j*3+1];s2+=L.c[j*3+2];n++}
+      const i=y*w+x;m[i]=hole;if(n){c[i*3]=s0/n;c[i*3+1]=s1/n;c[i*3+2]=s2/n}}
+    return{w,h,c,m}}
+  /* smooth first guess for the holes (repeated averaging of neighbours) */
+  function smooth(L){const {w,h,c,m}=L,known=new Uint8Array(w*h);for(let i=0;i<w*h;i++)known[i]=!m[i];
+    for(let it=0;it<w+h;it++){let any=false;
+      for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(!m[i])continue;let s0=0,s1=0,s2=0,n=0;
+        for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=w||Y>=h)continue;const j=Y*w+X;if(!known[j])continue;s0+=c[j*3];s1+=c[j*3+1];s2+=c[j*3+2];n++}
+        if(n){c[i*3]=s0/n;c[i*3+1]=s1/n;c[i*3+2]=s2/n;if(!known[i]){known[i]=1;any=true}}}
+      if(!any&&it>20)break}}
+  function level(L,nnf,iters,pBase,pSpan,sharp){
+    const {w,h,c,m}=L;
+    /* valid sources: patch fully inside the picture and with no hole */
+    const ii=new Int32Array((w+1)*(h+1));for(let y=0;y<h;y++){let r=0;for(let x=0;x<w;x++){r+=m[y*w+x];ii[(y+1)*(w+1)+x+1]=ii[y*(w+1)+x+1]+r}}
+    const holeIn=(x0,y0,x1,y1)=>ii[(y1+1)*(w+1)+x1+1]-ii[y0*(w+1)+x1+1]-ii[(y1+1)*(w+1)+x0]+ii[y0*(w+1)+x0];
+    const valid=[];for(let y=P;y<h-P;y++)for(let x=P;x<w-P;x++)if(!holeIn(x-P,y-P,x+P,y+P))valid.push(y*w+x);
+    if(!valid.length)return nnf;
+    const isV=new Uint8Array(w*h);for(const v of valid)isV[v]=1;
+    /* targets: every pixel whose patch touches a hole */
+    const tg=[];for(let y=0;y<h;y++)for(let x=0;x<w;x++){if(holeIn(Math.max(0,x-P),Math.max(0,y-P),Math.min(w-1,x+P),Math.min(h-1,y+P)))tg.push(y*w+x)}
+    const nn=new Int32Array(w*h).fill(-1),nd=new Float32Array(w*h);
+    const dist=(p,q,best)=>{const px=p%w,py=(p/w)|0,qx=q%w,qy=(q/w)|0;let s=0,n=0;
+      for(let dy=-P;dy<=P;dy++){const Y=py+dy;if(Y<0||Y>=h)continue;for(let dx=-P;dx<=P;dx++){const X=px+dx;if(X<0||X>=w)continue;
+        const a=(Y*w+X)*3,b=((qy+dy)*w+qx+dx)*3,d0=c[a]-c[b],d1=c[a+1]-c[b+1],d2=c[a+2]-c[b+2];s+=d0*d0+d1*d1+d2*d2;n++}
+        if(s>best*n)return Infinity}
+      return n?s/n:Infinity};
+    for(const p of tg){let q=nnf?nnf(p):-1;if(q<0||!isV[q])q=valid[(rnd()*valid.length)|0];nn[p]=q;nd[p]=dist(p,q,Infinity)}
+    const acc=new Float32Array(w*h*3),wt=new Float32Array(w*h);
+    for(let it=0;it<iters;it++){
+      /* PatchMatch: propagation + random search, two passes in opposite directions */
+      for(let pass=0;pass<2;pass++){const rev=(it+pass)%2===1,s=rev?-1:1;
+        for(let k=0;k<tg.length;k++){const p=tg[rev?tg.length-1-k:k],px=p%w;
+          for(const [ox,oy] of [[-s,0],[0,-s]]){const X=px+ox,Y=((p/w)|0)+oy;if(X<0||Y<0||X>=w||Y>=h)continue;const nb=Y*w+X,qn=nn[nb];if(qn<0)continue;
+            const q=qn-ox-oy*w;if(q<0||q>=w*h||!isV[q])continue;const d=dist(p,q,nd[p]);if(d<nd[p]){nd[p]=d;nn[p]=q}}
+          let R=Math.max(w,h);const qx0=nn[p]%w,qy0=(nn[p]/w)|0;
+          while(R>=1){const X=Math.round(qx0+(rnd()*2-1)*R),Y=Math.round(qy0+(rnd()*2-1)*R);
+            if(X>=P&&Y>=P&&X<w-P&&Y<h-P){const q=Y*w+X;if(isV[q]){const d=dist(p,q,nd[p]);if(d<nd[p]){nd[p]=d;nn[p]=q}}}R*=.5}}}
+      /* voting: each hole pixel = the average of all the patches that cover it */
+      acc.fill(0);wt.fill(0);
+      for(const p of tg){const q=nn[p];if(q<0)continue;const px=p%w,py=(p/w)|0,qx=q%w,qy=(q/w)|0,ww=1/(1+nd[p]/400);
+        for(let dy=-P;dy<=P;dy++){const Y=py+dy;if(Y<0||Y>=h)continue;for(let dx=-P;dx<=P;dx++){const X=px+dx;if(X<0||X>=w)continue;const t=Y*w+X;if(!m[t])continue;
+          const b=((qy+dy)*w+qx+dx)*3;acc[t*3]+=c[b]*ww;acc[t*3+1]+=c[b+1]*ww;acc[t*3+2]+=c[b+2]*ww;wt[t]+=ww}}}
+      if(sharp&&it===iters-1){   // last pass at full size: copy the best match (sharper than an average)
+        for(let t=0;t<w*h;t++)if(m[t]&&nn[t]>=0){const q=nn[t]*3;c[t*3]=c[q]*.7+(wt[t]?acc[t*3]/wt[t]*.3:c[q]*.3);c[t*3+1]=c[q+1]*.7+(wt[t]?acc[t*3+1]/wt[t]*.3:c[q+1]*.3);c[t*3+2]=c[q+2]*.7+(wt[t]?acc[t*3+2]/wt[t]*.3:c[q+2]*.3)}}
+      else for(let t=0;t<w*h;t++)if(m[t]&&wt[t]){c[t*3]=acc[t*3]/wt[t];c[t*3+1]=acc[t*3+1]/wt[t];c[t*3+2]=acc[t*3+2]/wt[t]}
+      postMessage({p:pBase+pSpan*(it+1)/iters})}
+    return p=>nn[p]}
+  /* smooth wallpapers (colours, gradients): fill the holes so that each pixel = the average of its neighbours
+     (the colours flow in from the edges), coarse to fine. No patches, so no blotches. */
+  function relax(L,n){const {w,h,c,m}=L;for(let it=0;it<n;it++){for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(!m[i])continue;
+      let s0=0,s1=0,s2=0,k=0;if(x>0){const j=i-1;s0+=c[j*3];s1+=c[j*3+1];s2+=c[j*3+2];k++}if(x<w-1){const j=i+1;s0+=c[j*3];s1+=c[j*3+1];s2+=c[j*3+2];k++}
+      if(y>0){const j=i-w;s0+=c[j*3];s1+=c[j*3+1];s2+=c[j*3+2];k++}if(y<h-1){const j=i+w;s0+=c[j*3];s1+=c[j*3+1];s2+=c[j*3+2];k++}
+      c[i*3]=s0/k;c[i*3+1]=s1/k;c[i*3+2]=s2/k}}}
+  function run(W,H,img,mask,smoothMode){
+    const L0={w:W,h:H,c:new Float32Array(W*H*3),m:mask};for(let i=0;i<W*H;i++){L0.c[i*3]=img[i*4];L0.c[i*3+1]=img[i*4+1];L0.c[i*3+2]=img[i*4+2]}
+    const pyr=[L0];while(pyr[pyr.length-1].w>70&&pyr.length<6)pyr.push(down(pyr[pyr.length-1]));
+    let nnf=null,prev=null;const n=pyr.length;
+    for(let l=n-1;l>=0;l--){const L=pyr[l];
+      if(!prev)smooth(L);
+      else{/* start from the smaller result (bilinear) */
+        for(let y=0;y<L.h;y++)for(let x=0;x<L.w;x++){const i=y*L.w+x;if(!L.m[i])continue;
+          const fx=Math.min(prev.w-1.001,Math.max(0,(x+.5)/2-.5)),fy=Math.min(prev.h-1.001,Math.max(0,(y+.5)/2-.5)),x0=fx|0,y0=fy|0,ax=fx-x0,ay=fy-y0;
+          for(let ch=0;ch<3;ch++){const g=(X,Y)=>prev.c[(Y*prev.w+X)*3+ch];
+            L.c[i*3+ch]=(g(x0,y0)*(1-ax)+g(x0+1,y0)*ax)*(1-ay)+(g(x0,y0+1)*(1-ax)+g(x0+1,y0+1)*ax)*ay}}
+        const pn=nnf,pw=prev.w;nnf=pn?(p=>{const x=p%L.w,y=(p/L.w)|0,q=pn(Math.min(prev.h-1,y>>1)*pw+Math.min(pw-1,x>>1));if(q<0)return -1;return (((q/pw)|0)*2+(y&1))*L.w+(q%pw)*2+(x&1)}):null}
+      const span=1/n;
+      if(smoothMode){relax(L,l===0?60:40);postMessage({p:(n-l)*span})}
+      else{const iters=l===0?4:l===1?5:8;nnf=level(L,nnf,iters,(n-1-l)*span,span,l===0)}
+      prev=L}
+    const out=new Uint8ClampedArray(W*H*4);for(let i=0;i<W*H;i++){out[i*4]=L0.c[i*3];out[i*4+1]=L0.c[i*3+1];out[i*4+2]=L0.c[i*3+2];out[i*4+3]=255}
+    return out}
+}
+
+/* ---------- 3. passcode screen with the clean wallpaper (no blur) ---------- */
+$('bUse').onclick=()=>{if(!out)return;
+  $('s3').style.backgroundImage='url("'+out.toDataURL('image/jpeg',.92)+'")';show('s3');clock()};
+const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
+KEYS.forEach(([n,l])=>{const b=document.createElement('b');if(n==='0')b.className='z';b.innerHTML='<span>'+n+'</span>'+(l?'<small>'+l+'</small>':'');
+  const dn=e=>{e.preventDefault();b.classList.add('dn');key(n)},up=()=>b.classList.remove('dn');
+  b.addEventListener('touchstart',dn,{passive:false});b.addEventListener('touchend',up);b.addEventListener('mousedown',dn);b.addEventListener('mouseup',up);b.addEventListener('mouseleave',up);
+  $('pad').appendChild(b)});
+let code='';
+function dots(){[...$('dots').children].forEach((d,i)=>d.classList.toggle('f',i<code.length));$('cancel').textContent=code?'Delete':'Cancel'}
+function key(n){if(code.length>=4)return;code+=n;dots();
+  if(code.length===4)setTimeout(()=>{const d=$('dots');d.classList.add('shake');try{navigator.vibrate&&navigator.vibrate(60)}catch(e){}
+    setTimeout(()=>{d.classList.remove('shake');code='';dots()},520)},150)}
+$('cancel').onclick=()=>{if(code){code=code.slice(0,-1);dots()}};
+function clock(){const d=new Date();$('clk').textContent=(d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0')}
+setInterval(clock,5000);
+/* test only: hold the time 1.5 s = back to the cleaning screen */
+{let t=null;const el=$('sbar');el.addEventListener('touchstart',()=>{t=setTimeout(()=>show('s2'),1500)},{passive:true});el.addEventListener('touchend',()=>clearTimeout(t));
+  el.addEventListener('mousedown',()=>{t=setTimeout(()=>show('s2'),1500)});el.addEventListener('mouseup',()=>clearTimeout(t))}
+addEventListener('resize',()=>{if(W)draw()});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+</script>
+</body>
+</html>
