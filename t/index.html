@@ -911,7 +911,14 @@ const PICS=(()=>{const L=(a,b,c,d)=>['L',a,b,c,d],P=(...p)=>['P',p],C=(x,y,r)=>[
     note:'music',song:'music',bunny:'rabbit',bike:'bicycle',money:'dollar',cash:'dollar',gem:'diamond',jewel:'diamond',king:'crown',queen:'crown',watch:'clock',time:'clock',television:'tv',
     spaceship:'rocket',storm:'lightning',sea:'boat',ocean:'boat',pet:'dog',chick:'bird',goldfish:'fish',fruit:'apple',broken:'heartbreak'};
   return {D,SYN}})();
-function picFind(w){w=String(w||'').toLowerCase().replace(/[^a-z]/g,'');if(!w)return null;const X=window.PICS2;
+/* more words for drawings that exist (irregular plurals, short names) */
+const PIC_MORE={train:'trainset',trains:'trainset',rain:'raindrop',snow:'snowflake',hippo:'hippopotamus',hippos:'hippopotamus',mice:'mouse',geese:'duck',
+  wolves:'wolf',knives:'knife',leaves:'leaf',loaves:'bread',shelves:'shelf',scarves:'scarf',sheep:'sheep',fish:'fish',deer:'deer',
+  baseball:'ball',tennis:'ball',golf:'ball',volleyball:'ball',present:'box',gift:'box',stars:'star',planets:'planet',glasses:'glasses',
+  tshirt:'shirt',trainers:'sneaker',cellphone:'phone',smartphone:'phone',kitten:'cat',cats:'cat',dogs:'dog',firework:'fireworks',
+  bubblegum:'gum',sunglass:'sunglasses'};
+function picFind(w){w=String(w||'').normalize('NFD').toLowerCase().replace(/[^a-z]/g,'');if(!w)return null;const X=window.PICS2;
+  if(PIC_MORE[w]!==undefined)return PIC_MORE[w]||null;
   for(const c of [w,w.replace(/es$/,''),w.replace(/s$/,'')]){if(PICS.D[c])return c;if(PICS.SYN[c])return PICS.SYN[c]}
   if(X)for(const c of [w,w.replace(/ies$/,'y'),w.replace(/es$/,''),w.replace(/s$/,'')]){if(X.D[c])return c;if(X.SYN[c])return X.SYN[c]}
   return null}
@@ -945,8 +952,10 @@ function picDraw(key){clearInterval(picAnimT);
 function wordPic(h){if(!P.w2p||P.peerRole!=='mirror'||!document.body.classList.contains('drawing'))return;
   const t=String(h||'').replace(/ /g,' '),done=/\s$/.test(t),words=t.trim().split(/\s+/).filter(Boolean);clearTimeout(picWait);
   if(!words.length){picWord='';return}
-  const go=w=>{const k=picFind(w);if(!k||w.toLowerCase()===picWord)return;picWord=w.toLowerCase();picDraw(k)};
-  if(done)go(words.at(-1));else picWait=setTimeout(()=>go(words.at(-1)),1200)}
+  /* two words first ("hot dog" = hot dog, "ice cream" = ice cream), then the last word */
+  const go=()=>{const two=words.length>1?words.slice(-2).join(''):'',k2=two&&picFind(two),w=k2?two:words.at(-1),k=k2||picFind(w);
+    if(!k||w.toLowerCase()===picWord)return;picWord=w.toLowerCase();picDraw(k)};
+  if(done)go();else picWait=setTimeout(go,1200)}
 function hostShow(){if(!P.peer){peerStatus('Off');return}if(!hosting)return;
   peerStatus(guests.size?'Mirroring '+[...guests.values()].join(', '):'Waiting for spectator…')}
 function peerHook(){
@@ -1003,7 +1012,7 @@ const cap=w=>w==='xray'?'X-ray':w.charAt(0).toUpperCase()+w.slice(1);
 const acroCache=new Map();
 function acroOf(word,i){const key=acroPos+':'+i+':'+word.toLowerCase();if(acroCache.has(key))return acroCache.get(key);
   const used=new Set(),out=[],n=acroPos;
-  for(const ch of word.toLowerCase()){if(!/[a-z]/.test(ch))continue;
+  for(const ch of word.normalize('NFD').toLowerCase()){if(!/[a-z]/.test(ch))continue;   // é = e (accents are removed)
     let list=ACROWORDS.filter(w=>w.length>=n&&w[n-1]===ch);if(!list.length)list=ACROWORDS.filter(w=>w[0]===ch);   // (all letters have words for positions 1-5)
     const free=list.filter(w=>!used.has(w)),pool=free.length?free:list,pick=pool[Math.floor(Math.random()*pool.length)];
     used.add(pick);out.push(cap(pick))}
