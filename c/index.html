@@ -175,7 +175,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Codebreaker","i":"magic","s":["codebreaker"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -197,6 +197,18 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="preview" id="prev"></div>
   </div>
   <div class="note">Quick force: type a number on the calculator, then hold 1 for 1 second. Battery: type 1–100, then hold 8. "Saved" shows at the top.</div>
+  <div class="lbl">Codebreaker</div>
+  <div class="grp">
+    <div class="r">Codebreaker<label><input type="checkbox" id="cbOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Keep on after reload<label><input type="checkbox" id="cbKeep" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Order<select id="cbOrder"><option value="rev">Reverse (3, 2, 1)</option><option value="fwd">Forward (1, 2, 3)</option></select></div>
+    <div class="r">After the last number<select id="cbEnd"><option value="zero">Show 0</option><option value="loop">Start again</option><option value="off">Turn off</option></select></div>
+    <div class="r">Show the total at the end<label><input type="checkbox" id="cbTotal" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Hold time for =<select id="cbHold"><option value="500">0.5 s</option><option value="700">0.7 s</option><option value="1000">1 s</option></select></div>
+    <div class="r">Buzz<select id="cbBuzz"><option value="off">Off</option><option value="light">Light</option><option value="medium">Medium</option><option value="heavy">Heavy</option></select></div>
+    <div class="r">Send to PeekSmith<label><input type="checkbox" id="cbPs" style="width:auto;transform:scale(1.3)"></label></div>
+  </div>
+  <div class="note">1. Hold <b>=</b> (or use the switch above). "Codebreaker" shows at the top. Hold <b>=</b> again to turn it off.<br>2. The spectator types an equation (for example 1 + 2 + 3) and taps <b>=</b>.<br>3. Tap C / AC. You can also clear the history.<br>4. With the display at 0, tap <b>=</b>: the first number of the order shows (Reverse: 3). Each tap of <b>=</b> shows the next number (2, then 1).<br>Send to PeekSmith: when the spectator taps =, the PeekSmith shows "CB: 1, 2, 3 = 6".</div>
   <div class="lbl">Status bar</div>
   <div class="grp">
     <div class="r">Show fake status bar<label><input type="checkbox" id="sbOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -300,7 +312,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v40</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v41</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -309,6 +321,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <li>The last person taps <b>+</b> and types "any" fourth number. Each digit they tap shows the next digit of the necessary number.</li>
   <li>They tap <b>=</b>. The total is the force: the date and time (1 minute ahead) or your custom number.</li></ol>
   <p>Quick force: type a number, then hold <b>1</b> for 1 second. Battery: type 1–100, then hold <b>8</b>. AC makes the force ready again.</p>
+  <h4>Codebreaker</h4>
+  <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
   <h4>Peeks</h4>
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
   <h4>Aura peer mirror (top right button)</h4>
@@ -335,6 +349,9 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
   inj:Q.get('inj')!=='0',injWhat:Q.get('iw')||'last',injN:Math.min(9,Math.max(1,parseInt(Q.get('ip')??'1',10)||1)),
   injCust:(Q.get('ic')||'').replace(/\D/g,''),injWhen:Q.get('iwhen')||'prox',injId:(Q.get('iid')||'13297').replace(/\D/g,''),px:Q.get('px')!=='0'};
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
+/* Codebreaker settings (defaults for settings saved before) */
+S.cbOrder=S.cbOrder||'rev';S.cbEnd=S.cbEnd||'zero';S.cbHold=+S.cbHold||700;S.cbBuzz=S.cbBuzz||'medium';
+S.cbKeep=!!S.cbKeep;S.cbTotal=!!S.cbTotal;S.cbPs=!!S.cbPs;
 if(!S.injOnV){S.inj=Q.get('inj')!=='0';S.injOnV=1;saveS()}   // Inject on by default (also for settings saved before)
 if(!S.injWhatV){S.injWhat=Q.get('iw')||'last';S.injWhatV=1;saveS()}   // Inject: last number typed by default (also for settings saved before)
 if(Q.get('inj')==='0')S.inj=false;
@@ -398,6 +415,17 @@ function computeForce(){forceTarget=target();let need=forceTarget-before;if(fOp=
 function startForce(){fOp=toks.at(-1);before=evalToks(toks.slice(0,-1));fi=0;computeForce()}
 let flipReady=false,flipOn=false;
 let eqNums=[];
+/* Codebreaker: hold = to turn on/off. After an equation, C / AC, then each = on an empty display
+   shows the numbers of that equation one by one (Order setting), then the total if that setting is on. */
+let cbOn=S.cbKeep&&!!S.cbOn,cbSeq=[],cbIdx=0,cbShow=false;
+function cbSet(on,quiet){cbOn=on;cbSeq=[];cbIdx=0;cbShow=false;S.cbOn=on;saveS();
+  if(!quiet){if(S.cbBuzz!=='off')buzz(S.cbBuzz);toast(on?'Codebreaker':'Codebreaker off')}
+  const el=document.getElementById('cbOn');if(el)el.checked=on}
+function cbNext(){   // one tap of = on an empty display
+  if(cbIdx>=cbSeq.length){
+    if(S.cbEnd==='loop'&&cbSeq.length)cbIdx=0;
+    else{cur='';cbShow=false;cbSeq=[];cbIdx=0;if(S.cbEnd==='off'){cbOn=false;S.cbOn=false;saveS()}return}}
+  cur=cbSeq[cbIdx++];cbShow=true}
 function reset(){toks=[];cur='';result=null;shownExpr='';armed=true;force=null;fi=0;flipReady=false;flipOn=false;eqNums=[];forceTarget=null;peek(0);try{injSent=''}catch(e){}}
 /* peek on the clock button: hand right = add, hand down = subtract */
 function peek(v){const el=document.getElementById('hand');if(el)el.setAttribute('d',v>0?'M13 6.8V13H17.4':v<0?'M13 6.8V19.2':'M13 6.8V13H8.6')}
@@ -432,7 +460,8 @@ function birthPeek(nums){
   return lastBirth=days.toLocaleString('en-US')+' days '+starSign(m,d)}
 let lastBirth='';
 function psAfter(k){
-  if(k==='='){if(result!==null){const bp=birthPeek(eqNums);psNow(bp||lastExpr+' = '+fmtNum(result))}return}
+  if(k==='='){if(result!==null&&cbOn&&S.cbPs){psNow('CB: '+eqNums.map(fmtNum).join(', ')+' = '+fmtNum(result));return}
+    if(result!==null){const bp=birthPeek(eqNums);psNow(bp||lastExpr+' = '+fmtNum(result))}return}
   if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
   if(force!==null&&fi>0)return;
   if(toks.length===0&&cur==='')return;
@@ -457,6 +486,8 @@ function drawSB(){const sb=document.getElementById('sb');sb.classList.toggle('hi
   else{wf.classList.add('hide');net.style.display='';net.innerHTML=S.net==='5GUC'?'5G<small><b>U</b><b>C</b></small>':S.net}}
 setInterval(tick,1000);
 function press0(k){
+  if(cbShow&&k!=='='){cbShow=false;cur=''}   // any other key after a Codebreaker number: start from an empty display
+  if(k==='='&&cbOn&&result===null&&toks.length===0&&(cbShow||cur==='')&&cbSeq.length){cbNext();return render()}
   if(k==='clr'){reset();return render()}
   if(k==='bk'){
     if(result!==null)return;
@@ -488,6 +519,7 @@ function press0(k){
     if(cur!=='')toks.push(cur);cur='';if(!toks.length)return render();
     if(isOp(toks.at(-1)))toks.pop();
     shownExpr=exprStr(toks);lastExpr=psExpr(toks);eqNums=toks.filter(t=>!isOp(t));result=evalToks(toks);toks=[];
+    if(cbOn){cbSeq=S.cbOrder==='fwd'?eqNums.slice():eqNums.slice().reverse();if(S.cbTotal&&isFinite(result))cbSeq.push(String(+result.toPrecision(12)));cbIdx=0;cbShow=false}
     try{histAdd(shownExpr,result)}catch(e){}
     render();try{injOnEq()}catch(e){}return}
 }
@@ -514,7 +546,7 @@ function blindTap(e){if(!faceDown||document.body.classList.contains('open'))retu
 const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
 /* secret: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
    The held digit is taken back, the display goes back to 0, and the PeekSmith shows "Force: …". */
-let digT=null;
+let digT=null,eqT=null,eqDown=false,eqHeld=false;
 function snap(){return{toks:toks.slice(),cur,result,shownExpr,armed,force,fi,before,fOp,forceTarget,eqNums:eqNums.slice()}}
 function unsnap(z){toks=z.toks;cur=z.cur;result=z.result;shownExpr=z.shownExpr;armed=z.armed;force=z.force;fi=z.fi;before=z.before;fOp=z.fOp;forceTarget=z.forceTarget;eqNums=z.eqNums}
 /* quick force: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
@@ -544,6 +576,8 @@ async function cloudLoad(){
 cloudLoad();
 function down(b){b.classList.add('down');
   const k=b.dataset.k;
+  if(k==='='){eqDown=true;eqHeld=false;clearTimeout(eqT);
+    eqT=setTimeout(()=>{eqHeld=true;b.classList.remove('down');cbSet(!cbOn)},S.cbHold||700);return}
   if(k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700);return}
   if(k==='1'&&force===null){
     const z=snap();
@@ -564,7 +598,8 @@ function down(b){b.classList.add('down');
   press(k)}
 function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove('down'));
   clearTimeout(digT);digT=null;
-  if(zeroDown){zeroDown=false;clearTimeout(holdT);if(!held)press('0')}}
+  if(zeroDown){zeroDown=false;clearTimeout(holdT);if(!held)press('0')}
+  if(eqDown){eqDown=false;clearTimeout(eqT);if(!eqHeld)press('=')}}
 keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();down(b)},{passive:false});
 keys.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
 keys.addEventListener('touchcancel',up);
@@ -581,7 +616,17 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync()}
+function cbSync(){$('cbOn').checked=cbOn;$('cbKeep').checked=S.cbKeep;$('cbOrder').value=S.cbOrder;$('cbEnd').value=S.cbEnd;
+  $('cbTotal').checked=S.cbTotal;$('cbHold').value=String(S.cbHold);$('cbBuzz').value=S.cbBuzz;$('cbPs').checked=S.cbPs}
+$('cbOn').onchange=()=>cbSet($('cbOn').checked,true);
+$('cbKeep').onchange=()=>{S.cbKeep=$('cbKeep').checked;saveS()};
+$('cbOrder').onchange=()=>{S.cbOrder=$('cbOrder').value;saveS()};
+$('cbEnd').onchange=()=>{S.cbEnd=$('cbEnd').value;saveS()};
+$('cbTotal').onchange=()=>{S.cbTotal=$('cbTotal').checked;saveS()};
+$('cbHold').onchange=()=>{S.cbHold=+$('cbHold').value;saveS()};
+$('cbBuzz').onchange=()=>{S.cbBuzz=$('cbBuzz').value;saveS();if(S.cbBuzz!=='off')buzz(S.cbBuzz)};
+$('cbPs').onchange=()=>{S.cbPs=$('cbPs').checked;saveS()};
 document.querySelectorAll('#method button').forEach(b=>b.onclick=()=>{S.method=b.dataset.v;syncSheet()});
 $('autoEq').onchange=()=>{S.autoEq=$('autoEq').checked};
 $('psOn').onchange=()=>{S.ps=$('psOn').checked};
@@ -803,7 +848,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v40. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v41. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
