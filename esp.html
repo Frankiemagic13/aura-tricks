@@ -337,7 +337,11 @@ function hit(k) {
     k.li.scrollIntoView({ behavior: "smooth", block: "center" });
   }
   if (navigator.vibrate) navigator.vibrate(40);
-  if (PEEK_ON) fetch("https://ntfy.sh/" + CHANNEL, { method: "POST", body: k.emoji + " " + k.name }).catch(() => {});
+  /* PeekRelay: Firebase first (no daily limit), ntfy.sh only as a backup — the same as the other pages */
+  if (PEEK_ON) {
+    try { if (window.PeekRelay) { PeekRelay.send(CHANNEL, k.emoji + " " + k.name, "ESP"); return; } } catch (e) {}
+    fetch("https://ntfy.sh/" + CHANNEL, { method: "POST", body: k.emoji + " " + k.name }).catch(() => {});
+  }
 }
 
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -378,6 +382,7 @@ micBtn.addEventListener("click", () => {
   else if (rec) { try { rec.stop(); } catch (e) {} }
 });
 </script>
+<script src="relay.js"></script>
 <script src="hui.js"></script>
 <script>
 /* Help panel */

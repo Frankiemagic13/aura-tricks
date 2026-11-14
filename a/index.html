@@ -100,9 +100,11 @@ function launch(key,el){
 }
 // Tap = open.
 document.querySelectorAll('.app').forEach(el=>{
-  let t=null,held=false;
-  el.addEventListener('touchstart',()=>{held=false;el.classList.add('down');
+  let t=null,held=false,x0=0,y0=0;
+  el.addEventListener('touchstart',e=>{held=false;el.classList.add('down');const p=e.touches[0];x0=p.clientX;y0=p.clientY;
   },{passive:true});
+  /* a finger that moves (a swipe over the dock) does not open the app */
+  el.addEventListener('touchmove',e=>{const p=e.touches[0];if(Math.hypot(p.clientX-x0,p.clientY-y0)>12){held=true;el.classList.remove('down')}},{passive:true});
   const end=()=>{clearTimeout(t);el.classList.remove('down')};
   el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go,el)});
   el.addEventListener('touchcancel',end);
