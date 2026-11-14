@@ -268,7 +268,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. Hold the top of the screen 0.8 s = black screen. Tap the black screen = page again. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v27</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v28</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold the <b>time</b> for 1.5 seconds to open these settings. Double tap the time to show the live time again.</p>
@@ -373,7 +373,7 @@ let lastTotal='',placing=false;
 /* Badge peek */
 function badgePin(){
   if(!P.badge||!lastPin||lastPin[0]==='?')return '';
-  const parts=lastPin.split(/[\/-]/).filter(Boolean);
+  const parts=lastPin.split(' or ')[0].split(/[\/-]/).filter(Boolean);
   return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
 function showBadge(t){const b=$('badge');b.textContent=t;b.style.left=P.bx+'%';b.style.top=P.by+'%';b.classList.toggle('on',!!t)}
 function placeBadge(){
@@ -487,7 +487,12 @@ function calcPin(total){
   const a=f(p),b=f(p+1);
   if(P.bday==='passed')return a||('? '+total);
   if(P.bday==='not')return b||('? '+total);
-  if(a&&b)return a+'/'+b;return a||b||('? '+total)}
+  let out=(a&&b)?a+'/'+b:(a||b||('? '+total));
+  /* 6 digits: a total of 100000 and up can also be the first 6 digits of a 7-digit total (PIN 995xxx and up).
+     Both are possible, so the peek shows the two answers: "097160/097161 or 999290-999300" */
+  if(L===6&&code.length===6){const lo=total*10-year()-timeNum();
+    if(lo>=0&&lo<=max-1){const r=String(lo).padStart(6,'0')+'-'+String(Math.min(max-1,lo+10)).padStart(6,'0');out=out[0]==='?'?r:out+' or '+r}}
+  return out}
 function complete(){
   waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
   const pk=peekOk();
@@ -676,7 +681,7 @@ $('sInjTest').onclick=()=>injSend(true);
 let injSent='';
 function injValue(){
   if(!lastPin||lastPin[0]==='?')return '';
-  const parts=lastPin.split(/[\/-]/).filter(Boolean);
+  const parts=lastPin.split(' or ')[0].split(/[\/-]/).filter(Boolean);
   if(P.injWhich==='both'||P.injWhich==='space'||P.injWhich==='two')return parts.join(P.injWhich==='space'?' ':'/');
   return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
 async function injSend(manual){
