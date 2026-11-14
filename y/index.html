@@ -24,10 +24,13 @@ button{background:#f5c33b;color:#000;border:0;border-radius:10px;padding:10px 14
 button.sec{background:#2c2c2e;color:#fff}
 .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 #last,#st{color:#c7c7cc}
+#pl{position:fixed;inset:0;display:none;background:#000;pointer-events:none}#pl.on{display:block}#pl iframe,#pl>div{width:100%;height:100%;border:0}
+#tapsnd{position:fixed;inset:0;display:none;z-index:2}#tapsnd.on{display:block}
 </style>
 </head>
 <body>
 <div id="dot"></div>
+<div id="pl"><div id="ytp"></div></div><div id="tapsnd"></div>
 <div id="sheet">
   <h1>YouTube peek (test)</h1>
   <div class="note">Hold the black screen for 1 s to open this. The page listens to the peeks from your trick pages and opens each one on YouTube.</div>
@@ -36,24 +39,29 @@ button.sec{background:#2c2c2e;color:#fff}
     <div class="r">Last peek<span id="last">—</span></div>
   </div>
   <div class="grp">
-    <div class="r">Open in<select id="sOpen"><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
+    <div class="r">Play<select id="sPlay"><option value="api">First video (API key)</option><option value="ddg">First video (no key)</option><option value="search">Search results only</option></select></div>
+    <div class="r">Play in<select id="sOpen"><option value="page">This page (black)</option><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
+    <div class="r">YouTube API key<input type="text" id="sApi" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="AIza…"></div>
     <div class="r">What to search<select id="sWhat"><option value="all">Whole peek</option><option value="last">Last word</option><option value="result">Result (after =)</option></select></div>
     <div class="r">Wait before opening<select id="sWait"><option value="0">At once</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option></select></div>
     <div class="r">Open automatically<input type="checkbox" id="sAuto"></div>
     <div class="r">Peek channel<input type="text" id="sKey" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   </div>
+  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Search results only</b>: the old way.</div>
+  <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
   <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
   <div class="grp">
     <div class="r">Test text<input type="text" id="sTest" value="never gonna give you up" autocapitalize="off"></div>
   </div>
   <div class="btns"><button id="bTest">Open test text</button><button class="sec" id="bDone">Done</button></div>
-  <div class="note" style="margin-top:14px">Some apps (Aura included) can block the YouTube app link. If "YouTube app" does nothing, select "YouTube web page".</div>
+  <div class="note" style="margin-top:14px">Sound on "This page": iPhone can block sound that starts without a tap. Then the video plays without sound, and one tap anywhere turns the sound on. Some apps (Aura included) can block the YouTube app link. If "YouTube app" does nothing, select "YouTube web page".</div>
 </div>
 <script src="../relay.js"></script>
 <script>
 const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({open:'app',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
+const P=Object.assign({play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
+if(!P.playV){if(!store.get('yset',{}).play)P.open='page';P.playV=1}
 if(Q.get('k'))P.key=Q.get('k');
 const save=()=>store.set('yset',P);
 
@@ -64,7 +72,32 @@ function pick(t){t=String(t||'').trim();
   return t}
 function ytUrl(q){const s=encodeURIComponent(q);
   return P.open==='app'?'youtube://www.youtube.com/results?search_query='+s:'https://www.youtube.com/results?search_query='+s}
-function openYT(t){const q=pick(t);if(!q)return;$('st').textContent='Opening: '+q;location.href=ytUrl(q)}
+const say=t=>{$('st').textContent=t};
+/* first video for a text (YouTube Data API v3) */
+async function firstVideo(q){
+  const r=await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q='+encodeURIComponent(q)+'&key='+encodeURIComponent(P.api));
+  const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
+  const it=j.items&&j.items[0];return it?{id:it.id.videoId,title:it.snippet.title}:null}
+async function openYT(t){const q=pick(t);if(!q)return;
+  if(P.play==='search'){say('Opening: '+q);location.href=ytUrl(q);return}
+  if(P.play==='ddg'||!P.api){if(P.play==='api')say('No API key – using DuckDuckGo');location.href='https://duckduckgo.com/?q='+encodeURIComponent('\\'+q+' site:youtube.com');return}
+  say('Searching: '+q);let v;
+  try{v=await firstVideo(q)}catch(e){say('YouTube: '+e.message+' – showing search');location.href=ytUrl(q);return}
+  if(!v){say('No video for: '+q);return}
+  say('Playing: '+v.title);
+  if(P.open==='page')playHere(v.id);
+  else if(P.open==='app')location.href='youtube://www.youtube.com/watch?v='+v.id;
+  else location.href='https://www.youtube.com/watch?v='+v.id}
+/* play on this page, full screen; if iPhone blocks the sound, play muted and one tap turns the sound on */
+let yt=null,ytReady=null,pendingId='';
+function ytApi(){if(ytReady)return ytReady;ytReady=new Promise(res=>{window.onYouTubeIframeAPIReady=res;const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)});return ytReady}
+async function playHere(id){$('pl').classList.add('on');await ytApi();
+  if(!yt){yt=new YT.Player('ytp',{videoId:id,playerVars:{autoplay:1,playsinline:1,controls:0,rel:0,modestbranding:1,fs:0},
+    events:{onReady:e=>{e.target.playVideo();checkSound()},onStateChange:e=>{if(e.data===0){$('pl').classList.remove('on')}}}})}
+  else{yt.loadVideoById(id);checkSound()}}
+function checkSound(){setTimeout(()=>{try{if(yt.getPlayerState()!==1){yt.mute();yt.playVideo();$('tapsnd').classList.add('on')}}catch(e){}},1500)}
+$('tapsnd').addEventListener('click',()=>{try{yt.unMute();yt.setVolume(100);yt.playVideo()}catch(e){}$('tapsnd').classList.remove('on')});
+function stopHere(){try{yt&&yt.stopVideo()}catch(e){}$('pl').classList.remove('on');$('tapsnd').classList.remove('on')}
 
 /* listen to the peeks */
 let last='',waitT=null,stop=null;
@@ -83,7 +116,9 @@ document.addEventListener('touchmove',()=>clearTimeout(holdT),{passive:true});
 document.addEventListener('contextmenu',e=>{e.preventDefault();document.body.classList.add('open')});   // desktop: right click
 
 /* settings */
-$('sOpen').value=P.open;$('sWhat').value=P.what;$('sWait').value=String(P.wait);$('sAuto').checked=!!P.auto;$('sKey').value=P.key;
+$('sPlay').value=P.play;$('sApi').value=P.api;$('sOpen').value=P.open;
+$('sPlay').onchange=e=>{P.play=e.target.value;save()};
+$('sApi').onchange=e=>{P.api=e.target.value.trim();save()};$('sWhat').value=P.what;$('sWait').value=String(P.wait);$('sAuto').checked=!!P.auto;$('sKey').value=P.key;
 $('sOpen').onchange=e=>{P.open=e.target.value;save()};
 $('sWhat').onchange=e=>{P.what=e.target.value;save()};
 $('sWait').onchange=e=>{P.wait=+e.target.value;save()};
