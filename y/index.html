@@ -11,6 +11,8 @@
 html,body{margin:0;height:100%;background:#000;color:#fff;font:16px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
 #dot{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 10px);width:4px;height:4px;margin-left:-2px;border-radius:2px;background:#000}
 #dot.on{background:#0a2a12}#dot.err{background:#2a0a0a}
+#ind{position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:16px;width:7px;height:7px;border-radius:50%;background:#3a3a3c;opacity:0;transition:opacity .25s;z-index:4;pointer-events:none}
+#ind.on{opacity:1}
 #sheet{position:fixed;inset:0;background:#111;display:none;overflow:auto;padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 30px)}
 body.open #sheet{display:block}
 h1{font-size:20px;margin:0 0 4px}
@@ -30,7 +32,7 @@ button.sec{background:#2c2c2e;color:#fff}
 </style>
 </head>
 <body>
-<div id="dot"></div>
+<div id="dot"></div><div id="ind"></div>
 <div id="pl"><div id="ytp"></div></div><div id="tapsnd"></div><a id="go" href="#" aria-label=" "></a>
 <div id="sheet">
   <h1>YouTube peek (test)</h1>
@@ -50,7 +52,7 @@ button.sec{background:#2c2c2e;color:#fff}
     <div class="r">Open automatically<input type="checkbox" id="sAuto"></div>
     <div class="r">Peek channel<input type="text" id="sKey" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   </div>
-  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Start at</b>: the video starts at this time, for example 0:45 or 1:30 (empty = from the beginning). <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
+  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Dot</b>: when a peek comes in, a small dim dot shows in the top right corner for 1.5 s (with "after a tap" it stays until the tap). <b>Start at</b>: the video starts at this time, for example 0:45 or 1:30 (empty = from the beginning). <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
   <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
   <div class="note"><b>Most views (top 10)</b>: of the 10 best matches for the peek, the page plays the video with the most views. This is better than sorting all of YouTube by views, which can give a popular video that does not match.</div>
   <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
@@ -117,12 +119,15 @@ $('tapsnd').addEventListener('click',()=>{try{yt.unMute();yt.setVolume(100);yt.p
 /* "after a tap": a full-screen link waits for the next tap; a real tap on a youtube.com link opens the YouTube app without the box */
 function armTap(url,what){const a=$('go');a.href=url;a.classList.add('on');say('Ready – tap to open: '+what)}
 $('go').addEventListener('click',e=>{if(held||document.body.classList.contains('open')){e.preventDefault();return}
-  const a=$('go');setTimeout(()=>{a.classList.remove('on');a.href='#'},300)});
+  const a=$('go');setTimeout(()=>{a.classList.remove('on');a.href='#';$('ind').classList.remove('on')},300)});
 function stopHere(){try{yt&&yt.stopVideo()}catch(e){}$('pl').classList.remove('on');$('tapsnd').classList.remove('on')}
 
+/* peek received: a small dim dot in the top right corner, for 1.5 s (with "after a tap" it stays until the tap) */
+let sigT=null;
+function signal(){const d=$('ind');d.classList.add('on');clearTimeout(sigT);if(P.open!=='tap')sigT=setTimeout(()=>d.classList.remove('on'),1500)}
 /* listen to the peeks */
 let last='',waitT=null,stop=null;
-function onPeek(t){last=String(t);$('last').textContent=last;clearTimeout(waitT);
+function onPeek(t){last=String(t);$('last').textContent=last;clearTimeout(waitT);signal();
   if(!P.auto||document.body.classList.contains('open'))return;
   waitT=setTimeout(()=>openYT(last),(+P.wait||0)*1000)}
 function onState(s){$('st').textContent=s;$('dot').className=s==='Listening'?'on':'err'}
