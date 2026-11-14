@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="../kill.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -196,9 +197,15 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 <div id="qtoast"></div>
 <div id="acroHint"></div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Predictions","i":"magic","s":["predictions","acrostic","drawings"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
+<div id="sheet" data-hui='{"title":"Notes","tabs":[{"n":"Peeks","i":"peek","s":["kill switch","peeksmith","online","aura peer"]},{"n":"Predictions","i":"magic","s":["predictions","acrostic","drawings"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
+  <div class="lbl">Kill switch</div>
+  <div class="grp">
+    <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
+    <div class="r"><button class="sbtn" id="ksBtn" style="width:auto;white-space:nowrap;text-align:left">Kill this show</button></div>
+  </div>
+  <div class="snote">Tap after each show. Every phone that saw a trick before the tap goes to apple.com from then on (also a page that is open). New spectators at the next show get the trick as normal, so you never turn it back on. This phone keeps working. If this phone is sent away, open the link with ?me=1 at the end.</div>
   <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
   <div class="grp">
     <div class="r">Status<span id="bleSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>

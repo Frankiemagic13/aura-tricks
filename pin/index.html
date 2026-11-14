@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="../kill.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -162,10 +163,16 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <div id="blk"></div>
 
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"PIN lock","tabs":[{"n":"PIN","i":"pin","s":["equation","passcode"]},{"n":"Unlock","i":"unlock","s":["tilt","shortcut","tap the home"]},{"n":"Inject","i":"inject","s":["send to inject"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","badge"]},{"n":"Look","i":"look","s":["look","wallpaper"]}]}'>
+<div id="sheet" data-hui='{"title":"PIN lock","tabs":[{"n":"PIN","i":"pin","s":["kill switch","equation","passcode"]},{"n":"Unlock","i":"unlock","s":["tilt","shortcut","tap the home"]},{"n":"Inject","i":"inject","s":["send to inject"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","badge"]},{"n":"Look","i":"look","s":["look","wallpaper"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
 
+  <div class="lbl">Kill switch</div>
+  <div class="grp">
+    <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
+    <div class="r"><button class="sbtn" id="ksBtn" style="width:auto;white-space:nowrap;text-align:left">Kill this show</button></div>
+  </div>
+  <div class="snote">Tap after each show. Every phone that saw a trick before the tap goes to apple.com from then on (also a page that is open). New spectators at the next show get the trick as normal, so you never turn it back on. This phone keeps working. If this phone is sent away, open the link with ?me=1 at the end.</div>
   <div class="lbl">Equation</div>
   <div class="grp">
     <div class="r">Year<input type="number" id="sYear" inputmode="numeric" placeholder="Auto"></div>

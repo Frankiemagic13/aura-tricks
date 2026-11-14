@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="../kill.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -175,7 +176,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["kill switch","status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -209,6 +210,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Send to PeekSmith<label><input type="checkbox" id="cbPs" style="width:auto;transform:scale(1.3)"></label></div>
   </div>
   <div class="note">1. Hold <b>=</b> (or use the switch above). "Codebreaker" shows at the top. Hold <b>=</b> again to turn it off.<br>2. The spectator types an equation (for example 1 + 2 + 3) and taps <b>=</b>.<br>3. Tap C / AC. You can also clear the history.<br>4. With the display at 0, tap <b>=</b>: the first number of the order shows (Reverse: 3). Each tap of <b>=</b> shows the next number (2, then 1).<br>Send to PeekSmith: when the spectator taps =, the PeekSmith shows "CB: 1, 2, 3 = 6".</div>
+  <div class="lbl">Kill switch</div>
+  <div class="grp">
+    <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
+    <div class="r"><button class="done" id="ksBtn" style="width:auto;white-space:nowrap;text-align:left">Kill this show</button></div>
+  </div>
+  <div class="note">Tap after each show. Every phone that saw a trick before the tap goes to apple.com from then on (also a page that is open). New spectators at the next show get the trick as normal, so you never turn it back on. This phone keeps working. If this phone is sent away, open the link with ?me=1 at the end.</div>
   <div class="lbl">Status bar</div>
   <div class="grp">
     <div class="r">Show fake status bar<label><input type="checkbox" id="sbOn" style="width:auto;transform:scale(1.3)"></label></div>

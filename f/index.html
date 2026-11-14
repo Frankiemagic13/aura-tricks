@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<script src="../kill.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -281,7 +282,7 @@ body.studio #studio{display:flex}
 </div>
 
 <div id="bg"></div>
-<div id="sheet" data-hui='{"title":"Flashlight","tabs":[{"n":"Light","i":"light","s":["light"]},{"n":"Routine","i":"routine","s":["routine"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Phones","i":"phone","s":["aura peer"]}]}'>
+<div id="sheet" data-hui='{"title":"Flashlight","tabs":[{"n":"Light","i":"light","s":["light"]},{"n":"Routine","i":"routine","s":["routine"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Phones","i":"phone","s":["kill switch","aura peer"]}]}'>
   <div class="hd"><b>Settings</b><button class="done" id="done">Done</button></div>
 
   <div class="lbl">Light</div>
@@ -328,6 +329,12 @@ body.studio #studio{display:flex}
   </div>
   <div class="note">Hold the screen for 1 second to open these settings.</div>
 
+  <div class="lbl">Kill switch</div>
+  <div class="grp">
+    <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
+    <div class="r"><button class="btn" id="ksBtn" style="width:auto;white-space:nowrap;text-align:left">Kill this show</button></div>
+  </div>
+  <div class="note">Tap after each show. Every phone that saw a trick before the tap goes to apple.com from then on (also a page that is open). New spectators at the next show get the trick as normal, so you never turn it back on. This phone keeps working. If this phone is sent away, open the link with ?me=1 at the end.</div>
   <div class="lbl">Aura peer (phones)</div>
   <div class="grp">
     <div class="r">This phone<select id="pRole"><option value="spect">Spectator (flash)</option><option value="mirror">My phone (control)</option></select></div>
