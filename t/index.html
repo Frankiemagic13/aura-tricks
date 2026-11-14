@@ -208,12 +208,13 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r">Live peek (each letter)<input type="checkbox" id="sLive"></div>
     <div class="r">Words on PeekSmith<select id="sWords"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="0">Whole note</option></select></div>
     <div class="r">Vibrate on each word<input type="checkbox" id="sVib"></div>
+    <div class="r">Vibrate phone on each peek<select id="sPkBuzz"><option value="off">Off</option><option value="magician">My phone (Magician)</option><option value="send">The phone that sends it</option></select></div>
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
     <div class="r" id="conTextRow">Text<input class="tx" id="conText" autocapitalize="off" autocorrect="off" placeholder="NOTES"></div>
     <div class="r">Send drawings to PeekSmith<input type="checkbox" id="sDraw"></div>
     <div class="r">Drawing size on PeekSmith<select id="sDrawSize"><option value="0.35">Small</option><option value="0.55">Medium</option><option value="0.75">Large</option><option value="1">Fill screen</option></select></div>
   </div>
-  <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. Search time: how long the page looks for the PeekSmith (one setting for all pages).</div>
+  <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. Search time: how long the page looks for the PeekSmith (one setting for all pages). Vibrate phone on each peek: "My phone (Magician)" buzzes your phone (Magician, Aura peer) when a peek comes from the spectator; set it on your phone. "The phone that sends it" buzzes the phone that is typing. The phone buzz needs Aura (Safari cannot vibrate an iPhone).</div>
   <div class="lbl">PeekSmith buttons</div>
   <div class="grp">
     <div class="r">Left – tap<select data-k="1.click"></select></div>
@@ -360,6 +361,7 @@ function ble(v){if(!v||v===lastBle)return;lastBle=v;try{bleSend(v)}catch(e){}}  
 function post(v){
   ble(v);
   if(!v||v===last)return;last=v;
+  if(P.pkBuzz==='send'&&P.peerRole!=='mirror')try{qbuzz('light')}catch(e){}   // vibrate the phone that sends the peek
   try{peerPeek(v)}catch(e){}
   if(!P.online||P.peerRole==='mirror')return;
   try{PeekRelay.send(TOPIC,v,TITLE)}catch(e){}
@@ -487,6 +489,7 @@ $('bleTest').onclick=()=>{if(bleOn())aps.text('Test 123',{raw:true}).catch(()=>{
 $('sAuto').checked=P.auto;$('sVib').checked=P.vib;$('sOnline').checked=P.online;
 $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
+if(!P.pkBuzz)P.pkBuzz='off';$('sPkBuzz').value=P.pkBuzz;$('sPkBuzz').onchange=e=>{P.pkBuzz=e.target.value;saveP();if(P.pkBuzz!=='off')qbuzz('medium')};
 /* what the PeekSmith shows when it connects */
 if(!P.conMode)P.conMode='text';if(P.conText==null||P.conText==='Ready')P.conText='NOTES';
 function conShow(){if(!bleOn())return;
@@ -962,6 +965,7 @@ function peerHook(){
     if(d.cmd==='mirr'||d.cmd==='swap'){peerRemote(d);return}
     if(P.peerRole==='mirror'&&predMode&&(d.type==='note'||d.type==='draw'))return;   // the magician is writing a prediction
     if(P.peerRole==='spect'){if(d.cmd==='pred'){predRemote(d);return}if(d.type==='predtext'){predShow(d.h);return}}
+    if(P.peerRole==='mirror'&&d.type==='peek'){if(P.pkBuzz==='magician')qbuzz('medium');return}   // a peek from the spectator's phone: vibrate my phone
     if(P.peerRole==='mirror'){if(P.mirr===false)return;if(d.type==='note'){peerRx++;peerDbgShow();if(acroMode){if(!injPoll&&!injWord)acroIn(d.h)}else mirrorNote(d.h)}else if(d.type==='draw')mirrorDraw(d);return}
     if(d.cmd==='sync'||d.cmd==='ping')peerSync(true)})}
 /* send to the other device: the host sends to all its guests, a guest sends to its host */
