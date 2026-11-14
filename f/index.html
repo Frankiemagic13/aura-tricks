@@ -310,6 +310,7 @@ body.studio #studio{display:flex}
   <div class="grp">
     <div class="r">PeekSmith<span id="bleSt" class="dim">Not connected</span></div>
     <div class="r"><button class="btn" id="bleBtn">Connect PeekSmith</button></div>
+    <div class="r">Search time<select id="bleTime"></select></div>
     <div class="r">Show light on / off<input type="checkbox" id="showSt"></div>
     <div class="r">Vibrate on each change<input type="checkbox" id="vib"></div>
     <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
@@ -458,13 +459,28 @@ document.addEventListener('gesturestart',e=>e.preventDefault());
 
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+/* PeekSmith search time: one setting for all trick pages (localStorage "fvtBleTime", seconds, 0 = until found).
+   A search starts when the page opens, when it comes back on screen and when you tap Connect.
+   The page tries again and again until the PeekSmith connects or the search time ends. */
+const BLE_TIMES=[[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[0,'Until found']];
+function bleTime(){let v=NaN;try{v=parseInt(localStorage.getItem('fvtBleTime'),10)}catch(e){}return Number.isFinite(v)&&v>=0?v:0}
+let bleEnd=0,bleManual=false;
+function bleWinStart(){const t=bleTime();bleEnd=t?Date.now()+t*1000:0}
+function bleWinOpen(){return !bleEnd||Date.now()<bleEnd}
+function bleScanT(){return bleEnd?Math.max(3,Math.min(15,Math.ceil((bleEnd-Date.now())/1000))):15}
+function bleTimeUI(){const s=document.getElementById('bleTime');if(!s)return;
+  for(const [v,n] of BLE_TIMES){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=String(bleTime());if(!s.value)s.value='0';
+  s.onchange=()=>{try{localStorage.setItem('fvtBleTime',s.value)}catch(e){}bleWinStart()}}
+bleWinStart();
+const BLE_NF='Not found – tap Connect';
 let aps=null,bleBusy=false,bleOff=false;
 function bleStatus(t){$('bleSt').textContent=t}
 const bleOn=()=>!!(aps&&aps.connected);
 function bleBtnText(){$('bleBtn').textContent=bleOn()?'Disconnect':'Connect PeekSmith'}
 async function bleSearch(){
   if(!AURA||bleBusy||bleOn()||bleOff)return;bleBusy=true;
-  aps=new AuraPeekSmith({lang:'en'});
+  aps=new AuraPeekSmith({lang:'en',timeout:bleScanT()});
   aps.on('status',({state,name,attempt})=>{
     if(state==='scanning')bleStatus('Searching…');
     if(state==='connecting')bleStatus('Connecting…');
@@ -474,12 +490,12 @@ async function bleSearch(){
     bleBtnText()});
   aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
-  try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
+  try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
 async function bleToggle(){
   if(!AURA){bleStatus('Only in Aura');return}
   if(bleOn()){bleOff=true;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
-  bleOff=false;bleSearch()}
+  bleOff=false;bleWinStart();bleSearch()}
 function bleShow(t){if(!bleOn())return;if(t===''){aps.clear().catch(()=>{});return}aps.text(String(t),{raw:true}).catch(()=>{})}
 function conShow(){if(!bleOn())return;
   if(P.conMode==='text'&&P.conText)aps.text(String(P.conText),{raw:true}).catch(()=>{});
@@ -572,8 +588,10 @@ $('lPrep').onclick=()=>openCamera();
 $('lTest').onclick=()=>toggleLight();
 
 /* connect to the PeekSmith by itself, and try again while it is not connected */
-if(AURA){bleSearch();setInterval(()=>{if(!bleOn()&&!bleBusy&&!bleOff)bleSearch()},5000)}
+if(AURA){bleSearch();setInterval(()=>{if(bleOn()||bleBusy||bleOff||document.visibilityState!=='visible')return;if(bleWinOpen())bleSearch();else bleStatus(BLE_NF)},5000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')bleWinStart()})}
 else bleStatus('Only in Aura');
+bleTimeUI();
 sync();
 </script>
 <script>

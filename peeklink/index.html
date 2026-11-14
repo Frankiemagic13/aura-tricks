@@ -49,6 +49,7 @@ small{color:#636366;font-size:12px;line-height:1.5}
   <div data-tab="Settings" class="card">
     <div class="row">Text prefix<select id="pre"><option value="$">$ (iOS)</option><option value="#">#</option></select></div>
     <div class="row">Vibrate on each peek<input type="checkbox" id="vib"></div>
+    <div class="row">PeekSmith search time<select id="bleTime"></select></div>
     <div class="row">Inject ID<input id="injId" inputmode="numeric" pattern="[0-9]*" placeholder="13297" style="width:40%"></div>
     <div class="row">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
     <div class="row" id="conTextRow">Text<input id="conText" autocapitalize="off" autocorrect="off" placeholder="PEEK" style="width:55%"></div>
@@ -131,10 +132,25 @@ function writeCmd(cmd){
   return queue}
 /* ---------- Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+/* PeekSmith search time: one setting for all trick pages (localStorage "fvtBleTime", seconds, 0 = until found).
+   A search starts when the page opens, when it comes back on screen and when you tap Connect.
+   The page tries again and again until the PeekSmith connects or the search time ends. */
+const BLE_TIMES=[[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[0,'Until found']];
+function bleTime(){let v=NaN;try{v=parseInt(localStorage.getItem('fvtBleTime'),10)}catch(e){}return Number.isFinite(v)&&v>=0?v:0}
+let bleEnd=0,bleManual=false;
+function bleWinStart(){const t=bleTime();bleEnd=t?Date.now()+t*1000:0}
+function bleWinOpen(){return !bleEnd||Date.now()<bleEnd}
+function bleScanT(){return bleEnd?Math.max(3,Math.min(15,Math.ceil((bleEnd-Date.now())/1000))):15}
+function bleTimeUI(){const s=document.getElementById('bleTime');if(!s)return;
+  for(const [v,n] of BLE_TIMES){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=String(bleTime());if(!s.value)s.value='0';
+  s.onchange=()=>{try{localStorage.setItem('fvtBleTime',s.value)}catch(e){}bleWinStart()}}
+bleWinStart();
+const BLE_NF='Not found – tap Connect';
 let aps=null;
-async function connectAura(){
+async function connectAura1(){
   if(aps&&aps.connected)return;
-  aps=new AuraPeekSmith({lang:'en'});
+  aps=new AuraPeekSmith({lang:'en',timeout:bleScanT()});
   aps.on('status',({state,name,attempt})=>{
     if(state==='scanning')setB('Searching…');
     if(state==='connecting')setB('Connecting…');
@@ -145,6 +161,14 @@ async function connectAura(){
   aps.on('disconnect',()=>log('Disconnected'));
   aps.on('button',({button,event})=>onButton(button,event));
   try{await aps.connect()}catch(e){setB('Not connected','err');log('Connect failed: '+e.message);aps=null}}
+/* Connect: try again and again until the PeekSmith connects or the search time ends */
+let plBusy=false;
+async function connectAura(){bleWinStart();if(plBusy)return;plBusy=true;
+  while(!(aps&&aps.connected)&&bleWinOpen()){
+    await connectAura1();if(aps&&aps.connected)break;
+    if(!bleWinOpen())break;setB('Searching again…');await new Promise(r=>setTimeout(r,1500))}
+  plBusy=false;if(!(aps&&aps.connected))setB(BLE_NF,'err')}
+bleTimeUI();
 const psReady=()=>AURA?!!(aps&&aps.connected):!!chr;
 
 /* show text on the PeekSmith (no history) */

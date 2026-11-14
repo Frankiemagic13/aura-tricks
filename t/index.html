@@ -204,6 +204,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r">Status<span id="bleSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
     <div class="r"><button class="sbtn" id="bleBtn">Connect PeekSmith</button><button class="sbtn" id="bleTest">Test</button></div>
     <div class="r">Search automatically<input type="checkbox" id="sAuto"></div>
+    <div class="r">Search time<select id="bleTime"></select></div>
     <div class="r">Live peek (each letter)<input type="checkbox" id="sLive"></div>
     <div class="r">Words on PeekSmith<select id="sWords"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="0">Whole note</option></select></div>
     <div class="r">Vibrate on each word<input type="checkbox" id="sVib"></div>
@@ -212,7 +213,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r">Send drawings to PeekSmith<input type="checkbox" id="sDraw"></div>
     <div class="r">Drawing size on PeekSmith<select id="sDrawSize"><option value="0.35">Small</option><option value="0.55">Medium</option><option value="0.75">Large</option><option value="1">Fill screen</option></select></div>
   </div>
-  <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first.</div>
+  <div class="snote" id="bleNote">Turn the PeekSmith on and close the PeekSmith app first. Search time: how long the page looks for the PeekSmith (one setting for all pages).</div>
   <div class="lbl">PeekSmith buttons</div>
   <div class="grp">
     <div class="r">Left – tap<select data-k="1.click"></select></div>
@@ -412,6 +413,21 @@ document.getElementById('back').addEventListener('click',()=>{now();note.blur()}
 document.getElementById('compose').addEventListener('click',()=>{now();try{clearDrawing()}catch(e){}note.textContent='';last='';lastBle='';bleOnScreen='';newNote();note.focus()});
 /* ---------- PeekSmith over Aura Bluetooth (AuraPeekSmith library by magicsplitter.fr) ---------- */
 const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+/* PeekSmith search time: one setting for all trick pages (localStorage "fvtBleTime", seconds, 0 = until found).
+   A search starts when the page opens, when it comes back on screen and when you tap Connect.
+   The page tries again and again until the PeekSmith connects or the search time ends. */
+const BLE_TIMES=[[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[0,'Until found']];
+function bleTime(){let v=NaN;try{v=parseInt(localStorage.getItem('fvtBleTime'),10)}catch(e){}return Number.isFinite(v)&&v>=0?v:0}
+let bleEnd=0,bleManual=false;
+function bleWinStart(){const t=bleTime();bleEnd=t?Date.now()+t*1000:0}
+function bleWinOpen(){return !bleEnd||Date.now()<bleEnd}
+function bleScanT(){return bleEnd?Math.max(3,Math.min(15,Math.ceil((bleEnd-Date.now())/1000))):15}
+function bleTimeUI(){const s=document.getElementById('bleTime');if(!s)return;
+  for(const [v,n] of BLE_TIMES){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=String(bleTime());if(!s.value)s.value='0';
+  s.onchange=()=>{try{localStorage.setItem('fvtBleTime',s.value)}catch(e){}bleWinStart()}}
+bleWinStart();
+const BLE_NF='Not found – tap Connect';
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,live:true,words:4,drawPS:true,drawSize:0.55,btns:{}},store.get('tset',{}));
 const BACT={none:'Nothing',inject:'Send to Inject',lastWord:'Show last word',lastLine:'Show last line',full:'Show full note',previous:'Show previous peek',clear:'Clear PeekSmith'};
@@ -424,7 +440,7 @@ const bleOn=()=>!!(aps&&aps.connected);
 function bleBtnText(){$('bleBtn').textContent=bleOn()?'Disconnect':'Connect PeekSmith'}
 async function bleSearch(){
   if(!AURA||bleBusy||bleOn())return;bleBusy=true;
-  aps=new AuraPeekSmith({lang:'en'});
+  aps=new AuraPeekSmith({lang:'en',timeout:bleScanT()});
   aps.on('status',({state,name,attempt})=>{
     if(state==='scanning')bleStatus('Searching…');
     if(state==='connecting')bleStatus('Connecting…');
@@ -434,12 +450,12 @@ async function bleSearch(){
     bleBtnText()});
   aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
-  try{await aps.connect()}catch(e){bleStatus('Searching again…');aps=null}
+  try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
 async function bleToggle(){
   if(!AURA){bleStatus('Only in Aura');return}
-  if(bleOn()){bleOff=true;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
-  bleOff=false;bleSearch()}
+  if(bleOn()){bleOff=true;bleManual=false;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
+  bleOff=false;bleManual=true;bleWinStart();bleSearch()}
 /* PeekSmith screen text: the last N words of the note (all lines), N from the settings */
 function tail(full){
   const words=(full||'').replace(/\s*\|\s*/g,' ').trim().split(/\s+/).filter(Boolean);
@@ -499,9 +515,10 @@ $('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
   el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
 if(!AURA){bleStatus('Only in Aura');$('bleNote').textContent='Bluetooth only works when this page is open in Aura or AuraClip (with the site in your Aura bookmarks). Online peeks still work.'}
 else{
-  const auto=()=>{if(P.auto&&!bleOff&&!bleOn()&&!bleBusy&&document.visibilityState==='visible')bleSearch()};
+  const auto=()=>{if((P.auto||bleManual)&&!bleOff&&!bleOn()&&!bleBusy&&document.visibilityState==='visible'){if(bleWinOpen())bleSearch();else bleStatus(BLE_NF)}};
   setTimeout(auto,400);setInterval(auto,6000);
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(auto,300)})}
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){bleWinStart();setTimeout(auto,300)}})}
+bleTimeUI();
 /* ================= Markup (drawing) — like the iOS Notes pen tools ================= */
 const cv=$('draw'),cx=cv.getContext('2d');
 const ink=()=>getComputedStyle(document.documentElement).getPropertyValue('--label').trim()||'#000';
