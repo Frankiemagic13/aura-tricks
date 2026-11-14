@@ -11,7 +11,7 @@
 html,body{margin:0;height:100%;background:#000;color:#fff;font:16px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
 #dot{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 10px);width:4px;height:4px;margin-left:-2px;border-radius:2px;background:#000}
 #dot.on{background:#0a2a12}#dot.err{background:#2a0a0a}
-#ind{position:fixed;top:calc(env(safe-area-inset-top) + 14px);right:16px;width:7px;height:7px;border-radius:50%;background:#3a3a3c;opacity:0;transition:opacity .25s;z-index:4;pointer-events:none}
+#ind{position:fixed;width:7px;height:7px;border-radius:50%;background:#3a3a3c;opacity:0;transition:opacity .25s;z-index:4;pointer-events:none}
 #ind.on{opacity:1}
 #sheet{position:fixed;inset:0;background:#111;display:none;overflow:auto;padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 30px)}
 body.open #sheet{display:block}
@@ -50,9 +50,14 @@ button.sec{background:#2c2c2e;color:#fff}
     <div class="r">What to search<select id="sWhat"><option value="all">Whole peek</option><option value="last">Last word</option><option value="result">Result (after =)</option></select></div>
     <div class="r">Wait before opening<select id="sWait"><option value="0">At once</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option></select></div>
     <div class="r">Open automatically<input type="checkbox" id="sAuto"></div>
+    <div class="r">Dot color<select id="sDotC"><option value="#3a3a3c">Dark gray</option><option value="#8e8e93">Gray</option><option value="#ffffff">White</option><option value="#ff3b30">Red</option><option value="#34c759">Green</option><option value="#0a84ff">Blue</option><option value="#ffcc00">Yellow</option><option value="#bf5af2">Purple</option><option value="custom">Custom…</option></select></div>
+    <div class="r" id="dotCustRow">Custom color<input type="color" id="sDotCC" style="width:60px;height:32px;border:0;background:none"></div>
+    <div class="r">Dot place<select id="sDotP"><option value="tr">Top right</option><option value="tc">Top center</option><option value="tl">Top left</option><option value="ml">Middle left</option><option value="mc">Middle</option><option value="mr">Middle right</option><option value="bl">Bottom left</option><option value="bc">Bottom center</option><option value="br">Bottom right</option></select></div>
+    <div class="r">Dot size<select id="sDotS"><option value="5">Small</option><option value="7">Medium</option><option value="12">Large</option></select></div>
+    <div class="r"><button class="sec" id="bDot" style="padding:7px 12px">Show the dot for 3 s</button></div>
     <div class="r">Peek channel<input type="text" id="sKey" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   </div>
-  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Dot</b>: when a peek comes in, a small dim dot shows in the top right corner for 1.5 s (with "after a tap" it stays until the tap). <b>Start at</b>: the video starts at this time, for example 0:45 or 1:30 (empty = from the beginning). <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
+  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Dot</b>: when a peek comes in, a small dot shows for 1.5 s (set its color, place and size above; "Show the dot for 3 s" closes the settings so you can see it) (with "after a tap" it stays until the tap). <b>Start at</b>: the video starts at this time, for example 0:45 or 1:30 (empty = from the beginning). <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
   <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
   <div class="note"><b>Most views (top 10)</b>: of the 10 best matches for the peek, the page plays the video with the most views. This is better than sorting all of YouTube by views, which can give a popular video that does not match.</div>
   <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
@@ -66,7 +71,7 @@ button.sec{background:#2c2c2e;color:#fff}
 <script>
 const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({start:'',pick:'popular',play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
+const P=Object.assign({dotC:'#3a3a3c',dotCC:'#3a3a3c',dotP:'tr',dotS:7,start:'',pick:'popular',play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
 if(!P.playV){if(!store.get('yset',{}).play)P.open='page';P.playV=1}
 if(Q.get('k'))P.key=Q.get('k');
 const save=()=>store.set('yset',P);
@@ -124,6 +129,14 @@ function stopHere(){try{yt&&yt.stopVideo()}catch(e){}$('pl').classList.remove('o
 
 /* peek received: a small dim dot in the top right corner, for 1.5 s (with "after a tap" it stays until the tap) */
 let sigT=null;
+/* dot color, place and size from the settings */
+function dotStyle(){const d=$('ind'),st=d.style,m='16px',sx='env(safe-area-inset-top) + 14px',sb='env(safe-area-inset-bottom) + 22px';
+  st.background=P.dotC==='custom'?P.dotCC:P.dotC;st.width=st.height=(+P.dotS||7)+'px';
+  st.top=st.bottom=st.left=st.right='auto';st.transform='';
+  const v=P.dotP[0],h=P.dotP[1];
+  if(v==='t')st.top='calc('+sx+')';else if(v==='b')st.bottom='calc('+sb+')';else{st.top='50%';st.transform='translateY(-50%)'}
+  if(h==='l')st.left=m;else if(h==='r')st.right=m;else{st.left='50%';st.transform+=' translateX(-50%)'}
+  $('dotCustRow').style.display=P.dotC==='custom'?'':'none'}
 function signal(){const d=$('ind');d.classList.add('on');clearTimeout(sigT);if(P.open!=='tap')sigT=setTimeout(()=>d.classList.remove('on'),1500)}
 /* listen to the peeks */
 let last='',waitT=null,stop=null;
@@ -142,6 +155,11 @@ document.addEventListener('touchmove',()=>clearTimeout(holdT),{passive:true});
 document.addEventListener('contextmenu',e=>{e.preventDefault();document.body.classList.add('open')});   // desktop: right click
 
 /* settings */
+dotStyle();
+$('sDotC').value=P.dotC;$('sDotCC').value=P.dotCC;$('sDotP').value=P.dotP;$('sDotS').value=String(P.dotS);
+$('sDotC').onchange=e=>{P.dotC=e.target.value;save();dotStyle()};$('sDotCC').oninput=e=>{P.dotCC=e.target.value;save();dotStyle()};
+$('sDotP').onchange=e=>{P.dotP=e.target.value;save();dotStyle()};$('sDotS').onchange=e=>{P.dotS=+e.target.value;save();dotStyle()};
+$('bDot').onclick=()=>{document.body.classList.remove('open');const d=$('ind');d.classList.add('on');clearTimeout(sigT);sigT=setTimeout(()=>d.classList.remove('on'),3000)};
 $('sStart').value=P.start||'';$('sStart').onchange=e=>{P.start=e.target.value.replace(/[^0-9:]/g,'');e.target.value=P.start;save()};
 $('sPick').value=P.pick;$('sPick').onchange=e=>{P.pick=e.target.value;save()};
 $('sPlay').value=P.play;$('sApi').value=P.api;$('sOpen').value=P.open;
