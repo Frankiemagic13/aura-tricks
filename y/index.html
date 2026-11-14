@@ -42,6 +42,7 @@ button.sec{background:#2c2c2e;color:#fff}
   <div class="grp">
     <div class="r">Play<select id="sPlay"><option value="api">First video (API key)</option><option value="ddg">First video (no key)</option><option value="search">Search results only</option></select></div>
     <div class="r">Which video<select id="sPick"><option value="popular">Most views (top 10)</option><option value="first">First result</option></select></div>
+    <div class="r">Start at (m:ss)<input type="text" id="sStart" inputmode="numbers" placeholder="0:00" style="max-width:30%"></div>
     <div class="r">Play in<select id="sOpen"><option value="page">This page (black)</option><option value="tap">YouTube app, after a tap (no box)</option><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
     <div class="r">YouTube API key<input type="text" id="sApi" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="AIza…"></div>
     <div class="r">What to search<select id="sWhat"><option value="all">Whole peek</option><option value="last">Last word</option><option value="result">Result (after =)</option></select></div>
@@ -49,7 +50,7 @@ button.sec{background:#2c2c2e;color:#fff}
     <div class="r">Open automatically<input type="checkbox" id="sAuto"></div>
     <div class="r">Peek channel<input type="text" id="sKey" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   </div>
-  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
+  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Start at</b>: the video starts at this time, for example 0:45 or 1:30 (empty = from the beginning). <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
   <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
   <div class="note"><b>Most views (top 10)</b>: of the 10 best matches for the peek, the page plays the video with the most views. This is better than sorting all of YouTube by views, which can give a popular video that does not match.</div>
   <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
@@ -63,7 +64,7 @@ button.sec{background:#2c2c2e;color:#fff}
 <script>
 const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({pick:'popular',play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
+const P=Object.assign({start:'',pick:'popular',play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
 if(!P.playV){if(!store.get('yset',{}).play)P.open='page';P.playV=1}
 if(Q.get('k'))P.key=Q.get('k');
 const save=()=>store.set('yset',P);
@@ -76,6 +77,9 @@ function pick(t){t=String(t||'').trim();
 function ytUrl(q){const s=encodeURIComponent(q);
   return P.open==='app'?'youtube://www.youtube.com/results?search_query='+s:'https://www.youtube.com/results?search_query='+s}
 const say=t=>{$('st').textContent=t};
+/* start time: "1:30", "90" or "1:02:03" → seconds */
+function startSec(){const t=String(P.start||'').trim();if(!t)return 0;const p=t.split(':').map(x=>parseInt(x,10)||0);return p.reduce((a,b)=>a*60+b,0)}
+const tq=()=>{const n=startSec();return n?'&t='+n+'s':''};
 /* the video for a text (YouTube Data API v3): the top 10 results, then the one with the most views (or the first result) */
 async function ytGet(path){const r=await fetch('https://www.googleapis.com/youtube/v3/'+path+'&key='+encodeURIComponent(P.api));
   const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));return j}
@@ -98,16 +102,16 @@ async function openYT(t){const q=pick(t);if(!q)return;
   if(!v){say('No video for: '+q);return}
   say('Playing: '+v.title+(v.views?' ('+v.views.toLocaleString('en-US')+' views)':''));
   if(P.open==='page')playHere(v.id);
-  else if(P.open==='tap')armTap('https://www.youtube.com/watch?v='+v.id,v.title);
-  else if(P.open==='app')location.href='youtube://www.youtube.com/watch?v='+v.id;
-  else location.href='https://www.youtube.com/watch?v='+v.id}
+  else if(P.open==='tap')armTap('https://www.youtube.com/watch?v='+v.id+tq(),v.title);
+  else if(P.open==='app')location.href='youtube://www.youtube.com/watch?v='+v.id+tq();
+  else location.href='https://www.youtube.com/watch?v='+v.id+tq()}
 /* play on this page, full screen; if iPhone blocks the sound, play muted and one tap turns the sound on */
 let yt=null,ytReady=null,pendingId='';
 function ytApi(){if(ytReady)return ytReady;ytReady=new Promise(res=>{window.onYouTubeIframeAPIReady=res;const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)});return ytReady}
 async function playHere(id){$('pl').classList.add('on');await ytApi();
-  if(!yt){yt=new YT.Player('ytp',{videoId:id,playerVars:{autoplay:1,playsinline:1,controls:0,rel:0,modestbranding:1,fs:0},
+  if(!yt){yt=new YT.Player('ytp',{videoId:id,playerVars:{autoplay:1,playsinline:1,start:startSec(),controls:0,rel:0,modestbranding:1,fs:0},
     events:{onReady:e=>{e.target.playVideo();checkSound()},onStateChange:e=>{if(e.data===0){$('pl').classList.remove('on')}}}})}
-  else{yt.loadVideoById(id);checkSound()}}
+  else{yt.loadVideoById({videoId:id,startSeconds:startSec()});checkSound()}}
 function checkSound(){setTimeout(()=>{try{if(yt.getPlayerState()!==1){yt.mute();yt.playVideo();$('tapsnd').classList.add('on')}}catch(e){}},1500)}
 $('tapsnd').addEventListener('click',()=>{try{yt.unMute();yt.setVolume(100);yt.playVideo()}catch(e){}$('tapsnd').classList.remove('on')});
 /* "after a tap": a full-screen link waits for the next tap; a real tap on a youtube.com link opens the YouTube app without the box */
@@ -133,6 +137,7 @@ document.addEventListener('touchmove',()=>clearTimeout(holdT),{passive:true});
 document.addEventListener('contextmenu',e=>{e.preventDefault();document.body.classList.add('open')});   // desktop: right click
 
 /* settings */
+$('sStart').value=P.start||'';$('sStart').onchange=e=>{P.start=e.target.value.replace(/[^0-9:]/g,'');e.target.value=P.start;save()};
 $('sPick').value=P.pick;$('sPick').onchange=e=>{P.pick=e.target.value;save()};
 $('sPlay').value=P.play;$('sApi').value=P.api;$('sOpen').value=P.open;
 $('sPlay').onchange=e=>{P.play=e.target.value;save()};
