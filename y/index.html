@@ -40,6 +40,7 @@ button.sec{background:#2c2c2e;color:#fff}
   </div>
   <div class="grp">
     <div class="r">Play<select id="sPlay"><option value="api">First video (API key)</option><option value="ddg">First video (no key)</option><option value="search">Search results only</option></select></div>
+    <div class="r">Which video<select id="sPick"><option value="popular">Most views (top 10)</option><option value="first">First result</option></select></div>
     <div class="r">Play in<select id="sOpen"><option value="page">This page (black)</option><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
     <div class="r">YouTube API key<input type="text" id="sApi" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="AIza…"></div>
     <div class="r">What to search<select id="sWhat"><option value="all">Whole peek</option><option value="last">Last word</option><option value="result">Result (after =)</option></select></div>
@@ -49,6 +50,7 @@ button.sec{background:#2c2c2e;color:#fff}
   </div>
   <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Search results only</b>: the old way.</div>
   <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
+  <div class="note"><b>Most views (top 10)</b>: of the 10 best matches for the peek, the page plays the video with the most views. This is better than sorting all of YouTube by views, which can give a popular video that does not match.</div>
   <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
   <div class="grp">
     <div class="r">Test text<input type="text" id="sTest" value="never gonna give you up" autocapitalize="off"></div>
@@ -60,7 +62,7 @@ button.sec{background:#2c2c2e;color:#fff}
 <script>
 const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search);
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const P=Object.assign({play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
+const P=Object.assign({pick:'popular',play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
 if(!P.playV){if(!store.get('yset',{}).play)P.open='page';P.playV=1}
 if(Q.get('k'))P.key=Q.get('k');
 const save=()=>store.set('yset',P);
@@ -73,18 +75,26 @@ function pick(t){t=String(t||'').trim();
 function ytUrl(q){const s=encodeURIComponent(q);
   return P.open==='app'?'youtube://www.youtube.com/results?search_query='+s:'https://www.youtube.com/results?search_query='+s}
 const say=t=>{$('st').textContent=t};
-/* first video for a text (YouTube Data API v3) */
+/* the video for a text (YouTube Data API v3): the top 10 results, then the one with the most views (or the first result) */
+async function ytGet(path){const r=await fetch('https://www.googleapis.com/youtube/v3/'+path+'&key='+encodeURIComponent(P.api));
+  const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));return j}
 async function firstVideo(q){
-  const r=await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q='+encodeURIComponent(q)+'&key='+encodeURIComponent(P.api));
-  const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));
-  const it=j.items&&j.items[0];return it?{id:it.id.videoId,title:it.snippet.title}:null}
+  const n=P.pick==='first'?1:10;
+  const j=await ytGet('search?part=snippet&type=video&maxResults='+n+'&q='+encodeURIComponent(q));
+  const items=(j.items||[]).filter(it=>it.id&&it.id.videoId);if(!items.length)return null;
+  if(P.pick==='first'||items.length===1)return{id:items[0].id.videoId,title:items[0].snippet.title};
+  try{const s=await ytGet('videos?part=statistics&id='+items.map(it=>it.id.videoId).join(','));
+    const views={};for(const v of s.items||[])views[v.id]=+((v.statistics||{}).viewCount||0);
+    items.sort((a,b)=>(views[b.id.videoId]||0)-(views[a.id.videoId]||0));
+    const top=items[0];return{id:top.id.videoId,title:top.snippet.title,views:views[top.id.videoId]||0}}
+  catch(e){return{id:items[0].id.videoId,title:items[0].snippet.title}}}
 async function openYT(t){const q=pick(t);if(!q)return;
   if(P.play==='search'){say('Opening: '+q);location.href=ytUrl(q);return}
   if(P.play==='ddg'||!P.api){if(P.play==='api')say('No API key – using DuckDuckGo');location.href='https://duckduckgo.com/?q='+encodeURIComponent('\\'+q+' site:youtube.com');return}
   say('Searching: '+q);let v;
   try{v=await firstVideo(q)}catch(e){say('YouTube: '+e.message+' – showing search');location.href=ytUrl(q);return}
   if(!v){say('No video for: '+q);return}
-  say('Playing: '+v.title);
+  say('Playing: '+v.title+(v.views?' ('+v.views.toLocaleString('en-US')+' views)':''));
   if(P.open==='page')playHere(v.id);
   else if(P.open==='app')location.href='youtube://www.youtube.com/watch?v='+v.id;
   else location.href='https://www.youtube.com/watch?v='+v.id}
@@ -116,6 +126,7 @@ document.addEventListener('touchmove',()=>clearTimeout(holdT),{passive:true});
 document.addEventListener('contextmenu',e=>{e.preventDefault();document.body.classList.add('open')});   // desktop: right click
 
 /* settings */
+$('sPick').value=P.pick;$('sPick').onchange=e=>{P.pick=e.target.value;save()};
 $('sPlay').value=P.play;$('sApi').value=P.api;$('sOpen').value=P.open;
 $('sPlay').onchange=e=>{P.play=e.target.value;save()};
 $('sApi').onchange=e=>{P.api=e.target.value.trim();save()};$('sWhat').value=P.what;$('sWait').value=String(P.wait);$('sAuto').checked=!!P.auto;$('sKey').value=P.key;
