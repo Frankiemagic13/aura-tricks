@@ -26,11 +26,12 @@ button.sec{background:#2c2c2e;color:#fff}
 #last,#st{color:#c7c7cc}
 #pl{position:fixed;inset:0;display:none;background:#000;pointer-events:none}#pl.on{display:block}#pl iframe,#pl>div{width:100%;height:100%;border:0}
 #tapsnd{position:fixed;inset:0;display:none;z-index:2}#tapsnd.on{display:block}
+#go{position:fixed;inset:0;display:none;z-index:3;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}#go.on{display:block}
 </style>
 </head>
 <body>
 <div id="dot"></div>
-<div id="pl"><div id="ytp"></div></div><div id="tapsnd"></div>
+<div id="pl"><div id="ytp"></div></div><div id="tapsnd"></div><a id="go" href="#" aria-label=" "></a>
 <div id="sheet">
   <h1>YouTube peek (test)</h1>
   <div class="note">Hold the black screen for 1 s to open this. The page listens to the peeks from your trick pages and opens each one on YouTube.</div>
@@ -41,14 +42,14 @@ button.sec{background:#2c2c2e;color:#fff}
   <div class="grp">
     <div class="r">Play<select id="sPlay"><option value="api">First video (API key)</option><option value="ddg">First video (no key)</option><option value="search">Search results only</option></select></div>
     <div class="r">Which video<select id="sPick"><option value="popular">Most views (top 10)</option><option value="first">First result</option></select></div>
-    <div class="r">Play in<select id="sOpen"><option value="page">This page (black)</option><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
+    <div class="r">Play in<select id="sOpen"><option value="page">This page (black)</option><option value="tap">YouTube app, after a tap (no box)</option><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
     <div class="r">YouTube API key<input type="text" id="sApi" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="AIza…"></div>
     <div class="r">What to search<select id="sWhat"><option value="all">Whole peek</option><option value="last">Last word</option><option value="result">Result (after =)</option></select></div>
     <div class="r">Wait before opening<select id="sWait"><option value="0">At once</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option></select></div>
     <div class="r">Open automatically<input type="checkbox" id="sAuto"></div>
     <div class="r">Peek channel<input type="text" id="sKey" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
   </div>
-  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Search results only</b>: the old way.</div>
+  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
   <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
   <div class="note"><b>Most views (top 10)</b>: of the 10 best matches for the peek, the page plays the video with the most views. This is better than sorting all of YouTube by views, which can give a popular video that does not match.</div>
   <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
@@ -89,6 +90,7 @@ async function firstVideo(q){
     const top=items[0];return{id:top.id.videoId,title:top.snippet.title,views:views[top.id.videoId]||0}}
   catch(e){return{id:items[0].id.videoId,title:items[0].snippet.title}}}
 async function openYT(t){const q=pick(t);if(!q)return;
+  if(P.open==='tap'&&(P.play==='search'||!P.api)&&P.play!=='ddg'){armTap('https://www.youtube.com/results?search_query='+encodeURIComponent(q),'search: '+q);return}
   if(P.play==='search'){say('Opening: '+q);location.href=ytUrl(q);return}
   if(P.play==='ddg'||!P.api){if(P.play==='api')say('No API key – using DuckDuckGo');location.href='https://duckduckgo.com/?q='+encodeURIComponent('\\'+q+' site:youtube.com');return}
   say('Searching: '+q);let v;
@@ -96,6 +98,7 @@ async function openYT(t){const q=pick(t);if(!q)return;
   if(!v){say('No video for: '+q);return}
   say('Playing: '+v.title+(v.views?' ('+v.views.toLocaleString('en-US')+' views)':''));
   if(P.open==='page')playHere(v.id);
+  else if(P.open==='tap')armTap('https://www.youtube.com/watch?v='+v.id,v.title);
   else if(P.open==='app')location.href='youtube://www.youtube.com/watch?v='+v.id;
   else location.href='https://www.youtube.com/watch?v='+v.id}
 /* play on this page, full screen; if iPhone blocks the sound, play muted and one tap turns the sound on */
@@ -107,6 +110,10 @@ async function playHere(id){$('pl').classList.add('on');await ytApi();
   else{yt.loadVideoById(id);checkSound()}}
 function checkSound(){setTimeout(()=>{try{if(yt.getPlayerState()!==1){yt.mute();yt.playVideo();$('tapsnd').classList.add('on')}}catch(e){}},1500)}
 $('tapsnd').addEventListener('click',()=>{try{yt.unMute();yt.setVolume(100);yt.playVideo()}catch(e){}$('tapsnd').classList.remove('on')});
+/* "after a tap": a full-screen link waits for the next tap; a real tap on a youtube.com link opens the YouTube app without the box */
+function armTap(url,what){const a=$('go');a.href=url;a.classList.add('on');say('Ready – tap to open: '+what)}
+$('go').addEventListener('click',e=>{if(held||document.body.classList.contains('open')){e.preventDefault();return}
+  const a=$('go');setTimeout(()=>{a.classList.remove('on');a.href='#'},300)});
 function stopHere(){try{yt&&yt.stopVideo()}catch(e){}$('pl').classList.remove('on');$('tapsnd').classList.remove('on')}
 
 /* listen to the peeks */
