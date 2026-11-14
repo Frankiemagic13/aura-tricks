@@ -142,13 +142,15 @@ function load(im){
 /* ---------- auto mask: find the iPhone lock screen parts (clock, date, status bar, buttons, home bar)
    Only inside the zones where iOS puts them (fractions of the screen), and only the pixels that are
    different from the wallpaper around them, so the wallpaper itself stays. ---------- */
-function zones(){const z=new Uint8Array(W*H);
-  const rect=(x0,y0,x1,y1)=>{for(let y=Math.max(0,Math.floor(y0*H));y<Math.min(H,Math.ceil(y1*H));y++)for(let x=Math.max(0,Math.floor(x0*W));x<Math.min(W,Math.ceil(x1*W));x++)z[y*W+x]=1};
-  const circ=(cx,cy,r)=>{const R=r*W;for(let y=Math.floor(cy*H-R);y<=cy*H+R;y++)for(let x=Math.floor(cx*W-R);x<=cx*W+R;x++)if(x>=0&&y>=0&&x<W&&y<H&&(x-cx*W)**2+(y-cy*H)**2<=R*R)z[y*W+x]=1};
-  rect(0,0,1,.062);                                  // status bar
-  rect(.04,.066,.96,+$('bClock').value/100);         // date and clock
-  circ(.163,.912,.095);circ(.837,.912,.095);         // flashlight and camera buttons
-  rect(.25,.962,.75,1);                              // home bar
+/* zone numbers: 1 status bar, 2 date + clock, 3 buttons, 4 home bar, 5 widgets under the clock, 6 widgets above the buttons (iOS 26) */
+function zones(){const z=new Uint8Array(W*H);const cb=+$('bClock').value/100;
+  const rect=(id,x0,y0,x1,y1)=>{for(let y=Math.max(0,Math.floor(y0*H));y<Math.min(H,Math.ceil(y1*H));y++)for(let x=Math.max(0,Math.floor(x0*W));x<Math.min(W,Math.ceil(x1*W));x++)if(!z[y*W+x])z[y*W+x]=id};
+  const circ=(id,cx,cy,r)=>{const R=r*W;for(let y=Math.floor(cy*H-R);y<=cy*H+R;y++)for(let x=Math.floor(cx*W-R);x<=cx*W+R;x++)if(x>=0&&y>=0&&x<W&&y<H&&(x-cx*W)**2+(y-cy*H)**2<=R*R)z[y*W+x]=id};
+  rect(1,0,0,1,.062);
+  rect(2,.04,.062,.96,cb);
+  circ(3,.163,.912,.095);circ(3,.837,.912,.095);
+  rect(4,.25,.962,.75,1);
+  if($('bWid').classList.contains('on')){rect(5,.03,cb,.97,cb+.095);rect(6,.03,.765,.97,.872)}
   return z}
 let diffMap=null;
 function buildDiff(){
@@ -161,46 +163,62 @@ function buildDiff(){
     diffMap[y*W+x]=d}}}
 function autoMask(){
   if(!diffMap)buildDiff();
-  const z=zones(),T=+$('bSens').value,m0=new Uint8Array(W*H);
-  for(let i=0;i<W*H;i++)if(z[i]&&diffMap[i]>T)m0[i]=1;
+  const z=zones(),T=+$('bSens').value,N=W*H,raw=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(z[i]&&diffMap[i]>T)raw[i]=1;
+  /* groups of touching pixels. A group that goes on outside the zones (a line or a shape of the
+     wallpaper that runs through the zone) is the wallpaper, so it stays. iPhone parts are fully inside. */
+  const keep=new Uint8Array(N),seen=new Uint8Array(N),st=[];
+  for(let s0=0;s0<N;s0++){if(!raw[s0]||seen[s0])continue;const comp=[];let out=false;st.push(s0);seen[s0]=1;
+    while(st.length){const p=st.pop();comp.push(p);const x=p%W,y=(p/W)|0;
+      for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){const X=x+dx,Y=y+dy;if(X<0||Y<0||X>=W||Y>=H)continue;const q=Y*W+X;
+        if(!z[q]){if(diffMap[q]>T)out=true;continue}
+        if(raw[q]&&!seen[q]&&dx>=-1&&dx<=1&&dy>=-1&&dy<=1){seen[q]=1;st.push(q)}}}
+    if(!out)for(const p of comp)keep[p]=1}
+  const m0=new Uint8Array(N);
+  for(let i=0;i<N;i++)if(keep[i]&&z[i]<=4)m0[i]=1;
+  /* the flashlight and camera buttons are see-through discs: often too faint to find, so the whole disc always goes */
+  for(const cx0 of [.163,.837]){const R=.074*W,cxp=cx0*W,cyp=.912*H;
+    for(let y=Math.floor(cyp-R);y<=cyp+R;y++)for(let x=Math.floor(cxp-R);x<=cxp+R;x++)if(x>=0&&y>=0&&x<W&&y<H&&(x-cxp)**2+(y-cyp)**2<=R*R)m0[y*W+x]=1}
   /* the clock is one colour (white or a tint). Where it is over a part of the wallpaper with the same
      colour (white clouds…), the blur test misses it: so also take the pixels with the clock colour,
-     inside the box of the clock that was found. */
-  {const y0z=Math.floor(.066*H),y1z=Math.ceil(+$('bClock').value/100*H);const pts=[];let bx0=W,bx1=0,by0=H,by1=0;
-    for(let y=y0z;y<y1z;y++)for(let x=0;x<W;x++){const i=y*W+x;if(diffMap[i]>T*1.6){pts.push(i);if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y}}
+     near the clock edges that were found. */
+  {const pts=[];let bx0=W,bx1=0,by0=H,by1=0;
+    for(let i=0;i<N;i++){if(z[i]===2&&keep[i]&&diffMap[i]>T*1.6){pts.push(i);const x=i%W,y=(i/W)|0;if(x<bx0)bx0=x;if(x>bx1)bx1=x;if(y<by0)by0=y;if(y>by1)by1=y}}
     if(pts.length>W*.5){
       const lum=i=>src[i*4]*.299+src[i*4+1]*.587+src[i*4+2]*.114;
       pts.sort((a,b)=>lum(b)-lum(a));const top=pts.slice(0,Math.max(10,pts.length*.25|0));
       let r=0,g=0,b=0;for(const i of top){r+=src[i*4];g+=src[i*4+1];b+=src[i*4+2]}r/=top.length;g/=top.length;b/=top.length;
-      const L=Math.max(r,g,b);
-      /* only near the clock edges that were found (about one letter-stroke wide), so white clouds far away stay */
-      const near=new Uint8Array(W*H),Rd=Math.max(4,Math.round(W*.03));
+      const near=new Uint8Array(N),Rd=Math.max(4,Math.round(W*.03));
       for(const i of pts){const px=i%W,py=(i/W)|0;for(let yy=Math.max(by0,py-Rd);yy<=Math.min(by1,py+Rd);yy++){const o=yy*W;for(let xx=Math.max(bx0,px-Rd);xx<=Math.min(bx1,px+Rd);xx++)near[o+xx]=1}}
-      if(L>170)for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++){const i=y*W+x;if(!near[i])continue;const dr=src[i*4]-r,dg=src[i*4+1]-g,db=src[i*4+2]-b;
+      if(Math.max(r,g,b)>170)for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++){const i=y*W+x;if(!near[i]||z[i]!==2)continue;const dr=src[i*4]-r,dg=src[i*4+1]-g,db=src[i*4+2]-b;
         if(dr*dr+dg*dg+db*db<26*26)m0[i]=1}}}
-  /* widgets: the row under the clock. Widgets are see-through plates (circles or rounded boxes) with
-     white icons and text. The icons and text are found by the blur test; then the whole plate around
-     each group goes, so the soft plate edge does not stay. */
+  /* widgets (under the clock, and above the buttons on iOS 26): icons, text and bars are found;
+     then the whole widget around each group goes (its see-through plate too). */
   window.__widgets=0;
-  if($('bWid').classList.contains('on')){
-    const wy0=Math.floor(+$('bClock').value/100*H),wy1=Math.min(H,Math.ceil((+$('bClock').value/100+.095)*H));
+  for(const band of [5,6]){
     const col=new Uint16Array(W);let found=0;
-    for(let y=wy0;y<wy1;y++)for(let x=Math.floor(.04*W);x<Math.ceil(.96*W);x++)if(diffMap[y*W+x]>T){col[x]++;found++}
-    if(found>W*.15){
-      /* group the columns into widgets (a gap wider than 2.5 % of the screen = next widget) */
-      const gapMax=Math.round(W*.025),groups=[];let g0=-1,last=-99;
-      for(let x=0;x<W;x++){if(col[x]>=2){if(g0<0||x-last>gapMax){if(g0>=0)groups.push([g0,last]);g0=x}last=x}}
-      if(g0>=0)groups.push([g0,last]);
-      let ry0=wy1,ry1=wy0;for(let y=wy0;y<wy1;y++)for(let x=Math.floor(.04*W);x<Math.ceil(.96*W);x++)if(diffMap[y*W+x]>T){if(y<ry0)ry0=y;if(y>ry1)ry1=y}
-      const m=Math.round(W*.022);window.__widgets=groups.length;
-      for(const [a,b] of groups){if(b-a<W*.02)continue;
-        const x0=Math.max(0,a-m),x1=Math.min(W-1,b+m),y0=Math.max(wy0-m,ry0-m),y1=Math.min(H-1,ry1+m),rr=Math.min(x1-x0,y1-y0)*.35;
-        for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){   // rounded box
-          const dx=Math.max(x0+rr-x,0,x-(x1-rr)),dy=Math.max(y0+rr-y,0,y-(y1-rr));if(dx*dx+dy*dy<=rr*rr)m0[y*W+x]=1}}}}
+    for(let i=0;i<N;i++)if(z[i]===band&&keep[i]){col[i%W]++;found++}
+    if(found<W*.08)continue;
+    const gapMax=Math.round(W*.03),groups=[];let g0=-1,last=-99;
+    for(let x=0;x<W;x++){if(col[x]>=1){if(g0<0||x-last>gapMax){if(g0>=0)groups.push([g0,last]);g0=x}last=x}}
+    if(g0>=0)groups.push([g0,last]);
+    const m=Math.round(W*.02);
+    for(const [a,b] of groups){if(b-a<W*.02)continue;
+      let gy0=H,gy1=0;for(let y=0;y<H;y++)for(let x=a;x<=b;x++){const i=y*W+x;if(z[i]===band&&keep[i]){if(y<gy0)gy0=y;if(y>gy1)gy1=y}}
+      if(gy1<gy0)continue;window.__widgets++;
+      const x0=Math.max(0,a-m),x1=Math.min(W-1,b+m),y0=Math.max(0,gy0-m),y1=Math.min(H-1,gy1+m),rr=Math.min(x1-x0,y1-y0)*.35;
+      for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){const dx=Math.max(x0+rr-x,0,x-(x1-rr)),dy=Math.max(y0+rr-y,0,y-(y1-rr));if(dx*dx+dy*dy<=rr*rr)m0[y*W+x]=1}}}
   /* grow the found pixels so the soft edges of the letters go too */
-  const D=Math.max(3,Math.round(W*.007));mask=new Uint8Array(W*H);
+  const D=Math.max(3,Math.round(W*.007));mask=new Uint8Array(N);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(!m0[y*W+x])continue;
     for(let yy=Math.max(0,y-D);yy<=Math.min(H-1,y+D);yy++)for(let xx=Math.max(0,x-D);xx<=Math.min(W-1,x+D);xx++)mask[yy*W+xx]=1}
+  /* fill small closed holes inside the found parts (for example a dark shape in the middle of the status bar) */
+  {const reach=new Uint8Array(N),q=[];const push=i=>{if(!mask[i]&&!reach[i]){reach[i]=1;q.push(i)}};
+    for(let x=0;x<W;x++){push(x);push((H-1)*W+x)}for(let y=0;y<H;y++){push(y*W);push(y*W+W-1)}
+    while(q.length){const p=q.pop(),x=p%W,y=(p/W)|0;if(x>0)push(p-1);if(x<W-1)push(p+1);if(y>0)push(p-W);if(y<H-1)push(p+W)}
+    const lab=new Uint8Array(N),qq=[];for(let s0=0;s0<N;s0++){if(mask[s0]||reach[s0]||lab[s0])continue;const comp=[];lab[s0]=1;qq.push(s0);
+      while(qq.length){const p=qq.pop();comp.push(p);const x=p%W,y=(p/W)|0;for(const n of [x>0?p-1:-1,x<W-1?p+1:-1,y>0?p-W:-1,y<H-1?p+W:-1])if(n>=0&&!mask[n]&&!reach[n]&&!lab[n]){lab[n]=1;qq.push(n)}}
+      if(comp.length<N*.03)for(const p of comp)mask[p]=1}}
 }
 /* ---------- view ---------- */
 const cv=$('cv'),cx=cv.getContext('2d');
