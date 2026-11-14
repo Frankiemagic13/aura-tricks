@@ -264,7 +264,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="snote">• <b>Peer to peer</b>: the spectator types on the second phone (as before).<br>• <b>Inject</b>: no second phone. It uses the Inject ID on the Inject tab.<br>• <b>Wait for a new one</b>: your phone waits for the next word that comes into Inject (up to 5 minutes).<br>• <b>Last word sent</b>: the word that is in Inject now. The prediction shows at once. The Acrostic list shows 2 s after the start; each swipe gives 2 s more.<br>• The PeekSmith shows "Inject: word".</div>
   <div class="lbl">Drawings</div>
   <div class="grp"><div class="r">Typed word → picture<input type="checkbox" id="w2p"></div><div class="r">Their drawing on my phone<select id="drawMode"><option value="random">Random style</option><option value="exact">Exact copy</option><option value="slight">Slightly changed</option><option value="sketch">Sketch</option><option value="doodle">Simple doodle</option><option value="mirror">Mirror image</option><option value="bold">Marker</option><option value="small">Small sketch</option><option value="redraw">Redrawn by hand</option><option value="ball">Blue ballpoint</option><option value="cpen">Colored pencils</option><option value="crayon">Crayon</option><option value="felt">Felt-tip + highlighter</option><option value="chalk">Chalk</option><option value="mirrorc">Mirror + colored pencils</option></select></div></div>
-  <div class="snote">Your phone shows the spectator's drawing as if a different hand drew it. <b>Random style</b>: each new drawing gets one of 13 styles (sketch, crayon, colored pencils, ballpoint, chalk, mirror…). Or select one style, or <b>Exact copy</b>. Colors: each closed shape gets its own color. The PeekSmith gets the same drawing.<br><b>Typed word → picture</b>: while your phone (Magician) is on the drawing page, a word they type (house, cat, heart, car, star… about 70 words) is drawn on your canvas line by line, in the drawing style. Your note does not show their text.</div>
+  <div class="snote">Your phone shows the spectator's drawing as if a different hand drew it. <b>Random style</b>: each new drawing gets one of 13 styles (sketch, crayon, colored pencils, ballpoint, chalk, mirror…). Or select one style, or <b>Exact copy</b>. Typed word → picture: about 600 words have a drawing (animals, food, things at home, toys, clothes, nature…). Colors: each closed shape gets its own color. The PeekSmith gets the same drawing.<br><b>Typed word → picture</b>: while your phone (Magician) is on the drawing page, a word they type (house, cat, heart, car, star… about 70 words) is drawn on your canvas line by line, in the drawing style. Your note does not show their text.</div>
   <div class="lbl">Send to Inject</div>
   <div class="grp">
     <div class="r">Send to Inject<input type="checkbox" id="iOn"></div>
@@ -328,6 +328,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../relay.js"></script>
+<script src="pics.js?v=1"></script>
 <script>
 /* ============ SETTINGS (URL options) ============
    ?k=...      channel (default: same as the calculator and Peek Island)
@@ -890,10 +891,17 @@ const PICS=(()=>{const L=(a,b,c,d)=>['L',a,b,c,d],P=(...p)=>['P',p],C=(x,y,r)=>[
     note:'music',song:'music',bunny:'rabbit',bike:'bicycle',money:'dollar',cash:'dollar',gem:'diamond',jewel:'diamond',king:'crown',queen:'crown',watch:'clock',time:'clock',television:'tv',
     spaceship:'rocket',storm:'lightning',sea:'boat',ocean:'boat',pet:'dog',chick:'bird',goldfish:'fish',fruit:'apple',broken:'heartbreak'};
   return {D,SYN}})();
-function picFind(w){w=String(w||'').toLowerCase().replace(/[^a-z]/g,'');if(!w)return null;
-  for(const c of [w,w.replace(/es$/,''),w.replace(/s$/,'')]){if(PICS.D[c])return c;if(PICS.SYN[c])return PICS.SYN[c]}return null}
+function picFind(w){w=String(w||'').toLowerCase().replace(/[^a-z]/g,'');if(!w)return null;const X=window.PICS2;
+  for(const c of [w,w.replace(/es$/,''),w.replace(/s$/,'')]){if(PICS.D[c])return c;if(PICS.SYN[c])return PICS.SYN[c]}
+  if(X)for(const c of [w,w.replace(/ies$/,'y'),w.replace(/es$/,''),w.replace(/s$/,'')]){if(X.D[c])return c;if(X.SYN[c])return X.SYN[c]}
+  return null}
+/* the drawings in pics.js (about 425 more): decode once, as lines ('P') */
+const picCache={};
+function picData(key){if(PICS.D[key])return PICS.D[key];if(picCache[key])return picCache[key];const X=window.PICS2;if(!X||!X.D[key])return[];
+  const n=X.A.length-1,v=c=>X.A.indexOf(c)/n*100;
+  return picCache[key]=X.D[key].split(' ').map(t=>{const p=[];for(let i=0;i+1<t.length;i+=2)p.push([v(t[i]),v(t[i+1])]);return['P',p]})}
 /* picture → finger-like strokes on the screen (centre of the canvas), with a small hand wobble */
-function picStrokes(key){const S=PICS.D[key],sz=Math.min(innerWidth*.72,320),ox=innerWidth/2-sz/2,oy=innerHeight*.4-sz/2,k=sz/100;
+function picStrokes(key){const S=picData(key),sz=Math.min(innerWidth*.72,320),ox=innerWidth/2-sz/2,oy=innerHeight*.4-sz/2,k=sz/100;
   const R=rnd((Math.random()*1e9)|0),out=[];
   const dense=pts=>{const o=[];for(let i=0;i<pts.length-1;i++){const [a,b]=[pts[i],pts[i+1]],n=Math.max(1,Math.ceil(Math.hypot(b[0]-a[0],b[1]-a[1])*k/3));for(let j=0;j<n;j++)o.push([a[0]+(b[0]-a[0])*j/n,a[1]+(b[1]-a[1])*j/n])}o.push(pts.at(-1));return o};
   for(const s of S){let pts;
