@@ -328,7 +328,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../relay.js"></script>
-<script src="pics.js?v=1"></script>
+<script src="pics.js?v=2"></script>
 <script>
 /* ============ SETTINGS (URL options) ============
    ?k=...      channel (default: same as the calculator and Peek Island)
@@ -910,14 +910,14 @@ function picStrokes(key){const S=picData(key),sz=Math.min(innerWidth*.72,320),ox
     else if(s[0]==='Q'){pts=[];const n=Math.max(8,Math.ceil(Math.hypot(s[5]-s[1],s[6]-s[2])*k/3));for(let i=0;i<=n;i++){const t=i/n,u=1-t;pts.push([u*u*s[1]+2*u*t*s[3]+t*t*s[5],u*u*s[2]+2*u*t*s[4]+t*t*s[6]])}}
     else if(s[0]==='E'){const [,x,y,rx,ry,a0,a1]=s,n=Math.max(10,Math.ceil(Math.abs(a1-a0)/360*2*Math.PI*Math.max(rx,ry)*k/3));pts=[];for(let i=0;i<=n;i++){const a=(a0+(a1-a0)*i/n)*Math.PI/180;pts.push([x+rx*Math.cos(a),y+ry*Math.sin(a)])}}
     else if(s[0]==='F'){pts=[];const n=s[2];for(let i=0;i<=n;i++)pts.push(s[1](i/n));pts=dense(pts)}
-    const ph=R()*6,am=.35+R()*.35;
-    out.push({tool:'pen',color:'ink',pic:true,points:pts.map(([x,y],i)=>[ox+(x+am*Math.sin(i*.21+ph))*k,oy+(y+am*Math.cos(i*.17+ph))*k])})}
+    const sk=window.PICS2&&PICS2.sketch?PICS2.sketch(pts,R):pts;   // quick, loose hand sketch (pics.js)
+    out.push({tool:'pen',color:'ink',pic:true,points:sk.map(([x,y])=>[ox+x*k,oy+y*k])})}
   return out}
 let picAnimT=null,picWord='',picWait=null;
-/* draw the strokes one after another, like a hand (about 2 s) */
+/* draw the strokes one after another, like a quick hand (about 1.2 s) */
 function picDraw(key){clearInterval(picAnimT);
   let fin=picStrokes(key);if(P.drawMode!=='exact'){altSeed=0;altStyle='';fin=alterStrokes(fin).map(s=>({...s,pic:true}))}
-  strokes=strokes.filter(s=>!s.pic);const keep=strokes.slice();const total=fin.reduce((a,s)=>a+s.points.length,0),per=Math.max(4,Math.ceil(total/110));
+  strokes=strokes.filter(s=>!s.pic);const keep=strokes.slice();const total=fin.reduce((a,s)=>a+s.points.length,0),per=Math.max(4,Math.ceil(total/65));
   let si=0,pi=0;picAnimT=setInterval(()=>{let n=per;while(n>0&&si<fin.length){const s=fin[si];pi=Math.min(s.points.length,pi+n);n-=per;if(pi>=s.points.length){si++;pi=0}}
     strokes=keep.concat(fin.slice(0,si),si<fin.length&&pi>0?[{...fin[si],points:fin[si].points.slice(0,pi)}]:[]);redraw();
     if(si>=fin.length){clearInterval(picAnimT);picAnimT=null;strokes=keep.concat(fin);redraw();undoState();drawToPS();try{qbuzz('light')}catch(e){}}},18)}
