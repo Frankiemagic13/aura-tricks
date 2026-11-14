@@ -35,6 +35,18 @@ html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-sys
 #busy.on{display:flex}
 #prog{width:200px;height:6px;border-radius:3px;background:#333;overflow:hidden}#prog i{display:block;height:100%;width:0;background:#0a84ff;transition:width .2s}
 
+/* report */
+#repRow{display:none;flex-direction:column;gap:8px}
+#pins{max-height:132px;overflow:auto;display:flex;flex-direction:column;gap:6px;-webkit-user-select:text;user-select:text}
+#pins .pr{display:flex;gap:8px;align-items:center}
+#pins .pn{width:26px;height:26px;border-radius:50%;background:#ff375f;display:flex;align-items:center;justify-content:center;font:700 14px -apple-system,system-ui;flex:none}
+#pins input{flex:1;min-width:0;padding:9px 11px;border-radius:11px;border:0;background:#2c2c2e;color:#fff;font:15px -apple-system,system-ui;-webkit-user-select:text;user-select:text}
+#pins .px{border:0;background:none;color:rgba(235,235,245,.5);font-size:20px;padding:0 4px}
+#pinHint{font-size:13px;color:rgba(235,235,245,.6)}
+#s4{background:#000}
+#s4 img{position:absolute;left:0;right:0;top:calc(env(safe-area-inset-top) + 8px);bottom:calc(env(safe-area-inset-bottom) + 76px);width:100%;height:calc(100% - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 84px);object-fit:contain;-webkit-touch-callout:default;-webkit-user-select:auto;user-select:auto}
+#s4 .row{position:absolute;left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom) + 14px)}
+#s4 .tip{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 66px);text-align:center;font-size:12px;color:rgba(235,235,245,.6)}
 /* 3. passcode screen (sharp wallpaper) */
 #s3{background:#000 center/cover no-repeat}
 #s3 .dim{position:absolute;inset:0;background:rgba(0,0,0,var(--dim,.28))}
@@ -70,12 +82,21 @@ html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-sys
   <div id="view"><canvas id="cv"></canvas></div>
   <div id="msg"></div>
   <div id="bar">
-    <div class="row"><button id="bBefore">Before</button><button id="bAfter" class="on">After</button><button id="bFix">Fix</button></div>
+    <div class="row"><button id="bBefore">Before</button><button id="bAfter" class="on">After</button><button id="bFix">Fix</button><button id="bRep">Report</button></div>
+    <div id="repRow"><div id="pinHint">Tap a problem place on the picture. Type a note for each pin.</div><div id="pins"></div>
+      <div class="row"><button id="bRepClear">Clear pins</button><button id="bRepMake" class="go">Make report image</button></div></div>
     <div class="row" id="fixRow" style="display:none"><button id="bPaint" class="on">Paint</button><button id="bErase">Erase</button><label>Size</label><input type="range" id="bSize" min="8" max="80" value="34"></div>
-    <div class="row"><label>Find</label><input type="range" id="bSens" min="8" max="60" value="24" style="direction:rtl"><label>Clock</label><input type="range" id="bClock" min="18" max="55" value="31"></div>
-    <div class="row"><button id="bClean">Clean again</button><button id="bUse" class="go">Use</button></div>
+    <div class="row nrm"><label>Find</label><input type="range" id="bSens" min="8" max="60" value="24" style="direction:rtl"><label>Clock</label><input type="range" id="bClock" min="18" max="55" value="31"></div>
+    <div class="row nrm"><button id="bClean">Clean again</button><button id="bUse" class="go">Use</button></div>
   </div>
   <div id="busy"><div id="busyT">Cleaning…</div><div id="prog"><i></i></div></div>
+</div>
+
+<!-- 4. report image -->
+<div class="scr" id="s4">
+  <img id="repImg" alt="Report">
+  <div class="tip">Or touch and hold the picture to save it.</div>
+  <div class="row"><button id="bShare" class="go">Share / Save</button><button id="bRepBack">Back</button></div>
 </div>
 
 <!-- 3. passcode -->
@@ -114,7 +135,7 @@ function load(im){
   full=document.createElement('canvas');full.width=FW;full.height=FH;full.getContext('2d').drawImage(im,0,0);
   const k=Math.min(1,WORK/FW);W=Math.round(FW*k);H=Math.round(FH*k);
   const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,W,H);
-  src=x.getImageData(0,0,W,H).data;diffMap=null;painted=null;
+  src=x.getImageData(0,0,W,H).data;diffMap=null;painted=null;pins=[];try{pinList()}catch(e){}
   autoMask();show('s2');sizeView();clean();
 }
 
@@ -168,10 +189,14 @@ function sizeView(){cv.width=W;cv.height=H;draw()}
 function draw(){
   if(!W)return;
   if(mode==='before'||!out)cx.drawImage(full,0,0,W,H);else cx.drawImage(out,0,0,W,H);
+  if(mode==='report')drawPins(cx,W/W0(),0,0);
   if(mode==='fix'){const id=cx.getImageData(0,0,W,H),d=id.data;
     for(let i=0;i<W*H;i++)if(mask[i]){d[i*4]=d[i*4]*.45+255*.55;d[i*4+1]*=.45;d[i*4+2]*=.45}cx.putImageData(id,0,0)}}
-function setMode(m){mode=m;['bBefore','bAfter','bFix'].forEach(id=>$(id).classList.toggle('on',id==='b'+m[0].toUpperCase()+m.slice(1)));
-  $('fixRow').style.display=m==='fix'?'flex':'none';draw();if(m==='fix')toast('Paint over what must go, then Clean again',2200)}
+function setMode(m){mode=m;const ids={before:'bBefore',after:'bAfter',fix:'bFix',report:'bRep'};Object.values(ids).forEach(id=>$(id).classList.toggle('on',id===ids[m]));
+  $('fixRow').style.display=m==='fix'?'flex':'none';$('repRow').style.display=m==='report'?'flex':'none';
+  document.querySelectorAll('#bar .nrm').forEach(r=>r.style.display=m==='report'?'none':'flex');
+  draw();if(m==='fix')toast('Paint over what must go, then Clean again',2200)}
+$('bRep').onclick=()=>setMode('report');
 $('bBefore').onclick=()=>setMode('before');$('bAfter').onclick=()=>setMode('after');$('bFix').onclick=()=>setMode('fix');
 $('bPaint').onclick=()=>{tool='paint';$('bPaint').classList.add('on');$('bErase').classList.remove('on')};
 $('bErase').onclick=()=>{tool='erase';$('bErase').classList.add('on');$('bPaint').classList.remove('on')};
@@ -189,6 +214,55 @@ cv.addEventListener('touchstart',e=>{if(mode!=='fix')return;e.preventDefault();b
 cv.addEventListener('touchmove',e=>{if(mode!=='fix')return;e.preventDefault();brush(e)},{passive:false});
 let mdown=false;cv.addEventListener('mousedown',e=>{if(mode!=='fix')return;mdown=true;brush(e)});addEventListener('mousemove',e=>{if(mdown)brush(e)});addEventListener('mouseup',()=>mdown=false);
 
+/* ---------- report: numbered pins with notes, then one image to send ---------- */
+let pins=[];   // {x,y} in work pixels, note
+const W0=()=>W;
+function drawPins(g,k,ox,oy){const r=Math.max(9,W*.028)*k;g.save();g.font='700 '+Math.round(r*1.15)+'px -apple-system,system-ui,sans-serif';g.textAlign='center';g.textBaseline='middle';
+  pins.forEach((p,i)=>{const x=ox+p.x*k,y=oy+p.y*k;g.lineWidth=r*.28;g.strokeStyle='#fff';g.fillStyle='#ff375f';g.beginPath();g.arc(x,y,r,0,7);g.fill();g.stroke();g.fillStyle='#fff';g.fillText(String(i+1),x,y+r*.05)});g.restore()}
+function pinList(){const L=$('pins');L.innerHTML='';
+  pins.forEach((p,i)=>{const r=document.createElement('div');r.className='pr';
+    r.innerHTML='<div class="pn">'+(i+1)+'</div><input placeholder="What is wrong here?"><button class="px">×</button>';
+    const inp=r.querySelector('input');inp.value=p.note||'';inp.oninput=()=>p.note=inp.value;
+    r.querySelector('.px').onclick=()=>{pins.splice(i,1);pinList();draw()};L.appendChild(r)});
+  $('pinHint').style.display=pins.length?'none':''}
+function addPin(e){const r=cv.getBoundingClientRect(),t=e.changedTouches?e.changedTouches[0]:e;
+  pins.push({x:(t.clientX-r.left)/r.width*W,y:(t.clientY-r.top)/r.height*H,note:''});pinList();draw();
+  const ins=$('pins').querySelectorAll('input');const last=ins[ins.length-1];if(last){last.focus();last.scrollIntoView({block:'nearest'})}}
+cv.addEventListener('touchend',e=>{if(mode!=='report')return;e.preventDefault();addPin(e)},{passive:false});
+cv.addEventListener('click',e=>{if(mode!=='report'||e.sourceCapabilities&&e.sourceCapabilities.firesTouchEvents)return;addPin(e)});
+$('bRepClear').onclick=()=>{pins=[];pinList();draw()};
+function wrap(g,text,x,y,maxW,lh){const words=String(text).split(' ');let line='',n=0;
+  for(const w of words){const t=line?line+' '+w:w;if(g.measureText(t).width>maxW&&line){g.fillText(line,x,y+n*lh);n++;line=w}else line=t}
+  if(line){g.fillText(line,x,y+n*lh);n++}return n}
+let repBlob=null;
+$('bRepMake').onclick=()=>{
+  const PW=540,PH=Math.round(PW*FH/FW),gap=20,pad=24,cw=PW*2+gap+pad*2,k=PW/W;
+  const ua=navigator.userAgent,ios=((ua.match(/OS (\d+)_(\d+)/)||[]).slice(1).join('.'))||'?';
+  const info=['Screenshot '+FW+' x '+FH+' · iOS '+ios+' · '+(window.Aura?'Aura':'no Aura'),
+    'Find '+$('bSens').value+' · Clock area '+$('bClock').value+'% · Mode '+(window.__smooth?'smooth':'patch')+' · Detail '+(window.__detail||0).toFixed(2)+' · '+(window.__cleanMs||'?')+' ms',
+    'Finger paint: '+(painted?'yes':'no')+' · '+new Date().toLocaleString('en-US')];
+  /* measure the notes first */
+  const tmp=document.createElement('canvas').getContext('2d');tmp.font='26px -apple-system,system-ui,sans-serif';
+  let lines=0;pins.forEach((p,i)=>{lines+=Math.max(1,Math.ceil(tmp.measureText((i+1)+'. '+(p.note||'—')).width/(cw-pad*2-10)))});
+  const notesH=48+(lines||1)*34+20+info.length*30+pad,ch=pad+40+PH+notesH;
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;const g=c.getContext('2d');
+  g.fillStyle='#111';g.fillRect(0,0,cw,ch);g.fillStyle='#fff';g.font='600 28px -apple-system,system-ui,sans-serif';
+  g.fillText('Before',pad,pad+28);g.fillText('After',pad+PW+gap,pad+28);
+  const y0=pad+40;g.drawImage(full,pad,y0,PW,PH);g.drawImage(out||full,pad+PW+gap,y0,PW,PH);
+  drawPins(g,k,pad,y0);drawPins(g,k,pad+PW+gap,y0);
+  let y=y0+PH+44;g.font='600 28px -apple-system,system-ui,sans-serif';g.fillText('Notes',pad,y);y+=38;g.font='26px -apple-system,system-ui,sans-serif';
+  if(!pins.length){g.fillStyle='rgba(235,235,245,.6)';g.fillText('No pins',pad,y);y+=34}
+  pins.forEach((p,i)=>{g.fillStyle='#fff';y+=wrap(g,(i+1)+'. '+(p.note||'—'),pad,y,cw-pad*2-10,34)*34});
+  y+=14;g.fillStyle='rgba(235,235,245,.6)';g.font='22px ui-monospace,Menlo,monospace';info.forEach(t=>{g.fillText(t,pad,y);y+=30});
+  const url=c.toDataURL('image/jpeg',.9);$('repImg').src=url;show('s4');
+  c.toBlob(b=>{repBlob=b},'image/jpeg',.9)};
+$('bShare').onclick=async()=>{
+  try{if(repBlob&&navigator.canShare){const f=new File([repBlob],'lockscreen-report.jpg',{type:'image/jpeg'});
+      if(navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Lock screen report'});return}}}catch(e){if(e&&e.name==='AbortError')return}
+  const a=document.createElement('a');a.href=$('repImg').src;a.download='lockscreen-report.jpg';document.body.appendChild(a);a.click();a.remove();
+  toast('If nothing happens, touch and hold the picture',2500)};
+$('bRepBack').onclick=()=>{show('s2');setMode('report')};
+
 /* ---------- clean (in a worker, so the screen does not freeze) ---------- */
 let worker=null;
 function clean(){
@@ -201,7 +275,8 @@ function clean(){
     worker.terminate();worker=null;compose(d.img);$('busy').classList.remove('on');
     window.__cleanMs=Math.round(performance.now()-t0);setMode('after')};
   worker.onerror=e=>{$('busy').classList.remove('on');toast('Cleaning failed: '+e.message,3000)};
-  worker.postMessage({W,H,img:src.slice(),mask:mask.slice(),smooth:isSmooth()});
+  window.__smooth=isSmooth();
+  worker.postMessage({W,H,img:src.slice(),mask:mask.slice(),smooth:window.__smooth});
 }
 $('bClean').onclick=clean;
 
@@ -329,6 +404,9 @@ setInterval(clock,5000);
 {let t=null;const el=$('sbar');el.addEventListener('touchstart',()=>{t=setTimeout(()=>show('s2'),1500)},{passive:true});el.addEventListener('touchend',()=>clearTimeout(t));
   el.addEventListener('mousedown',()=>{t=setTimeout(()=>show('s2'),1500)});el.addEventListener('mouseup',()=>clearTimeout(t))}
 addEventListener('resize',()=>{if(W)draw()});
+/* the picture area ends where the bottom bar starts (the bar is taller in Report) */
+function fitView(){$('view').style.bottom=$('bar').offsetHeight+'px'}
+try{new ResizeObserver(fitView).observe($('bar'))}catch(e){addEventListener('resize',fitView)}fitView();
 document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
