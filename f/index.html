@@ -635,7 +635,7 @@ function send(o,to){const api=peerApi();if(!api||Date.now()<hold)return false;
   if(isMag()&&!hosting)return false;if(!isMag()&&!joined)return false;
   try{const r=to?api.send(o,{to}):api.send(o);if(r&&r.catch)r.catch(e=>{if(isBusyErr(e))hold=Date.now()+1200})}catch(e){if(isBusyErr(e))hold=Date.now()+1200;return false}
   return true}
-function freeSlot(){const used=new Set([...guests.values()].map(g=>g.slot));for(let n=1;n<=9;n++)if(!used.has(n))return n;return 9}
+function freeSlot(){const used=new Set([...guests.values()].map(g=>g.slot));for(let n=1;;n++)if(!used.has(n))return n}   // a 10th phone gets 10 (never the same number as another phone)
 function hook(){const A=window.Aura;if(hooked||!A||typeof A.on!=='function')return;hooked=true;
   A.on('peer.connected',({id,name})=>{
     if(isMag()){const g={slot:freeSlot(),ready:false,on:false,rtt:120,name:name||''};guests.set(id,g);
@@ -666,13 +666,18 @@ let gTimers=[];
 function gClear(){gTimers.forEach(clearTimeout);gTimers=[]}
 function report(){send({type:'fstate',ready:camAlive(),on:lightOn,slot:mySlot})}
 async function gLight(on){if(!camAlive()){report();return}await setLight(on,true);report()}
+let gLoaded=null;
+function gRun(ev,len,inMs){gClear();const w=Math.max(0,inMs||0);for(const [t,on] of ev)gTimers.push(setTimeout(()=>gLight(!!on),w+t));
+  gTimers.push(setTimeout(()=>gLight(false),w+(len||0)+20))}
 function guestIn(d){
   if(d.cmd==='slot'){mySlot=d.n;report();return}
   if(d.cmd==='echo'){send({type:'echoback',t:d.t});return}
   if(d.cmd==='light'){const go=()=>gLight(!!d.on);if(d.in>0)gTimers.push(setTimeout(go,d.in));else go();return}
   if(d.cmd==='flash'){const ms=d.ms||FLASH_MS,w=d.in>0?d.in:0;gTimers.push(setTimeout(()=>gLight(true),w),setTimeout(()=>gLight(false),w+ms));return}
-  if(d.cmd==='run'){gClear();const w=Math.max(0,d.in||0);for(const [t,on] of d.ev)gTimers.push(setTimeout(()=>gLight(!!on),w+t));
-    gTimers.push(setTimeout(()=>gLight(false),w+(d.len||0)+20));return}
+  if(d.cmd==='run'){gRun(d.ev,d.len,d.in);return}
+  /* the routine comes first (load, during the countdown), then a very small "go" message starts it at the same time on all phones */
+  if(d.cmd==='load'){gLoaded={k:d.k,ev:d.ev||[],len:d.len||0};return}
+  if(d.cmd==='go'){if(gLoaded&&gLoaded.k===d.k)gRun(gLoaded.ev,gLoaded.len,d.in);return}
   if(d.cmd==='stop'){gClear();gLight(false);return}
   if(d.cmd==='pause'){gClear();return}   // the light stays as it is until the routine goes on
   if(d.cmd==='state'){report();return}}
@@ -981,18 +986,25 @@ function runRoutine(r){if(!r)return;if(running){runStop(true);return}
   r.used=Date.now();saveP();
   running=r;runTimers=[];$('runBlack').classList.add('on');try{navigator.wakeLock&&navigator.wakeLock.request('screen').catch(()=>{})}catch(e){}
   guests.forEach((g,id)=>ping(id));
-  const n=+r.cd||0,gap=+r.gap||1000,lead=650;
+  /* send each phone its part of the routine now. Bluetooth sends only a few KB/s, so the start waits until all parts can arrive. */
+  r._k=(r.id||'r')+':'+Date.now();const pp=perOf(r,0);let bytes=0;
+  for(const tg in pp.per){if(tg==='M')continue;const id=idOf(+tg);if(!id)continue;const g=guests.get(id),m={cmd:'load',k:r._k,ev:pp.per[tg],len:pp.len};
+    if(send(m,id)){g.loadK=r._k;bytes+=JSON.stringify(m).length}}
+  const n=+r.cd||0,gap=+r.gap||1000,lead=Math.max(650,250+Math.round(bytes/2.5));
   for(let i=0;i<n;i++)runTimers.push(setTimeout(()=>{hap('heavy');if(bleOn())aps.vibrate('.').catch(()=>{})},lead+i*gap));
   runTimers.push(setTimeout(()=>loopRun(r),lead+n*gap))}
+/* each phone's part of the routine, from a time in the routine (off) */
+function perOf(r,off){const per={};for(const [t,tg,on] of r.ev){(per[tg]=per[tg]||[])}
+  for(const tg in per){const st=stateAt(r.ev.filter(e=>e[1]===tg),off-1)[tg];per[tg].push([0,st?1:0])}   // the state at the restart point
+  for(const [t,tg,on] of r.ev)if(t>=off)per[tg].push([t-off,on]);
+  return{per,len:r.len-off}}
 let runT0=0,runOff=0,paused=-1;   // paused: the time in the routine where it stopped (-1 = not paused)
 function loopRun(r,off){if(running!==r)return;off=off||0;paused=-1;
   const T0=now()+250;runT0=T0;runOff=off;   // every phone starts at T0: each one gets its delay minus half its Bluetooth round trip
-  const per={};for(const [t,tg,on] of r.ev){(per[tg]=per[tg]||[])}
-  for(const tg in per){const st=stateAt(r.ev.filter(e=>e[1]===tg),off-1)[tg];per[tg].push([0,st?1:0])}   // the state at the restart point
-  for(const [t,tg,on] of r.ev)if(t>=off)per[tg].push([t-off,on]);
-  const len=r.len-off;
+  const {per,len}=perOf(r,off);
   for(const tg in per){if(tg==='M'){for(const [t,on] of per.M)runTimers.push(setTimeout(()=>{mOn=!!on;if(camAlive())setLight(!!on,true)},T0-now()+t));continue}
-    const id=idOf(+tg);if(!id)continue;const g=guests.get(id);send({cmd:'run',ev:per[tg],len,in:Math.round(T0-now()-(g.rtt||120)/2)},id)}
+    const id=idOf(+tg);if(!id)continue;const g=guests.get(id);const inMs=Math.round(T0-now()-(g.rtt||120)/2);
+    if(off===0&&r._k&&g.loadK===r._k)send({cmd:'go',k:r._k,in:inMs},id);else send({cmd:'run',ev:per[tg],len,in:inMs},id)}
   runTimers.push(setTimeout(()=>{if(running!==r)return;if(r.loop)loopRun(r,0);else runEnd()},T0-now()+len+60))}
 /* pause / go on (PeekSmith light button during a routine) */
 function runPause(){if(!running)return;
