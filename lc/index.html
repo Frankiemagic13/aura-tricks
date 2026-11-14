@@ -82,12 +82,12 @@ html,body{margin:0;height:100%;background:#000;color:#fff;font-family:-apple-sys
   <div id="view"><canvas id="cv"></canvas></div>
   <div id="msg"></div>
   <div id="bar">
-    <div class="row"><button id="bBefore">Before</button><button id="bAfter" class="on">After</button><button id="bFix">Fix</button><button id="bRep">Report</button></div>
+    <div class="row"><button id="bBefore">Before</button><button id="bAfter" class="on">After</button><button id="bPin">PIN</button><button id="bFix">Fix</button><button id="bRep">Report</button></div>
     <div id="repRow"><div id="pinHint">Tap a problem place on the picture. Type a note for each pin.</div><div id="pins"></div>
       <div class="row"><button id="bRepClear">Clear pins</button><button id="bRepMake" class="go">Make report image</button></div></div>
     <div class="row" id="fixRow" style="display:none"><button id="bPaint" class="on">Paint</button><button id="bErase">Erase</button><label>Size</label><input type="range" id="bSize" min="8" max="80" value="34"></div>
-    <div class="row nrm"><label>Find</label><input type="range" id="bSens" min="8" max="60" value="24" style="direction:rtl"><label>Clock</label><input type="range" id="bClock" min="18" max="55" value="31"></div>
-    <div class="row nrm"><button id="bClean">Clean again</button><button id="bUse" class="go">Use</button></div>
+    <div class="row nrm"><label>Find</label><input type="range" id="bSens" min="8" max="60" value="24" style="direction:rtl"><label>Clock</label><input type="range" id="bClock" min="18" max="45" value="26"></div>
+    <div class="row nrm"><button id="bWid" class="on" style="flex:.7">Widgets</button><button id="bClean">Clean again</button><button id="bUse" class="go">Use</button></div>
   </div>
   <div id="busy"><div id="busyT">Cleaning…</div><div id="prog"><i></i></div></div>
 </div>
@@ -146,7 +146,7 @@ function zones(){const z=new Uint8Array(W*H);
   const rect=(x0,y0,x1,y1)=>{for(let y=Math.max(0,Math.floor(y0*H));y<Math.min(H,Math.ceil(y1*H));y++)for(let x=Math.max(0,Math.floor(x0*W));x<Math.min(W,Math.ceil(x1*W));x++)z[y*W+x]=1};
   const circ=(cx,cy,r)=>{const R=r*W;for(let y=Math.floor(cy*H-R);y<=cy*H+R;y++)for(let x=Math.floor(cx*W-R);x<=cx*W+R;x++)if(x>=0&&y>=0&&x<W&&y<H&&(x-cx*W)**2+(y-cy*H)**2<=R*R)z[y*W+x]=1};
   rect(0,0,1,.062);                                  // status bar
-  rect(.04,.066,.96,+$('bClock').value/100);         // date, clock and widgets
+  rect(.04,.066,.96,+$('bClock').value/100);         // date and clock
   circ(.163,.912,.095);circ(.837,.912,.095);         // flashlight and camera buttons
   rect(.25,.962,.75,1);                              // home bar
   return z}
@@ -178,6 +178,25 @@ function autoMask(){
       for(const i of pts){const px=i%W,py=(i/W)|0;for(let yy=Math.max(by0,py-Rd);yy<=Math.min(by1,py+Rd);yy++){const o=yy*W;for(let xx=Math.max(bx0,px-Rd);xx<=Math.min(bx1,px+Rd);xx++)near[o+xx]=1}}
       if(L>170)for(let y=by0;y<=by1;y++)for(let x=bx0;x<=bx1;x++){const i=y*W+x;if(!near[i])continue;const dr=src[i*4]-r,dg=src[i*4+1]-g,db=src[i*4+2]-b;
         if(dr*dr+dg*dg+db*db<26*26)m0[i]=1}}}
+  /* widgets: the row under the clock. Widgets are see-through plates (circles or rounded boxes) with
+     white icons and text. The icons and text are found by the blur test; then the whole plate around
+     each group goes, so the soft plate edge does not stay. */
+  window.__widgets=0;
+  if($('bWid').classList.contains('on')){
+    const wy0=Math.floor(+$('bClock').value/100*H),wy1=Math.min(H,Math.ceil((+$('bClock').value/100+.095)*H));
+    const col=new Uint16Array(W);let found=0;
+    for(let y=wy0;y<wy1;y++)for(let x=Math.floor(.04*W);x<Math.ceil(.96*W);x++)if(diffMap[y*W+x]>T){col[x]++;found++}
+    if(found>W*.15){
+      /* group the columns into widgets (a gap wider than 2.5 % of the screen = next widget) */
+      const gapMax=Math.round(W*.025),groups=[];let g0=-1,last=-99;
+      for(let x=0;x<W;x++){if(col[x]>=2){if(g0<0||x-last>gapMax){if(g0>=0)groups.push([g0,last]);g0=x}last=x}}
+      if(g0>=0)groups.push([g0,last]);
+      let ry0=wy1,ry1=wy0;for(let y=wy0;y<wy1;y++)for(let x=Math.floor(.04*W);x<Math.ceil(.96*W);x++)if(diffMap[y*W+x]>T){if(y<ry0)ry0=y;if(y>ry1)ry1=y}
+      const m=Math.round(W*.022);window.__widgets=groups.length;
+      for(const [a,b] of groups){if(b-a<W*.02)continue;
+        const x0=Math.max(0,a-m),x1=Math.min(W-1,b+m),y0=Math.max(wy0-m,ry0-m),y1=Math.min(H-1,ry1+m),rr=Math.min(x1-x0,y1-y0)*.35;
+        for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){   // rounded box
+          const dx=Math.max(x0+rr-x,0,x-(x1-rr)),dy=Math.max(y0+rr-y,0,y-(y1-rr));if(dx*dx+dy*dy<=rr*rr)m0[y*W+x]=1}}}}
   /* grow the found pixels so the soft edges of the letters go too */
   const D=Math.max(3,Math.round(W*.007));mask=new Uint8Array(W*H);
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){if(!m0[y*W+x])continue;
@@ -189,17 +208,19 @@ function sizeView(){cv.width=W;cv.height=H;draw()}
 function draw(){
   if(!W)return;
   if(mode==='before'||!out)cx.drawImage(full,0,0,W,H);else cx.drawImage(out,0,0,W,H);
+  if(mode==='pin')drawPinUI(cx,0,0,W,H);
   if(mode==='report')drawPins(cx,W/W0(),0,0);
   if(mode==='fix'){const id=cx.getImageData(0,0,W,H),d=id.data;
     for(let i=0;i<W*H;i++)if(mask[i]){d[i*4]=d[i*4]*.45+255*.55;d[i*4+1]*=.45;d[i*4+2]*=.45}cx.putImageData(id,0,0)}}
-function setMode(m){mode=m;const ids={before:'bBefore',after:'bAfter',fix:'bFix',report:'bRep'};Object.values(ids).forEach(id=>$(id).classList.toggle('on',id===ids[m]));
+function setMode(m){mode=m;const ids={before:'bBefore',after:'bAfter',pin:'bPin',fix:'bFix',report:'bRep'};Object.values(ids).forEach(id=>$(id).classList.toggle('on',id===ids[m]));
   $('fixRow').style.display=m==='fix'?'flex':'none';$('repRow').style.display=m==='report'?'flex':'none';
   document.querySelectorAll('#bar .nrm').forEach(r=>r.style.display=m==='report'?'none':'flex');
   draw();if(m==='fix')toast('Paint over what must go, then Clean again',2200)}
-$('bRep').onclick=()=>setMode('report');
+$('bRep').onclick=()=>setMode('report');$('bPin').onclick=()=>setMode('pin');
 $('bBefore').onclick=()=>setMode('before');$('bAfter').onclick=()=>setMode('after');$('bFix').onclick=()=>setMode('fix');
 $('bPaint').onclick=()=>{tool='paint';$('bPaint').classList.add('on');$('bErase').classList.remove('on')};
 $('bErase').onclick=()=>{tool='erase';$('bErase').classList.add('on');$('bPaint').classList.remove('on')};
+$('bWid').onclick=()=>{$('bWid').classList.toggle('on');autoMaskKeepPaint();if(mode!=='fix')setMode('fix');else draw()};
 $('bClock').oninput=$('bSens').oninput=()=>{autoMaskKeepPaint();if(mode!=='fix')setMode('fix');else draw()};
 let painted=null;   // finger paint is kept when the clock area changes
 function autoMaskKeepPaint(){const p=painted;autoMask();if(p)for(let i=0;i<p.length;i++){if(p[i]===1)mask[i]=1;else if(p[i]===2)mask[i]=0}}
@@ -213,6 +234,26 @@ function brush(e){const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;
 cv.addEventListener('touchstart',e=>{if(mode!=='fix')return;e.preventDefault();brush(e)},{passive:false});
 cv.addEventListener('touchmove',e=>{if(mode!=='fix')return;e.preventDefault();brush(e)},{passive:false});
 let mdown=false;cv.addEventListener('mousedown',e=>{if(mode!=='fix')return;mdown=true;brush(e)});addEventListener('mousemove',e=>{if(mdown)brush(e)});addEventListener('mouseup',()=>mdown=false);
+
+/* ---------- how the passcode screen will look over the clean wallpaper (same layout as the PIN screen) ---------- */
+function drawPinUI(g,ox,oy,w,h){const u=w/402,v=h/874;g.save();g.translate(ox,oy);
+  g.fillStyle='rgba(0,0,0,.28)';g.fillRect(0,0,w,h);
+  g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';
+  /* status bar time */
+  const d=new Date();g.font='600 '+17*u+'px -apple-system,system-ui,sans-serif';g.textAlign='left';g.fillText((d.getHours()%12||12)+':'+String(d.getMinutes()).padStart(2,'0'),50*u,27*v);g.textAlign='center';
+  /* lock */
+  const lx=w/2,ly=137*v;g.beginPath();g.lineWidth=3*u;g.strokeStyle='#fff';g.moveTo(lx-6.5*u,ly+1*u);g.lineTo(lx-6.5*u,ly-5*u);g.arc(lx,ly-5*u,6.5*u,Math.PI,0);g.lineTo(lx+6.5*u,ly+1*u);g.stroke();
+  g.beginPath();g.roundRect?g.roundRect(lx-11*u,ly,22*u,16*u,2.5*u):g.rect(lx-11*u,ly,22*u,16*u);g.fill();
+  g.font='600 '+20*u+'px -apple-system,system-ui,sans-serif';g.fillText('Enter Passcode',w/2,186*v);
+  for(let i=0;i<4;i++){g.beginPath();g.lineWidth=1.3*u;g.arc(w/2+(i-1.5)*37*u,226*v,6.5*u,0,7);g.stroke()}
+  /* keys */
+  const K=['1','2','3','4','5','6','7','8','9','0'],L=['','ABC','DEF','GHI','JKL','MNO','PQRS','TUV','WXYZ',''],ks=78*u,gx=26*u,gy=16*v,top=292*v,x0=w/2-ks*1.5-gx;
+  K.forEach((k,i)=>{const r=i<9?Math.floor(i/3):3,c=i<9?i%3:1,cx=x0+c*(ks+gx)+ks/2,cy=top+r*(ks+gy)+ks/2;
+    g.fillStyle='rgba(255,255,255,.18)';g.beginPath();g.arc(cx,cy,ks/2,0,7);g.fill();
+    g.fillStyle='#fff';g.font='400 '+36*u+'px -apple-system,system-ui,sans-serif';g.fillText(k,cx,cy-(L[i]?5*u:0));
+    if(L[i]){g.font='700 '+10*u+'px -apple-system,system-ui,sans-serif';g.fillText(L[i].split('').join(String.fromCharCode(8202)),cx,cy+17*u)}});
+  g.font='400 '+17*u+'px -apple-system,system-ui,sans-serif';g.textAlign='left';g.fillText('Emergency',44*u,h-52*v);g.textAlign='right';g.fillText('Cancel',w-44*u,h-52*v);
+  g.restore()}
 
 /* ---------- report: numbered pins with notes, then one image to send ---------- */
 let pins=[];   // {x,y} in work pixels, note
@@ -236,10 +277,10 @@ function wrap(g,text,x,y,maxW,lh){const words=String(text).split(' ');let line='
   if(line){g.fillText(line,x,y+n*lh);n++}return n}
 let repBlob=null;
 $('bRepMake').onclick=()=>{
-  const PW=540,PH=Math.round(PW*FH/FW),gap=20,pad=24,cw=PW*2+gap+pad*2,k=PW/W;
+  const PW=420,PH=Math.round(PW*FH/FW),gap=18,pad=24,cw=PW*3+gap*2+pad*2,k=PW/W;
   const ua=navigator.userAgent,ios=((ua.match(/OS (\d+)_(\d+)/)||[]).slice(1).join('.'))||'?';
   const info=['Screenshot '+FW+' x '+FH+' · iOS '+ios+' · '+(window.Aura?'Aura':'no Aura'),
-    'Find '+$('bSens').value+' · Clock area '+$('bClock').value+'% · Mode '+(window.__smooth?'smooth':'patch')+' · Detail '+(window.__detail||0).toFixed(2)+' · '+(window.__cleanMs||'?')+' ms',
+    'Find '+$('bSens').value+' · Clock area '+$('bClock').value+'% · Widgets '+($('bWid').classList.contains('on')?'on ('+(window.__widgets||0)+' found)':'off')+' · Mode '+(window.__smooth?'smooth':'patch')+' · Detail '+(window.__detail||0).toFixed(2)+' · '+(window.__cleanMs||'?')+' ms',
     'Finger paint: '+(painted?'yes':'no')+' · '+new Date().toLocaleString('en-US')];
   /* measure the notes first */
   const tmp=document.createElement('canvas').getContext('2d');tmp.font='26px -apple-system,system-ui,sans-serif';
@@ -247,9 +288,10 @@ $('bRepMake').onclick=()=>{
   const notesH=48+(lines||1)*34+20+info.length*30+pad,ch=pad+40+PH+notesH;
   const c=document.createElement('canvas');c.width=cw;c.height=ch;const g=c.getContext('2d');
   g.fillStyle='#111';g.fillRect(0,0,cw,ch);g.fillStyle='#fff';g.font='600 28px -apple-system,system-ui,sans-serif';
-  g.fillText('Before',pad,pad+28);g.fillText('After',pad+PW+gap,pad+28);
+  g.fillText('Before',pad,pad+28);g.fillText('After',pad+PW+gap,pad+28);g.fillText('With PIN',pad+(PW+gap)*2,pad+28);
   const y0=pad+40;g.drawImage(full,pad,y0,PW,PH);g.drawImage(out||full,pad+PW+gap,y0,PW,PH);
-  drawPins(g,k,pad,y0);drawPins(g,k,pad+PW+gap,y0);
+  g.drawImage(out||full,pad+(PW+gap)*2,y0,PW,PH);drawPinUI(g,pad+(PW+gap)*2,y0,PW,PH);
+  drawPins(g,k,pad,y0);drawPins(g,k,pad+PW+gap,y0);drawPins(g,k,pad+(PW+gap)*2,y0);
   let y=y0+PH+44;g.font='600 28px -apple-system,system-ui,sans-serif';g.fillText('Notes',pad,y);y+=38;g.font='26px -apple-system,system-ui,sans-serif';
   if(!pins.length){g.fillStyle='rgba(235,235,245,.6)';g.fillText('No pins',pad,y);y+=34}
   pins.forEach((p,i)=>{g.fillStyle='#fff';y+=wrap(g,(i+1)+'. '+(p.note||'—'),pad,y,cw-pad*2-10,34)*34});
