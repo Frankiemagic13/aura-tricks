@@ -175,7 +175,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Codebreaker","i":"magic","s":["codebreaker"]}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -312,7 +312,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v41</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v42</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -374,7 +374,7 @@ function evalToks(t){const a=t.map(x=>isOp(x)?x:parseFloat(x));if(a.length&&isOp
   const b=[];for(let i=0;i<a.length;i++){if(a[i]==='×'||a[i]==='÷'){const l=b.pop(),op=a[i],r=a[++i];b.push(op==='×'?l*r:(r===0?NaN:l/r))}else b.push(a[i])}
   let v=b[0]??0;for(let i=1;i<b.length;i+=2)v=b[i]==='+'?v+b[i+1]:v-b[i+1];return v}
 function fmtNum(s){if(s===''||s==null)return'';
-  if(typeof s==='number'){if(!isFinite(s))return'Error';s=Math.abs(s)>=1e16?s.toExponential(6).replace('e+','e'):String(+s.toPrecision(12))}
+  if(typeof s==='number'){if(!isFinite(s))return'Error';s=Math.abs(s)>=1e16?s.toExponential(8).replace(/\.?0+e/,'e').replace('e+','e'):String(+s.toPrecision(12))}
   if(/e/.test(s))return s;const neg=s.startsWith('-');if(neg)s=s.slice(1);
   let[i,f]=s.split('.');i=(i||'0').replace(/\B(?=(\d{3})+(?!\d))/g,',');return(neg?'-':'')+i+(f!==undefined?'.'+f:'')}
 const exprStr=t=>t.map(x=>isOp(x)?x:fmtNum(x)).join('');
@@ -574,7 +574,12 @@ async function cloudLoad(){
     else if((S.forceT||0)>d.t)cloudSave()}
   catch(e){}}
 cloudLoad();
-function down(b){b.classList.add('down');
+function down(b){
+  /* fast typing with two thumbs: a new key can go down before 0 or = comes up.
+     Enter the waiting 0 / = first, so the order stays correct. */
+  if(zeroDown&&!held){zeroDown=false;clearTimeout(holdT);press('0')}
+  if(eqDown&&!eqHeld){eqDown=false;clearTimeout(eqT);press('=')}
+  b.classList.add('down');
   const k=b.dataset.k;
   if(k==='='){eqDown=true;eqHeld=false;clearTimeout(eqT);
     eqT=setTimeout(()=>{eqHeld=true;b.classList.remove('down');cbSet(!cbOn)},S.cbHold||700);return}
@@ -848,7 +853,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v41. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v42. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
