@@ -490,7 +490,7 @@ $('bPrint').onclick = async () => {
     log(`sent in ${Math.round(performance.now()-t0)} ms`);
   });
 };
-$('bFeed').onclick = () => runJob(async () => { await write(CMD.feed(240)); });
+$('bFeed').onclick = () => runJob(async () => { await write(CMD.feed(80)); });
 $('bConnect').onclick = () => connected ? disconnect() : connect();
 
 /* ---------- Start ---------- */
