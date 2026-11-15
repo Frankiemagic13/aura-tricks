@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Mirror</title>
+<!-- Screen Mirror (test)
+     Mac (Chrome or Safari): open this page, click "Start sharing". It shows a QR code and a link.
+     iPhone: scan the QR code or open the link. The Mac screen shows full screen.
+     Video goes directly Mac -> iPhone (WebRTC). PeerJS's free cloud server only connects the two. -->
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#eee;font:15px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif}
+.hide{display:none!important}
+/* Receiver (iPhone) */
+#rx{position:fixed;inset:0;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none}
+#vid{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+#hud{position:fixed;left:10px;top:calc(env(safe-area-inset-top) + 10px);font-size:12px;color:#34c759;background:rgba(0,0,0,.65);padding:6px 9px;border-radius:8px;pointer-events:none}
+#join{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;background:#111}
+#join input{font-size:28px;text-align:center;width:200px;padding:10px;border-radius:12px;border:0;background:#2c2c2e;color:#fff;letter-spacing:4px;text-transform:uppercase}
+button{font:600 16px -apple-system,system-ui,sans-serif;padding:11px 20px;border:0;border-radius:12px;cursor:pointer;background:#f5c33b;color:#000}
+button.sec{background:#2c2c2e;color:#fff}
+#tapPlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);font-size:18px}
+/* Sender (Mac) */
+#tx{max-width:760px;margin:0 auto;padding:28px;background:#111;min-height:100%;box-sizing:border-box}
+#tx h2{margin:0 0 6px}
+.card{background:#1c1c1e;border-radius:14px;padding:16px;margin:14px 0;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+#qr{background:#fff;padding:10px;border-radius:10px;line-height:0}
+#code{font-size:34px;font-weight:700;letter-spacing:6px;color:#f5c33b}
+#link{word-break:break-all;color:#8ecbff}
+#prev{width:100%;border-radius:10px;background:#000;margin-top:8px}
+.note{color:#8e8e93;font-size:13px}
+#txst{color:#34c759}
+</style>
+</head>
+<body>
+
+<!-- ===== Receiver ===== -->
+<div id="rx" class="hide">
+  <video id="vid" autoplay playsinline muted></video>
+  <div id="hud">Starting…</div>
+  <div id="tapPlay" class="hide">Tap to start video</div>
+  <div id="join" class="hide">
+    <div>Enter the code from the Mac</div>
+    <input id="codeIn" maxlength="6" autocapitalize="characters" autocorrect="off" spellcheck="false">
+    <button id="joinBtn">Connect</button>
+  </div>
+</div>
+
+<!-- ===== Sender ===== -->
+<div id="tx" class="hide">
+  <h2>Screen Mirror – Sender</h2>
+  <div class="note">Keep this tab open while you mirror. You can switch to other apps.</div>
+  <div class="card">
+    <button id="startBtn">Start sharing</button>
+    <button id="stopBtn" class="sec">Stop</button>
+    <button id="newBtn" class="sec">New code</button>
+    <span id="txst">Connecting to server…</span>
+  </div>
+  <div class="card">
+    <div id="qr"></div>
+    <div>
+      <div class="note">On the iPhone, scan this or open the link. Or type the code.</div>
+      <div id="code">——</div>
+      <div id="link"></div>
+      <div class="note" id="viewers">0 phones connected</div>
+    </div>
+  </div>
+  <video id="prev" autoplay playsinline muted></video>
+</div>
+
+<script>
+const PREFIX = 'fvt-mirror-';
+const $ = id => document.getElementById(id);
+const canShare = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+const isPhone = /iPhone|iPod|Android/.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+const hashCode = location.hash.replace('#', '').trim().toUpperCase();
+const params = new URLSearchParams(location.search);
+const mode = params.get('mode') || ((hashCode || isPhone || !canShare) ? 'rx' : 'tx');
+
+const ls = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+const newCode = () => {
+  const a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s = ''; for (let i = 0; i < 5; i++) s += a[Math.floor(Math.random() * a.length)];
+  return s;
+};
+
+/* ================= SENDER (Mac) ================= */
+function startSender() {
+  $('tx').classList.remove('hide');
+  let code = ls.get('fvtMirrorCode') || newCode();
+  ls.set('fvtMirrorCode', code);
+  let peer = null, stream = null;
+  const viewers = new Map();   // peerId -> { conn, call }
+
+  const st = t => $('txst').textContent = t;
+  const showViewers = () => {
+    const n = [...viewers.values()].filter(v => v.conn.open).length;
+    $('viewers').textContent = n + (n === 1 ? ' phone' : ' phones') + ' connected';
+  };
+
+  function showCode() {
+    const url = location.origin + location.pathname + '#' + code;
+    $('code').textContent = code;
+    $('link').textContent = url;
+    $('qr').innerHTML = '';
+    new QRCode($('qr'), { text: url, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M });
+  }
+
+  function callViewer(id) {
+    const v = viewers.get(id);
+    if (!v || !stream || !peer) return;
+    if (v.call) v.call.close();
+    v.call = peer.call(id, stream);
+  }
+
+  function openPeer() {
+    if (peer) peer.destroy();
+    st('Connecting to server…');
+    peer = new Peer(PREFIX + code, { debug: 1 });
+    peer.on('open', () => st(stream ? 'Sharing' : 'Ready – click Start sharing'));
+    peer.on('connection', conn => {
+      conn.on('open', () => {
+        viewers.set(conn.peer, { conn, call: null });
+        showViewers();
+        if (stream) callViewer(conn.peer);
+      });
+      conn.on('close', () => { const v = viewers.get(conn.peer); if (v && v.call) v.call.close(); viewers.delete(conn.peer); showViewers(); });
+    });
+    peer.on('disconnected', () => { st('Server lost – reconnecting…'); setTimeout(() => peer && !peer.destroyed && peer.reconnect(), 1500); });
+    peer.on('error', err => {
+      if (err.type === 'unavailable-id') { st('Code busy (old tab still open?) – retrying…'); setTimeout(openPeer, 3000); }
+      else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') { st('Network error – retrying…'); setTimeout(openPeer, 3000); }
+      else st('Error: ' + err.type);
+    });
+  }
+
+  $('startBtn').onclick = async () => {
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 60 } }, audio: false });
+    } catch (e) { st('Share cancelled'); return; }
+    $('prev').srcObject = stream;
+    stream.getVideoTracks()[0].contentHint = 'detail';
+    stream.getVideoTracks()[0].onended = stopShare;
+    st('Sharing');
+    for (const id of viewers.keys()) callViewer(id);
+  };
+  function stopShare() {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = null; $('prev').srcObject = null;
+    for (const v of viewers.values()) { if (v.call) v.call.close(); v.call = null; }
+    st('Stopped – click Start sharing');
+  }
+  $('stopBtn').onclick = stopShare;
+  $('newBtn').onclick = () => { code = newCode(); ls.set('fvtMirrorCode', code); viewers.clear(); showViewers(); showCode(); openPeer(); };
+
+  showCode();
+  openPeer();
+}
+
+/* ================= RECEIVER (iPhone) ================= */
+function startReceiver() {
+  $('rx').classList.remove('hide');
+  const vid = $('vid'), hud = $('hud');
+  let peer = null, conn = null, code = hashCode, retry = null, hasVideo = false;
+  const say = t => hud.textContent = t;
+
+  if (!code) { $('join').classList.remove('hide'); hud.classList.add('hide'); }
+  $('joinBtn').onclick = () => {
+    const c = $('codeIn').value.trim().toUpperCase();
+    if (c.length < 4) return;
+    code = c; history.replaceState(null, '', '#' + c);
+    $('join').classList.add('hide'); hud.classList.remove('hide');
+    begin();
+  };
+
+  function connect() {
+    clearTimeout(retry);
+    if (!peer || peer.destroyed || !peer.open) return;
+    if (conn) conn.close();
+    say('Looking for Mac (' + code + ')…');
+    conn = peer.connect(PREFIX + code, { reliable: true });
+    conn.on('open', () => say('Connected – waiting for Mac to share'));
+    conn.on('close', () => { hasVideo = false; say('Mac disconnected – retrying…'); retry = setTimeout(connect, 2000); });
+    // If the Mac is not there yet, try again.
+    retry = setTimeout(() => { if (!conn.open) connect(); }, 4000);
+  }
+
+  function begin() {
+    peer = new Peer({ debug: 1 });
+    peer.on('open', connect);
+    peer.on('call', call => {
+      call.answer();   // receive only
+      call.on('stream', s => {
+        vid.srcObject = s;
+        hasVideo = true;
+        vid.play().then(() => say('Live – tap to hide')).catch(() => $('tapPlay').classList.remove('hide'));
+      });
+      call.on('close', () => { if (vid.srcObject) vid.srcObject = null; hasVideo = false; if (conn && conn.open) say('Mac stopped sharing'); });
+    });
+    peer.on('error', err => {
+      if (err.type === 'peer-unavailable') { say('Mac not found (' + code + ') – retrying…'); clearTimeout(retry); retry = setTimeout(connect, 2500); }
+      else if (err.type === 'network' || err.type === 'server-error' || err.type === 'socket-error') { say('Network error – retrying…'); setTimeout(() => { peer.destroy(); begin(); }, 3000); }
+      else say('Error: ' + err.type);
+    });
+    peer.on('disconnected', () => setTimeout(() => peer && !peer.destroyed && peer.reconnect(), 1500));
+  }
+
+  $('tapPlay').onclick = e => { e.stopPropagation(); vid.play(); $('tapPlay').classList.add('hide'); say('Live – tap to hide'); };
+
+  // Tap: hide/show the status text and keep the screen awake.
+  let wake = null;
+  $('rx').addEventListener('click', async e => {
+    if (!$('join').classList.contains('hide')) return;
+    hud.classList.toggle('hide');
+    try { if (!wake && 'wakeLock' in navigator) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => wake = null); } } catch (err) {}
+  });
+
+  // Show live resolution / fps in the status text.
+  setInterval(() => {
+    if (!hasVideo || hud.classList.contains('hide')) return;
+    const q = vid.getVideoPlaybackQuality ? vid.getVideoPlaybackQuality() : null;
+    const f = q ? q.totalVideoFrames : 0;
+    const fps = f - (window._lf || 0); window._lf = f;
+    say('Live ' + vid.videoWidth + '×' + vid.videoHeight + (q ? ' · ' + fps + ' fps' : '') + ' – tap to hide');
+  }, 1000);
+
+  if (code) begin();
+}
+
+if (typeof Peer === 'undefined') {
+  document.body.innerHTML = '<p style="padding:24px">Could not load PeerJS. Check the internet connection.</p>';
+} else if (mode === 'tx') startSender(); else startReceiver();
+</script>
+</body>
+</html>
