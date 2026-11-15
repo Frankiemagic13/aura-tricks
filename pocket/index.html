@@ -63,6 +63,9 @@
     <button id="bTest">Self-test</button>
     <button id="bLog">Log</button>
   </div>
+  <div class="bar" style="padding-top:0">
+    <button id="bScanAll">Scan all devices</button>
+  </div>
   <div id="log"></div>
 </div>
 
@@ -272,8 +275,15 @@ function onReplyNotify(e) {
 
 async function startSession() {
   setStatus('Connecting…', 'warn');
-  const server = await device.gatt.connect();
+  let server = null, lastErr = null;
+  for (let i = 1; i <= 3; i++) {
+    try { server = await device.gatt.connect(); break; }
+    catch (e) { lastErr = e; log(`GATT connect try ${i} failed: ${e.message}`); await new Promise(r => setTimeout(r, 600 * i)); }
+  }
+  if (!server) throw new Error('Could not connect (' + (lastErr ? lastErr.message : 'unknown') + '). Close the official app and turn the Pocket off and on.');
   log('GATT connected');
+  try { const svcs = await server.getPrimaryServices(); log('services: ' + svcs.map(x => x.uuid.slice(0, 8)).join(', ')); }
+  catch (e) { log('service list: ' + e.message); }
 
   let penSvc, cmdSvc;
   try { penSvc = await server.getPrimaryService(U.penSvc); } catch (e) { throw new Error('Pen service missing'); }
@@ -299,10 +309,15 @@ async function startSession() {
   if (chars.cmd.writeValueWithResponse) await chars.cmd.writeValueWithResponse(START_CMD);
   else await chars.cmd.writeValue(START_CMD);
   log('wrote 21 01 00');
-  await gotReply;
-  started = true;
+  started = false;
+  try { await gotReply; started = true; setStatus('Ready — write on the Pocket', 'ok'); }
+  catch (e) {
+    log(e.message + ' — trying write without response');
+    try { if (chars.cmd.writeValueWithoutResponse) await chars.cmd.writeValueWithoutResponse(START_CMD); } catch (e2) { log('write w/o response: ' + e2.message); }
+    started = true;
+    setStatus('No start reply — listening anyway', 'warn');
+  }
   lastContact = 0;
-  setStatus('Ready — write on the Pocket', 'ok');
   $('bConnect').textContent = 'Disconnect';
 }
 
@@ -321,6 +336,15 @@ async function onDisconnected() {
   $('bConnect').textContent = 'Connect';
 }
 
+let scanAll = false;
+function hintFor(e) {
+  const m = (e && e.message || '').toLowerCase();
+  if (e && e.name === 'NotFoundError' && !m.includes('cancel')) return 'Pocket not found. Close the official app (it holds the connection), turn the Pocket off and on, then try again.';
+  if (m.includes('bluetooth adapter') || m.includes('not available') || m.includes('powered')) return 'Bluetooth is off, or Chrome has no Bluetooth permission (Mac: System Settings › Privacy & Security › Bluetooth › Chrome).';
+  if (m.includes('globally disabled') || m.includes('permissions policy')) return 'This browser blocks Bluetooth for this page. Use Chrome on Mac or Bluefy on iPhone.';
+  if (m.includes('service missing')) return 'Connected, but the pen service is missing. Use "Scan all devices" and pick the Pocket by name.';
+  return '';
+}
 async function connect() {
   if (!navigator.bluetooth) {
     setStatus('No Web Bluetooth here', 'bad');
@@ -330,18 +354,22 @@ async function connect() {
   userStop = false;
   try {
     if (!device) {
-      device = await navigator.bluetooth.requestDevice({
-        filters: [{ name: 'Lumen_ZY_Pocket' }, { namePrefix: 'Lumen' }],
-        optionalServices: [U.penSvc, U.cmdSvc],
-      });
+      const opts = scanAll
+        ? { acceptAllDevices: true, optionalServices: [U.penSvc, U.cmdSvc] }
+        : { filters: [{ name: 'Lumen_ZY_Pocket' }, { namePrefix: 'Lumen' }, { services: [U.penSvc] }],
+            optionalServices: [U.penSvc, U.cmdSvc] };
+      device = await navigator.bluetooth.requestDevice(opts);
       device.addEventListener('gattserverdisconnected', onDisconnected);
       log('picked: ' + (device.name || device.id));
     }
     await startSession();
   } catch (e) {
-    log('connect error: ' + e.message);
-    if (e.name === 'NotFoundError') { setStatus('Not connected', ''); return; } // user cancelled picker
-    setStatus(e.message, 'bad');
+    log('connect error: ' + e.name + ': ' + e.message);
+    const h = hintFor(e);
+    if (e.name === 'NotFoundError' && !h) { setStatus('Not connected', ''); return; } // user cancelled picker
+    setStatus(h || e.message, 'bad'); if (h) log('HINT: ' + h);
+    logEl.classList.add('on'); $('bLog').classList.add('on'); requestAnimationFrame(resize);
+    if (device && !device.gatt.connected) { device.removeEventListener('gattserverdisconnected', onDisconnected); device = null; }
     try { if (device && device.gatt.connected) { userStop = true; device.gatt.disconnect(); } } catch (_) {}
   }
 }
@@ -425,6 +453,8 @@ $('bCal').onclick = () => {
 $('bCal').oncontextmenu = e => { e.preventDefault(); cal = { ...DEFAULT_CAL }; saveCal(); alertLike('Calibration reset'); needFull = true; schedule(); };
 $('bFit').onclick = () => { fitMode = !fitMode; $('bFit').classList.toggle('on', fitMode); needFull = true; schedule(); };
 $('bTest').onclick = selfTest;
+$('bScanAll').onclick = () => { if (device && device.gatt.connected) disconnect(); device = null; scanAll = true; connect().finally(() => { scanAll = false; }); };
+log('browser: ' + navigator.userAgent);
 $('bLog').onclick = () => { const on = logEl.classList.toggle('on'); $('bLog').classList.toggle('on', on); requestAnimationFrame(resize); };
 
 resize();
