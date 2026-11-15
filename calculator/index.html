@@ -198,7 +198,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","v":"list","roll":"unroll","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]},{"n":"Vanish","i":"vanish","s":["vanish"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","v":"list","roll":"unroll","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]},{"n":"Vanish","i":"vanish","s":["vanish","ragdoll"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -259,6 +259,16 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Their phone shows<select id="vanBuild"><option value="build">The equation, built up</option><option value="only">Only that number</option></select></div>
   </div>
   <div class="note">Type a number on your phone and swipe across the display. After the delay, the number comes into view on the spectator's phone. One number per swipe: with 12 + 34 + 56, each swipe takes one number (not after =, because a result is one number). One digit per swipe: each swipe takes one digit, also from a result. Their display builds it up again. All steps are in the Help tab.</div>
+  <div class="lbl">Ragdoll (shake the phone)</div>
+  <div class="grp">
+    <div class="r">Shake = ragdoll<label><input type="checkbox" id="rdOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Shake strength<select id="rdShake"><option value="light">Light</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
+    <div class="r">Numbers come back<select id="rdBack"><option value="shake">Shake again</option><option value="tap">Tap the display</option><option value="timer">After 10 s</option></select></div>
+    <div class="r">Bounce<select id="rdBounce"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></div>
+    <div class="r">Their phone too (Aura peer)<label><input type="checkbox" id="rdPeer" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r"><button class="done" id="rdMotion" style="width:auto;text-align:left">Enable motion</button><button class="done" id="rdTry" style="width:auto">Try it</button></div>
+  </div>
+  <div class="note">Shake the phone: the numbers on the display fall and tumble. Tilt the phone and they slide to the low side. Shake again (or tap the display) and they fly back into place. A key tap also puts the display back. Tap <b>Enable motion</b> one time if a shake does nothing (iOS asks for permission).</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -368,7 +378,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v48</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v49</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -387,6 +397,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p><b>One digit per swipe:</b> each swipe takes one digit (1234 comes back as 4, 34, 234, 1234). This also works on a result after =.</p>
   <p><b>More than one number:</b> with "One number per swipe", each swipe takes one number (default: the last number first). The number comes into view on their phone and their display builds the equation up (12 + 34 + 56 comes back as 56, then 34 + 56, then 12 + 34 + 56). Swipe again before the last number comes into view: the numbers come in one after the other, in order.</p>
   <p>Your phone does not show the mirror again until you tap a key, so the number does not come back on your screen. Random delay: 3 to 10 s, and the PeekSmith shows the delay that the phone selected. Use the practice phones in the Vanish tab to see the animations.</p>
+  <h4>Ragdoll</h4>
+  <p>Shake the phone: the numbers on the display fall and tumble with gravity. Tilt the phone to slide them. Shake again (or tap the display) to bring them back. With "Their phone too", the numbers on the spectator's phone fall at the same time. Settings are in the Vanish tab.</p>
   <h4>Peeks</h4>
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
   <h4>Aura peer mirror (top right button)</h4>
@@ -498,7 +510,7 @@ function livePeek(){
   if(S.method!=='flip'||!armed||S.mode==='off'||result!==null){if(armed)peek(0);return}
   const nums=toks.filter(t=>!isOp(t)).length;
   if(nums===S.n-1&&cur!==''&&cur!=='-'&&(!toks.length||isOp(toks.at(-1)))){const d=target()-evalToks(toks.concat([cur]));peek(d>0?1:d<0?-1:0)}else peek(0)}
-function press(k){vanHold=false;vanSer=false;vanCarry='';if(S.peerRole==='mirror')mirrorD=null;press0(k);livePeek();try{psAfter(k)}catch(e){}}
+function press(k){if(rd)rdEnd();vanHold=false;vanSer=false;vanCarry='';if(S.peerRole==='mirror')mirrorD=null;press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to Peek Island and PeekLink ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(S.peerRole==='mirror')return;if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}try{peerSend(t)}catch(e){}if(!S.ps)return;
@@ -685,7 +697,7 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync();try{vanSync()}catch(e){}}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync();try{vanSync()}catch(e){}try{rdSync()}catch(e){}}
 function cbSync(){$('cbOn').checked=cbOn;$('cbKeep').checked=S.cbKeep;$('cbOrder').value=S.cbOrder;$('cbEnd').value=S.cbEnd;
   $('cbTotal').checked=S.cbTotal;$('cbHold').value=String(S.cbHold);$('cbBuzz').value=S.cbBuzz;$('cbPs').checked=S.cbPs}
 $('cbOn').onchange=()=>cbSet($('cbOn').checked,true);
@@ -917,7 +929,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v48. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v49. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -1040,6 +1052,8 @@ function peerHook(){
     if(kind!=='json'&&kind!=='text')return;
     if(d&&typeof d==='object'&&echoIn(d))return;
     if(d&&typeof d==='object'&&d.cmd==='reveal'){vanIn(d);return}   // both roles can get a reveal
+    if(d&&typeof d==='object'&&d.cmd==='ragdoll'){rdStart();return}
+    if(d&&typeof d==='object'&&d.cmd==='ragback'){rdBack(false);return}
     if(S.peerRole==='mirror'){if(!d||typeof d!=='object')return;
       if(d.cmd){peerRemote(d);return}
       if(d.type==='disp'){mirrorD=d;render()}
@@ -1332,6 +1346,80 @@ function vanShow(d){
   el.addEventListener('mousedown',e=>{if(touchUsed)return;x0=e.clientX;y0=e.clientY;t0=Date.now()});
   addEventListener('mouseup',e=>{if(!touchUsed)go(e.clientX,e.clientY)})})();
 vanSync();
+
+/* ---------- Ragdoll: shake the phone = the numbers on the display fall and tumble.
+   Gravity follows the tilt of the phone; a shake throws them around. Shake again or tap the display = they come back. ---------- */
+if(S.rdOn===undefined)S.rdOn=true;S.rdShake=S.rdShake||'medium';S.rdBack=S.rdBack||'shake';S.rdBounce=S.rdBounce||'normal';if(S.rdPeer===undefined)S.rdPeer=false;
+const RD_THR={light:11,medium:16,hard:24},RD_BNC={low:.25,normal:.5,high:.72};
+let rd=null,rdG={x:0,y:1},rdLastShake=0,rdPeaks=[],rdTimer=null;
+function rdBodies(el,color){if(!el.textContent)return[];const cs=getComputedStyle(el);
+  return vanSplit(el).filter(s=>s.textContent.trim()).map(s=>{const r=s.getBoundingClientRect(),d=document.createElement('div');d.textContent=s.textContent;
+    d.style.cssText='position:absolute;left:0;top:0;width:'+r.width+'px;height:'+r.height+'px;line-height:'+r.height+'px;text-align:center;white-space:pre;'+
+      'font-weight:'+cs.fontWeight+';font-size:'+cs.fontSize+';font-family:'+cs.fontFamily+';font-variant-numeric:tabular-nums;color:'+color+';will-change:transform';
+    const x=r.left+r.width/2,y=r.top+r.height/2;
+    return{el:d,x,y,ox:x,oy:y,w:r.width,h:r.height,r:Math.max(4,Math.min(r.width,r.height)*.5),a:0,
+      vx:(Math.random()-.5)*500,vy:-150-Math.random()*450,va:(Math.random()-.5)*10}})}
+function rdStart(){
+  if(rd||document.body.classList.contains('open')||document.body.classList.contains('hopen'))return;
+  if(!/\d/.test($mt.textContent)||($mt.textContent==='0'&&!$e.textContent))return;
+  const lay=document.createElement('div');lay.style.cssText='position:fixed;inset:0;z-index:6;pointer-events:none;overflow:hidden';
+  const B=rdBodies($mt,'#fff').concat(rdBodies($e,'#8D8D92'));
+  B.forEach(b=>{lay.appendChild(b.el);b.el.style.transform='translate('+(b.x-b.w/2)+'px,'+(b.y-b.h/2)+'px)'});
+  document.body.appendChild(lay);$mt.style.visibility='hidden';$e.style.visibility='hidden';
+  rd={lay,B,t:performance.now(),raf:0,back:false};buzz('medium');
+  const step=now=>{if(!rd||rd.back)return;let dt=Math.min(.033,(now-rd.t)/1000);rd.t=now;
+    for(let i=0;i<3;i++)rdStep(dt/3);
+    rd.B.forEach(b=>b.el.style.transform='translate('+(b.x-b.w/2)+'px,'+(b.y-b.h/2)+'px) rotate('+b.a+'rad)');
+    rd.raf=requestAnimationFrame(step)};
+  rd.raf=requestAnimationFrame(step);
+  clearTimeout(rdTimer);if(S.rdBack==='timer')rdTimer=setTimeout(()=>rdBack(true),10000)}
+function rdStep(dt){
+  const G=2600,gx=rdG.x*G,gy=rdG.y*G,e=RD_BNC[S.rdBounce]||.5,W=innerWidth,H=innerHeight,B=rd.B;
+  for(const b of B){
+    b.vx+=gx*dt;b.vy+=gy*dt;b.vx*=.9985;b.vy*=.9985;b.va*=.995;
+    b.x+=b.vx*dt;b.y+=b.vy*dt;b.a+=b.va*dt;
+    const c=Math.abs(Math.cos(b.a)),s=Math.abs(Math.sin(b.a)),ex=b.w/2*c+b.h/2*s,ey=b.w/2*s+b.h/2*c;
+    /* walls and floor: bounce, friction, and roll (the spin follows the slide) */
+    if(b.y+ey>H){b.y=H-ey;if(b.vy>0)b.vy=-b.vy*e;b.vx*=.94;b.va=b.va*.6+(b.vx/ey)*.4}
+    if(b.y-ey<0){b.y=ey;if(b.vy<0)b.vy=-b.vy*e;b.vx*=.94;b.va=b.va*.6-(b.vx/ey)*.4}
+    if(b.x+ex>W){b.x=W-ex;if(b.vx>0)b.vx=-b.vx*e;b.vy*=.94;b.va=b.va*.6-(b.vy/ex)*.4}
+    if(b.x-ex<0){b.x=ex;if(b.vx<0)b.vx=-b.vx*e;b.vy*=.94;b.va=b.va*.6+(b.vy/ex)*.4}}
+  /* the numbers hit each other */
+  for(let i=0;i<B.length;i++)for(let j=i+1;j<B.length;j++){const p=B[i],q=B[j];
+    let dx=q.x-p.x,dy=q.y-p.y,d=Math.hypot(dx,dy);const m=p.r+q.r;if(d>=m)continue;if(d<.01){dx=.01;d=.01}
+    const nx=dx/d,ny=dy/d,o=(m-d)/2;p.x-=nx*o;p.y-=ny*o;q.x+=nx*o;q.y+=ny*o;
+    const vn=(q.vx-p.vx)*nx+(q.vy-p.vy)*ny;if(vn<0){const k=-(1+e)*vn/2;p.vx-=k*nx;p.vy-=k*ny;q.vx+=k*nx;q.vy+=k*ny;
+      const vt=(q.vx-p.vx)*-ny+(q.vy-p.vy)*nx;p.va+=vt/p.r*.15;q.va-=vt/q.r*.15}}}
+/* back into place: each number flies home, then the display is normal again */
+function rdBack(fromHere){if(!rd||rd.back)return;rd.back=true;cancelAnimationFrame(rd.raf);clearTimeout(rdTimer);
+  if(fromHere&&S.rdPeer)try{peerOut({cmd:'ragback'})}catch(e){}
+  const z=rd;let n=0;
+  z.B.forEach((b,i)=>{const a=b.el.animate([{transform:b.el.style.transform},{transform:'translate('+(b.ox-b.w/2)+'px,'+(b.oy-b.h/2)+'px) rotate(0rad)'}],
+    {duration:650,delay:i*35,easing:'cubic-bezier(.3,1.3,.5,1)',fill:'forwards'});a.onfinish=()=>{if(++n===z.B.length)rdEnd()}});
+  if(!z.B.length)rdEnd()}
+function rdEnd(){if(!rd)return;cancelAnimationFrame(rd.raf);clearTimeout(rdTimer);rd.lay.remove();rd=null;
+  $mt.style.visibility='';$e.style.visibility='';render()}
+function rdShake(){if(rd){if(S.rdBack==='shake')rdBack(true)}else{rdStart();if(rd&&S.rdPeer)try{peerOut({cmd:'ragdoll'})}catch(e){}}}
+addEventListener('devicemotion',e=>{
+  const g=e.accelerationIncludingGravity;if(g&&g.x!=null)rdG={x:(g.x||0)/9.81,y:-(g.y||0)/9.81};   // iOS: the gravity vector in phone axes
+  const a=e.acceleration;if(!a||a.x==null)return;
+  if(rd&&!rd.back)rd.B.forEach(b=>{b.vx-=a.x*40;b.vy+=a.y*40});   // the phone moves, the numbers stay behind
+  if(!S.rdOn)return;
+  const m=Math.hypot(a.x,a.y,a.z||0),now=Date.now();
+  if(m>(RD_THR[S.rdShake]||16)){rdPeaks=rdPeaks.filter(t=>now-t<700);if(!rdPeaks.length||now-rdPeaks.at(-1)>90)rdPeaks.push(now);
+    if(rdPeaks.length>=3&&now-rdLastShake>1500){rdLastShake=now;rdPeaks=[];rdShake()}}});
+/* tap the display = the numbers come back */
+document.querySelector('.disp').addEventListener('click',()=>{if(rd)rdBack(true)});
+/* settings */
+function rdSync(){$('rdOn').checked=!!S.rdOn;$('rdShake').value=S.rdShake;$('rdBack').value=S.rdBack;$('rdBounce').value=S.rdBounce;$('rdPeer').checked=!!S.rdPeer}
+['rdShake','rdBack','rdBounce'].forEach(id=>$(id).onchange=()=>{S[id]=$(id).value;saveS()});
+$('rdOn').onchange=()=>{S.rdOn=$('rdOn').checked;saveS()};$('rdPeer').onchange=()=>{S.rdPeer=$('rdPeer').checked;saveS()};
+$('rdMotion').onclick=async()=>{const b=$('rdMotion');try{let r='granted';
+    if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==='function')r=await DeviceMotionEvent.requestPermission();
+    if(r==='granted'&&window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')r=await DeviceOrientationEvent.requestPermission();
+    b.textContent=r==='granted'?'Motion on':'Denied'}catch(e){b.textContent='Not available'}};
+$('rdTry').onclick=()=>{closeSheet();if($mt.textContent==='0'){reset();cur='1234';render()}setTimeout(rdStart,450)};
+rdSync();
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');
