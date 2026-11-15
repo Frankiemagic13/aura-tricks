@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title> </title>
+<style>
+html,body{margin:0;height:100%;background:#000;color:#fff;font:16px/1.4 -apple-system,BlinkMacSystemFont,system-ui,sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overflow:hidden}
+#dot{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 10px);width:4px;height:4px;margin-left:-2px;border-radius:2px;background:#000}
+#dot.on{background:#0a2a12}#dot.err{background:#2a0a0a}
+#ind{position:fixed;width:7px;height:7px;border-radius:50%;background:#8e8e93;transition:background .2s;z-index:4;pointer-events:none}
+#ind.on{background:#34c759}
+#sheet{position:fixed;inset:0;background:#111;display:none;overflow:auto;padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 30px)}
+body.open #sheet{display:block}
+h1{font-size:20px;margin:0 0 4px}
+.grp{background:#1c1c1e;border-radius:12px;margin:14px 0 6px;overflow:hidden}
+.r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 14px;border-bottom:1px solid #2c2c2e;min-height:24px}
+.r:last-child{border-bottom:0}
+select,input[type=text]{background:#2c2c2e;color:#fff;border:0;border-radius:8px;padding:7px 9px;font:inherit;max-width:58%}
+input[type=checkbox]{transform:scale(1.3)}
+.note{color:#8e8e93;font-size:13px;margin:4px 4px 0}
+button{background:#f5c33b;color:#000;border:0;border-radius:10px;padding:10px 14px;font:600 15px inherit}
+button.sec{background:#2c2c2e;color:#fff}
+.btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+#last,#st{color:#c7c7cc}
+#pl{position:fixed;inset:0;display:none;background:#000;pointer-events:none}#pl.on{display:block}#pl iframe,#pl>div{width:100%;height:100%;border:0}
+#tapsnd{position:fixed;inset:0;display:none;z-index:2}#tapsnd.on{display:block}
+#go{position:fixed;inset:0;display:none;z-index:3;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}#go.on{display:block}
+</style>
+</head>
+<body>
+<div id="dot"></div><div id="ind"></div>
+<div id="pl"><div id="ytp"></div></div><div id="tapsnd"></div><a id="go" href="#" aria-label=" "></a>
+<div id="sheet">
+  <h1>YouTube peek (test)</h1>
+  <div class="note">Hold the black screen for 1 s to open this. The page listens to the peeks from your trick pages and opens each one on YouTube.</div>
+  <div class="grp">
+    <div class="r">Status<span id="st">Starting…</span></div>
+    <div class="r">Last peek<span id="last">—</span></div>
+  </div>
+  <div class="grp">
+    <div class="r">Play<select id="sPlay"><option value="api">First video (API key)</option><option value="ddg">First video (no key)</option><option value="search">Search results only</option></select></div>
+    <div class="r">Which video<select id="sPick"><option value="popular">Most views (top 10)</option><option value="first">First result</option></select></div>
+    <div class="r">Start at (m:ss)<input type="text" id="sStart" inputmode="numbers" placeholder="0:00" style="max-width:30%"></div>
+    <div class="r">Play in<select id="sOpen"><option value="page">This page (black)</option><option value="tap">YouTube app, after a tap (no box)</option><option value="app">YouTube app</option><option value="web">YouTube web page</option></select></div>
+    <div class="r">YouTube API key<input type="text" id="sApi" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="AIza…"></div>
+    <div class="r">What to search<select id="sWhat"><option value="all">Whole peek</option><option value="last">Last word</option><option value="result">Result (after =)</option></select></div>
+    <div class="r">Wait before opening<select id="sWait"><option value="0">At once</option><option value="1">1 s</option><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option></select></div>
+    <div class="r">Open automatically<input type="checkbox" id="sAuto"></div>
+    <div class="r">Dot opacity<select id="sDotO"><option value="0.1">10%</option><option value="0.2">20%</option><option value="0.35">35%</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option></select></div>
+    <div class="r">Dot place<select id="sDotP"><option value="tr">Top right</option><option value="tc">Top center</option><option value="tl">Top left</option><option value="ml">Middle left</option><option value="mc">Middle</option><option value="mr">Middle right</option><option value="bl">Bottom left</option><option value="bc">Bottom center</option><option value="br">Bottom right</option></select></div>
+    <div class="r"><button class="sec" id="bDot" style="padding:7px 12px">Show green for 3 s</button></div>
+    <div class="r">Peek channel<input type="text" id="sKey" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
+  </div>
+  <div class="note"><b>First video (API key)</b>: the page finds the first video for the peek and plays it. "This page" plays it here, full screen, so the page keeps listening and the next peek plays the next video. "YouTube app" opens the video in the app, where it plays. The key stays on this phone only (it is not saved on GitHub). <b>First video (no key)</b>: the page goes to the first result through DuckDuckGo. It usually is a YouTube video, but not always, and it opens in the browser. <b>Dot</b>: gray = waiting for a peek. Green = a peek came in; with "after a tap" it stays green until your tap opens the video. Set its opacity and place above; "Show green for 3 s" closes the settings so you can see it (with "after a tap" it stays until the tap). <b>Start at</b>: the video starts at this time, for example 0:45 or 1:30 (empty = from the beginning). <b>Search results only</b>: the old way. <b>YouTube app, after a tap</b>: when a peek comes, nothing shows; the next tap anywhere on the black screen opens the video in the YouTube app, with no "Open in YouTube?" box (iPhone needs a real tap on a link for that).</div>
+  <div class="note">Get a free key: console.cloud.google.com → create a project → APIs &amp; Services → Library → "YouTube Data API v3" → Enable → Credentials → Create credentials → API key. Free use is about 100 searches per day.</div>
+  <div class="note"><b>Most views (top 10)</b>: of the 10 best matches for the peek, the page plays the video with the most views. This is better than sorting all of YouTube by views, which can give a popular video that does not match.</div>
+  <div class="note">Wait before opening: the page opens YouTube only when the peek has not changed for this time. This stops the calculator from opening YouTube after each number. If "Open automatically" is off, tap the black screen to open the last peek.</div>
+  <div class="grp">
+    <div class="r">Test text<input type="text" id="sTest" value="never gonna give you up" autocapitalize="off"></div>
+  </div>
+  <div class="btns"><button id="bTest">Open test text</button><button class="sec" id="bDone">Done</button></div>
+  <div class="note" style="margin-top:14px">Sound on "This page": iPhone can block sound that starts without a tap. Then the video plays without sound, and one tap anywhere turns the sound on. Some apps (Aura included) can block the YouTube app link. If "YouTube app" does nothing, select "YouTube web page".</div>
+</div>
+<script src="../relay.js"></script>
+<script>
+const $=id=>document.getElementById(id),Q=new URLSearchParams(location.search);
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const P=Object.assign({dotO:0.35,dotP:'tr',start:'',pick:'popular',play:'api',open:'page',api:'',what:'all',wait:2,auto:true,key:'fvt-c-k27x9m4q8w'},store.get('yset',{}));
+if(!P.playV){if(!store.get('yset',{}).play)P.open='page';P.playV=1}
+if(Q.get('k'))P.key=Q.get('k');
+const save=()=>store.set('yset',P);
+
+/* the text to search: whole peek, last word, or the result after "=" */
+function pick(t){t=String(t||'').trim();
+  if(P.what==='last'){const w=t.split(/\s+/).filter(Boolean);return w.at(-1)||''}
+  if(P.what==='result'){const i=t.lastIndexOf('=');return i>=0?t.slice(i+1).trim():t}
+  return t}
+function ytUrl(q){const s=encodeURIComponent(q);
+  return P.open==='app'?'youtube://www.youtube.com/results?search_query='+s:'https://www.youtube.com/results?search_query='+s}
+const say=t=>{$('st').textContent=t};
+/* start time: "1:30", "90" or "1:02:03" → seconds */
+function startSec(){const t=String(P.start||'').trim();if(!t)return 0;const p=t.split(':').map(x=>parseInt(x,10)||0);return p.reduce((a,b)=>a*60+b,0)}
+const tq=()=>{const n=startSec();return n?'&t='+n+'s':''};
+/* the video for a text (YouTube Data API v3): the top 10 results, then the one with the most views (or the first result) */
+async function ytGet(path){const r=await fetch('https://www.googleapis.com/youtube/v3/'+path+'&key='+encodeURIComponent(P.api));
+  const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||('HTTP '+r.status));return j}
+async function firstVideo(q){
+  const n=P.pick==='first'?1:10;
+  const j=await ytGet('search?part=snippet&type=video&maxResults='+n+'&q='+encodeURIComponent(q));
+  const items=(j.items||[]).filter(it=>it.id&&it.id.videoId);if(!items.length)return null;
+  if(P.pick==='first'||items.length===1)return{id:items[0].id.videoId,title:items[0].snippet.title};
+  try{const s=await ytGet('videos?part=statistics&id='+items.map(it=>it.id.videoId).join(','));
+    const views={};for(const v of s.items||[])views[v.id]=+((v.statistics||{}).viewCount||0);
+    items.sort((a,b)=>(views[b.id.videoId]||0)-(views[a.id.videoId]||0));
+    const top=items[0];return{id:top.id.videoId,title:top.snippet.title,views:views[top.id.videoId]||0}}
+  catch(e){return{id:items[0].id.videoId,title:items[0].snippet.title}}}
+async function openYT(t){const q=pick(t);if(!q)return;
+  if(P.open==='tap'&&(P.play==='search'||!P.api)&&P.play!=='ddg'){armTap('https://www.youtube.com/results?search_query='+encodeURIComponent(q),'search: '+q);return}
+  if(P.play==='search'){say('Opening: '+q);location.href=ytUrl(q);return}
+  if(P.play==='ddg'||!P.api){if(P.play==='api')say('No API key – using DuckDuckGo');location.href='https://duckduckgo.com/?q='+encodeURIComponent('\\'+q+' site:youtube.com');return}
+  say('Searching: '+q);let v;
+  try{v=await firstVideo(q)}catch(e){say('YouTube: '+e.message+' – showing search');location.href=ytUrl(q);return}
+  if(!v){say('No video for: '+q);return}
+  say('Playing: '+v.title+(v.views?' ('+v.views.toLocaleString('en-US')+' views)':''));
+  if(P.open==='page')playHere(v.id);
+  else if(P.open==='tap')armTap('https://www.youtube.com/watch?v='+v.id+tq(),v.title);
+  else if(P.open==='app')location.href='youtube://www.youtube.com/watch?v='+v.id+tq();
+  else location.href='https://www.youtube.com/watch?v='+v.id+tq()}
+/* play on this page, full screen; if iPhone blocks the sound, play muted and one tap turns the sound on */
+let yt=null,ytReady=null,pendingId='';
+function ytApi(){if(ytReady)return ytReady;ytReady=new Promise(res=>{window.onYouTubeIframeAPIReady=res;const sc=document.createElement('script');sc.src='https://www.youtube.com/iframe_api';document.head.appendChild(sc)});return ytReady}
+async function playHere(id){$('pl').classList.add('on');await ytApi();
+  if(!yt){yt=new YT.Player('ytp',{videoId:id,playerVars:{autoplay:1,playsinline:1,start:startSec(),controls:0,rel:0,modestbranding:1,fs:0},
+    events:{onReady:e=>{e.target.playVideo();checkSound()},onStateChange:e=>{if(e.data===0){$('pl').classList.remove('on')}}}})}
+  else{yt.loadVideoById({videoId:id,startSeconds:startSec()});checkSound()}}
+function checkSound(){setTimeout(()=>{try{if(yt.getPlayerState()!==1){yt.mute();yt.playVideo();$('tapsnd').classList.add('on')}}catch(e){}},1500)}
+$('tapsnd').addEventListener('click',()=>{try{yt.unMute();yt.setVolume(100);yt.playVideo()}catch(e){}$('tapsnd').classList.remove('on')});
+/* "after a tap": a full-screen link waits for the next tap; a real tap on a youtube.com link opens the YouTube app without the box */
+function armTap(url,what){const a=$('go');a.href=url;a.classList.add('on');say('Ready – tap to open: '+what)}
+$('go').addEventListener('click',e=>{if(held||document.body.classList.contains('open')){e.preventDefault();return}
+  const a=$('go');setTimeout(()=>{a.classList.remove('on');a.href='#';$('ind').classList.remove('on')},300)});
+function stopHere(){try{yt&&yt.stopVideo()}catch(e){}$('pl').classList.remove('on');$('tapsnd').classList.remove('on')}
+
+/* the dot: gray = waiting for a peek; green = a peek came in (with "after a tap": green until the tap opens it; other modes: green for 1.5 s) */
+let sigT=null;
+/* dot color, place and size from the settings */
+function dotStyle(){const d=$('ind'),st=d.style,m='16px',sx='env(safe-area-inset-top) + 14px',sb='env(safe-area-inset-bottom) + 22px';
+  st.opacity=String(+P.dotO||0.35);
+  st.top=st.bottom=st.left=st.right='auto';st.transform='';
+  const v=P.dotP[0],h=P.dotP[1];
+  if(v==='t')st.top='calc('+sx+')';else if(v==='b')st.bottom='calc('+sb+')';else{st.top='50%';st.transform='translateY(-50%)'}
+  if(h==='l')st.left=m;else if(h==='r')st.right=m;else{st.left='50%';st.transform+=' translateX(-50%)'}}
+function signal(){const d=$('ind');d.classList.add('on');clearTimeout(sigT);if(P.open!=='tap')sigT=setTimeout(()=>d.classList.remove('on'),1500)}
+/* listen to the peeks */
+let last='',waitT=null,stop=null;
+function onPeek(t){last=String(t);$('last').textContent=last;clearTimeout(waitT);signal();
+  if(!P.auto||document.body.classList.contains('open'))return;
+  waitT=setTimeout(()=>openYT(last),(+P.wait||0)*1000)}
+function onState(s){$('st').textContent=s;$('dot').className=s==='Listening'?'on':'err'}
+function start(){if(stop)stop();stop=PeekRelay.listen(P.key,onPeek,onState)}
+start();
+
+/* hold 1 s = settings; tap = open the last peek (when "Open automatically" is off) */
+let holdT=null,held=false;
+document.addEventListener('touchstart',e=>{if(document.body.classList.contains('open'))return;held=false;holdT=setTimeout(()=>{held=true;document.body.classList.add('open')},1000)},{passive:true});
+document.addEventListener('touchend',e=>{clearTimeout(holdT);if(document.body.classList.contains('open')||held)return;if(!P.auto&&last)openYT(last)});
+document.addEventListener('touchmove',()=>clearTimeout(holdT),{passive:true});
+document.addEventListener('contextmenu',e=>{e.preventDefault();document.body.classList.add('open')});   // desktop: right click
+
+/* settings */
+dotStyle();
+$('sDotO').value=String(P.dotO);$('sDotP').value=P.dotP;
+$('sDotO').onchange=e=>{P.dotO=+e.target.value;save();dotStyle()};
+$('sDotP').onchange=e=>{P.dotP=e.target.value;save();dotStyle()};
+$('bDot').onclick=()=>{document.body.classList.remove('open');const d=$('ind');d.classList.add('on');clearTimeout(sigT);sigT=setTimeout(()=>d.classList.remove('on'),3000)};
+$('sStart').value=P.start||'';$('sStart').onchange=e=>{P.start=e.target.value.replace(/[^0-9:]/g,'');e.target.value=P.start;save()};
+$('sPick').value=P.pick;$('sPick').onchange=e=>{P.pick=e.target.value;save()};
+$('sPlay').value=P.play;$('sApi').value=P.api;$('sOpen').value=P.open;
+$('sPlay').onchange=e=>{P.play=e.target.value;save()};
+$('sApi').onchange=e=>{P.api=e.target.value.trim();save()};$('sWhat').value=P.what;$('sWait').value=String(P.wait);$('sAuto').checked=!!P.auto;$('sKey').value=P.key;
+$('sOpen').onchange=e=>{P.open=e.target.value;save()};
+$('sWhat').onchange=e=>{P.what=e.target.value;save()};
+$('sWait').onchange=e=>{P.wait=+e.target.value;save()};
+$('sAuto').onchange=e=>{P.auto=e.target.checked;save()};
+$('sKey').onchange=e=>{P.key=e.target.value.trim()||'fvt-c-k27x9m4q8w';e.target.value=P.key;save();start()};
+$('bTest').onclick=()=>openYT($('sTest').value);
+$('bDone').onclick=()=>document.body.classList.remove('open');
+
+/* keep the screen on */
+async function keepOn(){try{if('wakeLock' in navigator)await navigator.wakeLock.request('screen')}catch(e){}}
+keepOn();document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')keepOn()});
+</script>
+</body>
+</html>

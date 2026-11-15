@@ -1,0 +1,750 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="../kill.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>Lock Screen</title>
+<style>
+/* Sizes are iPhone 16 Pro points (402 x 874), scaled to the phone */
+:root{--u:min(calc(100vw / 402),calc(100vh / 874))}
+@supports (height:100dvh){:root{--u:min(calc(100vw / 402),calc(100dvh / 874))}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-behavior:none;touch-action:none;
+  font-family:-apple-system,system-ui,"SF Pro Display","SF Pro Text","Helvetica Neue",sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-text-size-adjust:100%}
+
+/* wallpaper: sharp, dimmed more on the passcode screen */
+#bg{position:fixed;inset:0;background:#000 center/cover no-repeat}
+#bg.gradient{background:radial-gradient(110% 70% at 20% 15%,#3b4f8f 0%,transparent 60%),radial-gradient(120% 80% at 85% 95%,#6d2f5f 0%,transparent 60%),linear-gradient(165deg,#18213f,#1d1230 60%,#08070d)}
+#dim{position:fixed;inset:0;background:#000;opacity:var(--dim,.5)}
+
+#app{position:fixed;top:0;left:50%;transform:translateX(-50%);width:calc(402 * var(--u));height:100%;max-width:100vw}
+.v{position:absolute;inset:0;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1)}
+
+/* ---------- status bar (the time here is the one that freezes) ---------- */
+#sb{position:absolute;left:0;right:0;top:calc(19.6 * var(--u));height:calc(26 * var(--u));z-index:3}
+#stime{position:absolute;left:calc(10 * var(--u));width:calc(88 * var(--u));text-align:center;font-size:calc(16.6 * var(--u));font-weight:650;
+  line-height:calc(26 * var(--u));letter-spacing:calc(-.2 * var(--u));font-variant-numeric:tabular-nums}
+#sicons{position:absolute;right:calc(33 * var(--u));height:100%;display:flex;align-items:center;gap:calc(6 * var(--u))}
+#wifi.off{display:none}
+#sicons svg{display:block}
+/* ---------- passcode screen (matches the iOS screenshot) ---------- */
+#pill{position:absolute;left:50%;top:calc(12 * var(--u));height:calc(53 * var(--u));width:calc(126 * var(--u));transform:translateX(-50%);
+  border-radius:calc(27 * var(--u));background:#000;box-shadow:0 0 0 calc(1.3 * var(--u)) rgba(255,255,255,.2)}
+#pill{width:calc(206 * var(--u))}
+#pill svg{position:absolute;top:50%;transform:translateY(-50%)}
+#pill .pl{left:calc(17 * var(--u));width:calc(18 * var(--u))}
+#pill .fid{right:calc(15 * var(--u));width:calc(24 * var(--u))}
+#title{position:absolute;left:0;right:0;top:calc(162 * var(--u));text-align:center;font-size:calc(22 * var(--u));font-weight:600;letter-spacing:calc(.1 * var(--u))}
+#dots{position:absolute;left:0;right:0;top:calc(208 * var(--u));display:flex;justify-content:center;gap:calc(24 * var(--u))}
+.dot{width:calc(12.6 * var(--u));height:calc(12.6 * var(--u));border-radius:50%;border:calc(1.3 * var(--u)) solid #fff;transition:background .06s}
+.dot.on{background:#fff}
+#dots.shake{animation:shake .5s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{10%,90%{transform:translateX(calc(-3 * var(--u)))}20%,80%{transform:translateX(calc(6 * var(--u)))}30%,50%,70%{transform:translateX(calc(-12 * var(--u)))}40%,60%{transform:translateX(calc(12 * var(--u)))}}
+.key{position:absolute;width:calc(76.4 * var(--u));height:calc(76.4 * var(--u));margin:calc(-38.2 * var(--u)) 0 0 calc(-38.2 * var(--u));border-radius:50%;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 45%,rgba(255,255,255,.03) 0%,rgba(255,255,255,.07) 62%,rgba(255,255,255,.16) 100%),rgba(255,255,255,.06);
+  -webkit-backdrop-filter:blur(1px) brightness(1.35) saturate(1.2);backdrop-filter:blur(1px) brightness(1.35) saturate(1.2);
+  box-shadow:inset 0 0 0 calc(1 * var(--u)) rgba(255,255,255,.30),inset 0 calc(1.5 * var(--u)) calc(2 * var(--u)) rgba(255,255,255,.35),inset 0 calc(-3 * var(--u)) calc(8 * var(--u)) rgba(255,255,255,.08);
+  transition:background .35s ease}
+.key.down{background:rgba(255,255,255,.6);transition:none}
+.key b{font-size:calc(42 * var(--u));font-weight:700;line-height:1;margin-top:calc(-3 * var(--u))}
+.key small{font-size:calc(9.5 * var(--u));font-weight:800;letter-spacing:calc(2 * var(--u));margin:calc(1 * var(--u)) 0 0 calc(2 * var(--u));line-height:1}
+.key.zero b{margin-top:0}
+.foot{position:absolute;top:calc(782 * var(--u));font-size:calc(19 * var(--u));font-weight:500;width:calc(140 * var(--u));text-align:center;line-height:calc(24 * var(--u))}
+#emergency{left:calc(29 * var(--u))}#cancel{left:calc(232 * var(--u))}
+
+/* ---------- classic style (iOS 13-17 screenshot): blurred wallpaper, frosted keys, lock icon ---------- */
+#clock,#hbar,#net{display:none}
+.classic #pill{display:none}
+.classic #clock{display:block;position:absolute;left:50%;top:calc(65 * var(--u));width:calc(24 * var(--u));transform:translateX(-50%)}
+.classic #bg{filter:blur(34px) saturate(1.25);transform:scale(1.2)}
+.classic #title{top:calc(175 * var(--u));font-size:calc(21 * var(--u));font-weight:600;letter-spacing:0}
+.classic #dots{top:calc(220 * var(--u));gap:calc(26.8 * var(--u))}
+.classic .dot{width:calc(14 * var(--u));height:calc(14 * var(--u));border-width:calc(1.3 * var(--u))}
+.classic .key{width:calc(80 * var(--u));height:calc(80 * var(--u));margin:calc(-40 * var(--u)) 0 0 calc(-40 * var(--u));
+  background:rgba(255,255,255,.24);-webkit-backdrop-filter:none;backdrop-filter:none;box-shadow:none;transition:background .4s ease}
+.classic .key.down{background:rgba(255,255,255,.78);transition:none}
+.classic .key b{font-size:calc(39.5 * var(--u));font-weight:600;margin-top:calc(2 * var(--u))}
+.classic .key small{font-size:calc(9.6 * var(--u));font-weight:700;letter-spacing:calc(2.2 * var(--u));margin-top:calc(2.5 * var(--u))}
+.classic .key.zero b{margin-top:0}
+.classic .r0{top:calc(350 * var(--u))!important}.classic .r1{top:calc(449.3 * var(--u))!important}
+.classic .r2{top:calc(548.6 * var(--u))!important}.classic .r3{top:calc(649 * var(--u))!important}
+.classic .c0{left:calc(90 * var(--u))!important}.classic .c1{left:calc(200.5 * var(--u))!important}.classic .c2{left:calc(311 * var(--u))!important}
+.classic .foot{top:calc(797 * var(--u));font-size:calc(19.5 * var(--u));font-weight:600}
+.classic #emergency{left:calc(20 * var(--u))}.classic #cancel{left:calc(240.5 * var(--u))}
+.classic #hbar{display:block;position:absolute;left:50%;bottom:calc(8 * var(--u));width:calc(140 * var(--u));height:calc(5 * var(--u));border-radius:3px;background:#fff;transform:translateX(-50%)}
+#net.on{display:block;font-size:calc(13 * var(--u));font-weight:650;letter-spacing:calc(.1 * var(--u))}
+
+/* ---------- unlocked: home photo ---------- */
+#home{position:fixed;inset:0;background:#000 center/cover no-repeat;opacity:0;transform:scale(1.12);pointer-events:none;
+  transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.25,1);z-index:5}
+.unlocked #home{opacity:1;transform:none;pointer-events:auto}
+/* iOS-like app launch: the icon grows from the tap point to full screen */
+#launch{position:fixed;inset:0;z-index:20;pointer-events:none;display:none;will-change:clip-path}
+#launch.on{display:block;pointer-events:auto}
+#launch .ph{position:absolute;inset:0;background:#000 center/cover no-repeat;will-change:transform,opacity}
+#launch .col{position:absolute;inset:0;opacity:0;will-change:opacity}
+.launching #home{transform:scale(1.12);filter:brightness(.8);transition:transform .45s cubic-bezier(.3,.8,.2,1),filter .45s}
+/* PIN peek as an iOS notification badge on the home photo */
+#badge{position:absolute;display:none;transform:translate(-50%,-50%) scale(0);height:6.4vw;min-width:6.4vw;padding:0 1.8vw;
+  border-radius:3.2vw;background:#ff3b30;color:#fff;font:700 4.4vw/6.4vw -apple-system,system-ui,"SF Pro Text",sans-serif;
+  text-align:center;letter-spacing:.1px;transition:transform .28s cubic-bezier(.3,1.5,.5,1) .35s}
+#badge.on{display:block}
+.unlocked #badge.on{transform:translate(-50%,-50%) scale(1)}
+.unlocked #app{opacity:0;transition:opacity .25s}
+
+/* ---------- secret settings sheet ---------- */
+#sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:9}
+#sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
+  padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
+  max-height:88%;overflow-y:auto;max-width:520px;margin:0 auto;touch-action:pan-y}
+.open #sheetBg{opacity:1;pointer-events:auto}.open #sheet{transform:none}
+.grab{width:36px;height:5px;border-radius:3px;background:#48484A;margin:0 auto 10px}
+.shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.shead b{font-size:17px;font-weight:600}.shead span{width:60px}
+.sbtn{color:#FF9F0A;font-size:17px;font-weight:600;background:none;border:0;font-family:inherit}
+.lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 16px 6px}
+.grp{background:#2C2C2E;border-radius:14px;overflow:hidden}
+.r{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 16px;font-size:17px;gap:10px;border-bottom:.5px solid #3A3A3C}
+.r:last-child{border-bottom:0}
+.r select{background:none;border:0;color:rgba(235,235,245,.6);font:17px -apple-system,system-ui;text-align:right;outline:none;-webkit-appearance:none;appearance:none}
+.r input[type=checkbox]{width:20px;height:20px;accent-color:#FF9F0A}
+.r input[type=number]{background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;width:120px;-webkit-user-select:text;user-select:text}
+.r .val{color:rgba(235,235,245,.6)}
+/* black screen (PeekSmith side button hold): looks like the screen is off */
+#blk{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .35s ease;z-index:8;touch-action:none}
+.black #blk{opacity:1;pointer-events:auto}
+.snote{font-size:13px;color:rgba(235,235,245,.6);margin:8px 16px 0;line-height:1.35}
+</style>
+</head>
+<body>
+<div id="bg" class="gradient"></div>
+<div id="dim"></div>
+<div id="app">
+  <!-- passcode screen -->
+  <div class="v" id="pc">
+    <div id="sb">
+      <div id="stime"></div>
+      <div id="sicons">
+        <svg style="width:calc(17.7 * var(--u));height:calc(12.2 * var(--u))" viewBox="0 0 17.7 12.2" fill="#fff"><rect x="0" y="8.2" width="3.3" height="4" rx="1.1"/><rect x="4.8" y="5.6" width="3.3" height="6.6" rx="1.1"/><rect x="9.6" y="2.9" width="3.3" height="9.3" rx="1.1"/><rect x="14.4" y="0" width="3.3" height="12.2" rx="1.1"/></svg>
+        <svg id="wifi" style="width:calc(16.5 * var(--u));height:calc(12 * var(--u))" viewBox="0 0 17 12" fill="#fff"><path d="M8.5 2.3c2.5 0 4.8 1 6.5 2.6l1.3-1.3A11 11 0 0 0 8.5.4 11 11 0 0 0 .7 3.6L2 4.9a9.2 9.2 0 0 1 6.5-2.6Z"/><path d="M8.5 5.8c1.5 0 2.9.6 4 1.6l1.3-1.3a7.6 7.6 0 0 0-10.6 0l1.3 1.3a5.7 5.7 0 0 1 4-1.6Z"/><path d="M8.5 9.2c.6 0 1.1.2 1.5.6L8.5 11.3 7 9.8c.4-.4.9-.6 1.5-.6Z"/></svg>
+        <span id="net"></span>
+        <svg id="batt" style="width:calc(26.5 * var(--u));height:calc(13.4 * var(--u))" viewBox="0 0 26.5 13.4">
+          <defs><clipPath id="bclip"><rect x="0" y="0" width="24" height="13.4" rx="4.3"/></clipPath></defs>
+          <rect id="bbg" x=".6" y=".6" width="22.8" height="12.2" rx="3.9" fill="rgba(255,255,255,.38)"/><g clip-path="url(#bclip)"><rect id="bfill" width="10.3" height="13.4" fill="#fff"/></g>
+          <path d="M25.1 4.6v4.2c.8-.3 1.4-1.1 1.4-2.1s-.6-1.8-1.4-2.1Z" fill="rgba(255,255,255,.4)"/>
+          <path id="bbolt" d="M13.4 2.2 8.2 7.6h3.1l-1.6 3.6 5.2-5.4h-3.1Z" fill="#000" style="display:none"/>
+          <text id="btext" x="12" y="10.3" text-anchor="middle" font-family="-apple-system,system-ui,sans-serif" font-size="10" font-weight="700" fill="#000" letter-spacing="-.2">43</text>
+        </svg>
+      </div>
+    </div>
+    <svg id="clock" viewBox="0 0 18 24" fill="#fff"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
+    <div id="hbar"></div>
+    <div id="pill">
+      <svg class="pl" viewBox="0 0 18 24" fill="#d8d8dc"><path d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H3a2.4 2.4 0 0 0-2.4 2.4v8.4A2.4 2.4 0 0 0 3 23.2h12a2.4 2.4 0 0 0 2.4-2.4v-8.4A2.4 2.4 0 0 0 15 10h-.4V6.8A5.6 5.6 0 0 0 9 1.2Zm-3.4 5.6a3.4 3.4 0 1 1 6.8 0V10H5.6Z"/></svg>
+      <svg class="fid" viewBox="0 0 24 24" fill="none" stroke="#a6e8a6" stroke-width="1.45" stroke-linecap="round"><path d="M2.5 7.5V5A2.5 2.5 0 0 1 5 2.5h2.5M16.5 2.5H19A2.5 2.5 0 0 1 21.5 5v2.5M21.5 16.5V19a2.5 2.5 0 0 1-2.5 2.5h-2.5M7.5 21.5H5A2.5 2.5 0 0 1 2.5 19v-2.5M8 8.5v1.5M16 8.5v1.5M12.2 8.5v4.3h-1M9 16.2a4.4 4.4 0 0 0 6 0"/></svg>
+    </div>
+    <div id="title">Enter Passcode</div>
+    <div id="dots"></div>
+    <div id="pad"></div>
+    <div class="foot" id="emergency">Emergency</div>
+    <div class="foot" id="cancel">Cancel</div>
+  </div>
+</div>
+<div id="home"><div id="badge"></div></div>
+<div id="launch"><div class="ph"></div><div class="col"></div></div>
+<div id="blk"></div>
+
+<div id="sheetBg"></div>
+<div id="sheet" data-hui='{"title":"PIN lock","tabs":[{"n":"PIN","i":"pin","s":["equation","passcode"]},{"n":"Unlock","i":"unlock","s":["tilt","shortcut","tap the home"]},{"n":"Inject","i":"inject","s":["send to inject"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","badge"]},{"n":"Look","i":"look","s":["look","wallpaper"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
+  <div class="grab"></div>
+  <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
+
+  <div class="lbl">Kill switch</div>
+  <div class="grp">
+    <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
+    <div class="r"><button class="sbtn" id="ksBtn" style="width:auto;white-space:nowrap;text-align:left">Kill this show</button></div>
+  </div>
+  <div class="snote">Tap after each show. Every phone that saw a trick before the tap goes to apple.com from then on (also a page that is open). New spectators at the next show get the trick as normal, so you never turn it back on. This phone keeps working. If this phone is sent away, open the link with ?me=1 at the end.</div>
+  <div class="lbl">Equation</div>
+  <div class="grp">
+    <div class="r">Year<input type="number" id="sYear" inputmode="numeric" placeholder="Auto"></div>
+    <div class="r">Time format<select id="sH24"><option value="0">12-hour (11:35)</option><option value="1">24-hour (23:35)</option></select></div>
+    <div class="r">Birthday<select id="sBday"><option value="both">Send both PINs</option><option value="passed">Passed</option><option value="not">Not passed</option></select></div>
+    <div class="r">Now<span class="val" id="sMath"></span></div>
+  </div>
+  <div class="snote">PIN = total − year − time. "Send both PINs" sends, for example, "4820/4821": the first PIN is correct when the birthday has passed this year, the second when it has not. Leave the year empty to use the current year.</div>
+
+  <div class="lbl">Passcode</div>
+  <div class="grp">
+    <div class="r">Start with<select id="sLen"><option value="4">4 digits</option><option value="6">6 digits</option></select></div>
+    <div class="r">After the code<select id="sAfter"><option value="shake">Wrong passcode (shake)</option><option value="lock">Shake → live time again</option><option value="unlock">Unlock → home photo</option></select></div>
+    <div class="r">Copy the PIN to the clipboard<input type="checkbox" id="sCopy"></div>
+  </div>
+  <div class="snote">Swipe left or right on the passcode screen to change between 4 and 6 digits. The code is complete after 4 (or 6) digits, like iOS. A 5-digit total gives a range on the PeekSmith, for example "8999-9009" (the PIN is in that range).</div>
+
+  <div class="lbl">Tilt to unlock</div>
+  <div class="grp">
+    <div class="r">Tilt straight up<select id="sTilt"><option value="arm">Next code unlocks</option><option value="now">Unlock at once</option><option value="off">Off</option></select></div>
+    <div class="r">Hold time<select id="sTiltMs"><option value="300">0.3 s</option><option value="500">0.5 s</option><option value="800">0.8 s</option></select></div>
+    <div class="r">Motion<span><span class="val" id="sMotion">Not allowed yet</span> <button class="sbtn" id="sMotionBtn">Allow</button></span></div>
+  </div>
+  <div class="snote">Hold the phone vertical (screen to you). "Next code unlocks": you feel a tap, and the next code the spectator types unlocks the phone to the home photo (the PIN still goes to the PeekSmith). "Unlock at once": the phone unlocks immediately. To go back: hold the home photo with 2 fingers (you can change this under "Tap the home photo"), or tap it 3 times quickly.</div>
+
+  <div class="lbl">Send to Inject</div>
+  <div class="grp">
+    <div class="r">Send to Inject<input type="checkbox" id="sInj"></div>
+    <div class="r">Send when<select id="sInjWhen"><option value="tilt">Tilt, then the code</option><option value="code">The code is complete</option><option value="unlock">The phone unlocks</option><option value="button">PeekSmith side button (hold)</option></select></div>
+    <div class="r">Which PIN<select id="sInjWhich"><option value="a">First (birthday passed)</option><option value="b">Second (birthday not passed)</option><option value="both">Both (4821/4822)</option><option value="space">Both (4821 4822)</option><option value="two">Both, as 2 notifications</option></select></div>
+    <div class="r">Inject ID<input type="number" id="sInjId" inputmode="numeric" placeholder="13297"></div>
+    <div class="r"><button class="sbtn" id="sInjTest">Send now (test: 1234)</button><span class="val" id="sInjSt"></span></div>
+  </div>
+  <div class="snote">Sends the PIN to your Inject (needs internet). On by default. "Tilt, then the code": only the code typed after you tilt the phone up goes to Inject; codes typed before the tilt do not. "Which PIN" is used when the PeekSmith shows two PINs or a range. The PeekSmith shows "Inject: 4821" when it is sent. You can also send it with the PeekSmith side button (hold) at any time, when "Side button hold" (PeekSmith settings) is "Send to Inject" or "Both".</div>
+
+  <div class="lbl">Shortcut after unlock</div>
+  <div class="grp">
+    <div class="r">Shortcut name<input type="text" id="sSc" placeholder="None" autocapitalize="off" autocorrect="off" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
+    <div class="r">Input<select id="sScIn"><option value="none">Nothing</option><option value="pin">The PIN</option><option value="all">PIN, total and time</option></select></div>
+    <div class="r">Delay<select id="sScMs"><option value="300">0.3 s</option><option value="800">0.8 s</option><option value="1500">1.5 s</option></select></div>
+    <div class="r"><button class="sbtn" id="sScTest">Test the shortcut</button></div>
+  </div>
+  <div class="snote">Runs the shortcut with this name (the same spelling as in the Shortcuts app) each time the phone unlocks: by tilt, or by the code when "After the code" is "Unlock". Leave it empty to run nothing. iOS opens the Shortcuts app to run it.</div>
+
+  <div class="lbl">Tap the home photo</div>
+  <div class="grp">
+    <div class="r">Action<select id="sUAct"><option value="none">Nothing</option><option value="app">Open an app</option></select></div>
+    <div class="r" id="rowUApp">App<select id="sUApp"><option value="notes">Notes</option><option value="photos">Photos</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="custom">Other (app link)</option></select></div>
+    <div class="r" id="rowUUrl">App link<input type="text" id="sUUrl" placeholder="app://" autocapitalize="off" autocorrect="off" inputmode="url" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
+    <div class="r">Go back to the PIN screen<select id="sBack"><option value="two">Hold with 2 fingers</option><option value="one">Hold with 1 finger</option><option value="any">Hold with 1 or 2 fingers</option></select></div>
+    <div class="r">Hold time<select id="sBackMs"><option value="800">0.8 s</option><option value="1500">1.5 s</option><option value="2500">2.5 s</option></select></div>
+    <div class="r">Open animation<select id="sUAnim"><option value="ios">iOS (icon zooms open)</option><option value="none">None</option></select></div>
+    <div class="r">Launch color<select id="sUCol"><option value="auto">Auto</option><option value="#ffffff">White</option><option value="#000000">Black</option><option value="#1c1c1e">Dark gray</option></select></div>
+    <div class="r"><button class="sbtn" id="sUTest">Test: open the app</button></div>
+  </div>
+  <div class="snote">After the phone unlocks, one tap on the home photo opens this app. When this is on, 3 quick taps do not go back; hold the home photo (see "Go back to the PIN screen"), or tap the PeekSmith side button. "Other": type the app's link (URL scheme), for example fb:// .</div>
+
+  <div class="lbl">Look</div>
+  <div class="grp">
+    <div class="r">Style<select id="sStyle"><option value="classic">Classic (frosted keys)</option><option value="glass">iOS 26 (glass keys)</option></select></div>
+    <div class="r">Network<select id="sNet"><option value="none">Signal only</option><option value="lte">Signal + LTE</option><option value="5g">Signal + 5G</option><option value="wifi">Signal + Wi-Fi</option></select></div>
+    <div class="r">Battery number<input type="checkbox" id="sBnum"></div>
+    <div class="r">Charging<input type="checkbox" id="sChg"></div>
+  </div>
+  <div class="snote">Classic: the look of your screenshot (blurred wallpaper, frosted keys, lock icon). iOS 26: sharp wallpaper, glass keys, Face ID in the island.</div>
+
+  <div class="lbl">Wallpaper</div>
+  <div class="grp">
+    <div class="r">Wallpaper<span><button class="sbtn" id="sPick">Choose…</button> <button class="sbtn" id="sReset">Default</button></span></div>
+    <div class="r">Battery %<input type="number" id="sBatt" inputmode="numeric" min="1" max="100"></div>
+    <div class="r">Passcode dim<select id="sDim"><option value="0.3">Light</option><option value="0.5">iOS</option><option value="0.65">Dark</option></select></div>
+    <div class="r">Home photo<span><button class="sbtn" id="sPickHome">Choose…</button> <button class="sbtn" id="sResetHome">Wallpaper</button></span></div>
+  </div>
+  <div class="snote">Tip: use a screenshot of your home screen as the home photo. The photos stay on this phone only.</div>
+
+  <div class="lbl">Badge peek</div>
+  <div class="grp">
+    <div class="r">Show the PIN as a badge<input type="checkbox" id="sBadge"></div>
+    <div class="r">Badge position<button class="sbtn" id="sBadgePos">Set…</button></div>
+  </div>
+  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens; tap the place for the badge. A test badge "1234" shows there. Tap the photo 3 times quickly to go back. With two PINs, the badge shows the PIN from "Which PIN".</div>
+  <input type="file" id="file" accept="image/*" hidden>
+  <input type="file" id="fileHome" accept="image/*" hidden>
+
+  <div class="lbl">PeekSmith (Bluetooth, in Aura)</div>
+  <div class="grp">
+    <div class="r">Status<span class="val" id="bleSt">Not connected</span></div>
+    <div class="r"><button class="sbtn" id="bleBtn">Connect PeekSmith</button><button class="sbtn" id="bleTest">Test</button></div>
+    <div class="r">Search automatically<input type="checkbox" id="sAuto"></div>
+    <div class="r">Search time<select id="bleTime"></select></div>
+    <div class="r">Show the time when it freezes<input type="checkbox" id="sPkTime"></div>
+    <div class="r">Peek only after the tilt<input type="checkbox" id="sPkTilt"></div>
+    <div class="r">Show digits while typing<input type="checkbox" id="sPkLive"></div>
+    <div class="r">Vibrate with the PIN<input type="checkbox" id="sVib"></div>
+    <div class="r">Side button hold<select id="sSide"><option value="black">Black screen (on/off)</option><option value="inject">Send to Inject</option><option value="both">Both</option></select></div>
+    <div class="r">Connected screen<select id="conMode"><option value="text">Custom text</option><option value="blank">Blank screen</option><option value="default">PeekSmith default</option></select></div>
+    <div class="r" id="conTextRow">Text<input type="text" id="conText" autocapitalize="characters" autocorrect="off" placeholder="PIN" style="background:none;border:0;color:#fff;font:17px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;-webkit-user-select:text;user-select:text"></div>
+  </div>
+  <div class="snote" id="bleNote">Search time: how long the page looks for the PeekSmith (one setting for all pages). PeekSmith buttons: left tap = show the PIN again, right hold = clear, side tap = reset (live time, empty code), side hold = black screen on/off (see "Side button hold"). The black screen stops all taps. You can also hold the top of the screen (not the time) with 1 finger for 0.8 s: black screen on. Tap the black screen once to show the page again. "Peek only after the tilt": codes typed before you tilt the phone up do not go to the PeekSmith or the online peeks; only the code typed after the tilt does (with "Tilt straight up" set to "Next code unlocks").</div>
+  <div class="lbl">Online peeks</div>
+  <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
+  <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. Hold the top of the screen 0.8 s = black screen. Tap the black screen = page again. If you forget to freeze, the time freezes at the first digit.</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v28</div>
+<div data-tab="Help" class="hui-help">
+  <h4>Open and close</h4>
+  <p>Hold the <b>time</b> for 1.5 seconds to open these settings. Double tap the time to show the live time again.</p>
+  <h4>The trick</h4>
+  <ol><li>The spectator adds numbers (for example the year, the time and your PIN) and types the total as the passcode.</li>
+  <li>The PIN goes to your PeekSmith (PIN = total − year − time). "Send both PINs" shows two PINs: the first is correct when the birthday has passed this year.</li>
+  <li>The code shakes as a wrong passcode, or unlocks to the home photo (see PIN tab).</li></ol>
+  <h4>Unlock</h4>
+  <p>Tilt the phone straight up (screen to you): the next code unlocks the phone, or it unlocks at once. To go back: hold the home photo with 2 fingers, or tap it 3 times.</p>
+  <h4>Inject and Shortcut</h4>
+  <p>The PIN can go to Inject (Inject tab) and to a Shortcut after the unlock (Unlock tab).</p>
+  <h4>Black screen</h4>
+  <p>Hold the top of the screen for 0.8 second (or hold the PeekSmith side button) to make the screen look off.</p>
+</div>
+</div>
+
+<script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
+<script src="../relay.js"></script>
+<script>
+/* URL options: ?len=4|6  ?year=2026  ?ble=0 (no automatic search)  ?ps=0 (no online peeks)  ?k=channel */
+const Q=new URLSearchParams(location.search);
+const $=id=>document.getElementById(id);
+const B=document.body;
+const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto',back:'two',backMs:1500,side:'black'},store.get('pinset',{}));
+if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
+if(P.net==null)P.net=P.wifi?'wifi':'none';
+if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
+if(!P.injTiltV){P.injWhen='tilt';P.injTiltV=1} // New default: send only the code typed after the tilt
+if(Q.has('len'))P.len=+Q.get('len')===6?6:4;
+if(Q.has('year'))P.year=Q.get('year');
+if(Q.get('ble')==='0')P.auto=false;
+if(Q.get('ps')==='0')P.online=false;
+const TOPIC=Q.get('k')||'fvt-c-k27x9m4q8w';
+const saveP=()=>store.set('pinset',P);
+/* what the PeekSmith shows when it connects */
+if(!P.conMode)P.conMode='text';if(P.conText==null)P.conText='PIN';
+function conShow(){if(!bleOn())return;
+  if(P.conMode==='text'&&P.conText){onScreen='';psWrite(String(P.conText))}
+  else if(P.conMode==='blank'){aps.clear().catch(()=>{});onScreen=''}}
+function conSync(){$('conMode').value=P.conMode;$('conText').value=P.conText;$('conTextRow').style.display=P.conMode==='text'?'':'none'}
+setTimeout(()=>{try{conSync()}catch(e){}
+  $('conMode').onchange=e=>{P.conMode=e.target.value;saveP();conSync();conShow()};
+  $('conText').onchange=e=>{P.conText=e.target.value;saveP();conShow()}},0);
+const pad2=n=>String(n).padStart(2,'0');
+function haptic(s){try{if(window.Aura&&Aura.haptic)Aura.haptic('impact',{style:s||'light'}).catch(()=>{})}catch(e){}}
+
+/* ---------- wallpaper and home photo ---------- */
+function img(key){try{return localStorage.getItem(key)}catch(e){return null}}
+function drawBatt(){const b=Math.max(1,Math.min(100,+P.batt||43)),low=b<=20&&!P.chg;
+  B.classList.toggle('classic',P.style!=='glass');
+  const f=$('bfill'),t=$('btext');
+  if(P.bnum){f.setAttribute('x',0);f.setAttribute('y',0);f.setAttribute('height',13.4);f.setAttribute('rx',0);f.setAttribute('width',(24*b/100).toFixed(2));
+    $('bbg').setAttribute('fill','rgba(255,255,255,.38)');$('bbg').setAttribute('stroke','none');t.style.display='';t.textContent=b;t.setAttribute('fill',low?'#fff':'#000')}
+  else{f.setAttribute('x',2);f.setAttribute('y',2);f.setAttribute('height',9.4);f.setAttribute('rx',2.4);f.setAttribute('width',(20*b/100).toFixed(2));
+    $('bbg').setAttribute('fill','none');$('bbg').setAttribute('stroke','rgba(255,255,255,.45)');t.style.display='none'}
+  f.setAttribute('fill',P.chg?'#34c759':low?'#ff3b30':'#fff');
+  $('bbolt').style.display=P.chg&&!P.bnum?'':'none';$('bbolt').setAttribute('fill',P.chg?'#fff':'#000');
+  $('wifi').classList.toggle('off',P.net!=='wifi');const n=$('net');n.textContent=P.net==='lte'?'LTE':P.net==='5g'?'5G':'';n.classList.toggle('on',P.net==='lte'||P.net==='5g')}
+function applyBg(){drawBatt();
+  const bg=$('bg'),i=img('pinbg');
+  if(i){bg.classList.remove('gradient');bg.style.backgroundImage='url("'+i+'")'}else{bg.classList.add('gradient');bg.style.backgroundImage=''}
+  document.documentElement.style.setProperty('--dim',P.dim)}
+applyBg();
+function savePhoto(f,key,done){if(!f)return;
+  const im=new Image();im.onload=()=>{const max=1600,k=Math.min(1,max/Math.max(im.width,im.height));
+    const c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+    try{localStorage.setItem(key,c.toDataURL('image/jpeg',.85))}catch(err){alert('The photo is too large to save.')}
+    URL.revokeObjectURL(im.src);done()};im.src=URL.createObjectURL(f)}
+$('sPick').onclick=()=>$('file').click();
+$('file').onchange=e=>savePhoto(e.target.files&&e.target.files[0],'pinbg',applyBg);
+$('sReset').onclick=()=>{try{localStorage.removeItem('pinbg')}catch(e){}applyBg()};
+$('sPickHome').onclick=()=>$('fileHome').click();
+$('fileHome').onchange=e=>savePhoto(e.target.files&&e.target.files[0],'pinhome',()=>{});
+$('sResetHome').onclick=()=>{try{localStorage.removeItem('pinhome')}catch(e){}};
+
+/* ---------- clock: live until frozen ---------- */
+let frozen=null; // {str,num}
+function clockNow(){const d=new Date(),h=d.getHours(),m=d.getMinutes(),hh=P.h24?h:(h%12||12);
+  return {str:(P.h24?pad2(hh):hh)+':'+pad2(m),num:hh*100+m}}
+function year(){const y=parseInt(P.year,10);return y>0?y:new Date().getFullYear()}
+function timeNum(){return (frozen||clockNow()).num}
+function drawClock(){
+  $('stime').textContent=(frozen||clockNow()).str;
+  if(B.classList.contains('open'))drawMath()}
+drawClock();setInterval(drawClock,1000);
+function freeze(){if(frozen)return;frozen=clockNow();haptic('medium');drawClock();
+  if(P.pkTime){onScreen='';psWrite('T '+frozen.num)}}
+function unfreeze(){frozen=null;haptic('light');drawClock()}
+
+/* ---------- screens ---------- */
+let view='pass';
+function toLock(live){placing=false;launchReset();showBadge('');view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
+function unlock(){if(view==='home')return;view='home';unlockT=Date.now();clearTimeout(waitT);
+  const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
+  if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
+  haptic('medium');showBadge(badgePin());B.classList.add('unlocked');
+  if(P.inj&&P.injWhen==='unlock')injSend(false);
+  if(P.sc)setTimeout(runShortcut,P.scMs)}
+let lastTotal='',placing=false;
+/* Badge peek */
+function badgePin(){
+  if(!P.badge||!lastPin||lastPin[0]==='?')return '';
+  const parts=lastPin.split(' or ')[0].split(/[\/-]/).filter(Boolean);
+  return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
+function showBadge(t){const b=$('badge');b.textContent=t;b.style.left=P.bx+'%';b.style.top=P.by+'%';b.classList.toggle('on',!!t)}
+function placeBadge(){
+  B.classList.remove('open');placing=true;view='home';
+  const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
+  if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
+  showBadge('1234');B.classList.add('unlocked')}
+$('home').addEventListener('click',e=>{if(!placing)return;
+  P.bx=+(e.clientX/innerWidth*100).toFixed(2);P.by=+(e.clientY/innerHeight*100).toFixed(2);saveP();
+  showBadge('1234');haptic('light')},true);
+function runShortcut(){
+  if(!P.sc)return;
+  let u='shortcuts://run-shortcut?name='+encodeURIComponent(P.sc);
+  const t=P.scIn==='pin'?lastPin:P.scIn==='all'?('PIN '+lastPin+'\nTotal '+lastTotal+'\nTime '+timeNum()):'';
+  if(P.scIn!=='none'&&t)u+='&input=text&text='+encodeURIComponent(t);
+  location.href=u}
+/* tap the home photo after unlock: open an app */
+let unlockT=0;
+const APP_LINK={notes:'mobilenotes://',photos:'photos-redirect://',messages:'sms:',mail:'message://',maps:'maps://',music:'music://',calendar:'calshow://',reminders:'x-apple-reminderkit://',settings:'App-prefs:',shortcuts:'shortcuts://',instagram:'instagram://',youtube:'youtube://',spotify:'spotify://',whatsapp:'whatsapp://'};
+function appLink(){return P.uApp==='custom'?String(P.uUrl||'').trim():APP_LINK[P.uApp]}
+function openApp(){const u=appLink();if(!u)return false;
+  try{const a=document.createElement('a');a.href=u;a.style.display='none';document.body.appendChild(a);a.click();a.remove()}catch(e){location.href=u}
+  return true}
+/* launch color: the app's first screen (white in light mode, black in dark mode; some apps are always dark) */
+function launchColor(){
+  if(P.uCol&&P.uCol!=='auto')return P.uCol;
+  if(['spotify','shortcuts'].includes(P.uApp))return '#000000';
+  return matchMedia('(prefers-color-scheme: dark)').matches?'#000000':'#ffffff'}
+let launching=false;
+function launchAnim(x,y,done){
+  const L=$('launch'),ph=L.querySelector('.ph'),col=L.querySelector('.col'),W=innerWidth,H=innerHeight;
+  const sz=W*0.155,r=sz*0.225,ix=Math.max(0,x-sz/2),iy=Math.max(0,y-sz/2);
+  ph.style.backgroundImage=$('home').style.backgroundImage;ph.style.backgroundColor=getComputedStyle($('home')).backgroundColor;
+  ph.style.transformOrigin=x+'px '+y+'px';col.style.background=launchColor();
+  const from='inset('+iy+'px '+(W-ix-sz)+'px '+(H-iy-sz)+'px '+ix+'px round '+r+'px)',to='inset(0px 0px 0px 0px round '+(W*0.11)+'px)';
+  L.classList.add('on');B.classList.add('launching');
+  const ease='cubic-bezier(.32,.72,0,1)',D=430;
+  try{
+    L.animate([{clipPath:from},{clipPath:to}],{duration:D,easing:ease,fill:'forwards'});
+    ph.animate([{transform:'scale(1)',opacity:1},{transform:'scale(2.2)',opacity:0,offset:.55},{transform:'scale(3)',opacity:0}],{duration:D,easing:ease,fill:'forwards'});
+    col.animate([{opacity:0},{opacity:1,offset:.45},{opacity:1}],{duration:D,easing:'linear',fill:'forwards'});
+  }catch(e){L.style.clipPath=to;col.style.opacity=1}
+  setTimeout(done,D-40)}
+function launchReset(){launching=false;const L=$('launch');
+  if(!L.classList.contains('on'))return;
+  try{L.getAnimations({subtree:true}).forEach(a=>a.cancel())}catch(e){}
+  L.style.clipPath='';L.querySelector('.col').style.opacity='';L.classList.remove('on');B.classList.remove('launching')}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')setTimeout(launchReset,250)});
+function homeTap(e){if(P.uAct!=='app'||placing||view!=='home')return false;
+  if(Date.now()-unlockT<700||launching)return true;   // the finger from the last digit: not a tap on the photo
+  if(!appLink())return false;
+  if(P.uAnim==='none')return openApp();
+  launching=true;
+  const x=e&&e.clientX!=null?e.clientX:innerWidth/2,y=e&&e.clientY!=null?e.clientY:innerHeight/2;
+  launchAnim(x,y,()=>{openApp();
+    /* if no app opened (wrong link), go back to the home photo */
+    setTimeout(()=>{if(document.visibilityState==='visible')launchReset()},2500)});
+  return true}
+/* hold the home photo 1.5 s = back to the PIN screen (always works, also when a tap opens an app) */
+let homeHeld=false,multiTouch=false;
+(function(){const h=$('home');let tm=null,x0=0,y0=0;
+  const go=(x,y)=>{x0=x;y0=y;clearTimeout(tm);tm=setTimeout(()=>{if(view==='home'&&!placing&&!launching){homeHeld=true;haptic('medium');toLock(true)}},+P.backMs||1500)};
+  const stop=()=>clearTimeout(tm);
+  h.addEventListener('touchstart',e=>{const n=e.touches.length,t=e.touches[0];
+    if(n===1){homeHeld=false;multiTouch=false}else multiTouch=true;   // a 2-finger touch never opens the app
+    const ok=P.back==='any'?true:P.back==='two'?n===2:n===1;
+    if(ok)go(t.clientX,t.clientY);else stop()},{passive:true});
+  h.addEventListener('touchmove',e=>{const t=e.touches[0];if(Math.hypot(t.clientX-x0,t.clientY-y0)>20)stop()},{passive:true});
+  h.addEventListener('touchend',e=>{if(P.back==='two'&&e.touches.length<2)stop();else if(!e.touches.length)stop()});h.addEventListener('touchcancel',stop);
+  h.addEventListener('mousedown',e=>{homeHeld=false;multiTouch=false;if(P.back!=='two')go(e.clientX,e.clientY)});h.addEventListener('mouseup',stop)})();
+(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeHeld||multiTouch){homeHeld=false;return}if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
+
+/* ---------- passcode ---------- */
+const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
+const KX=[98.8,200.3,301.9],KY=[340.6,436.3,532,626.5];
+KEYS.forEach(([k,l],i)=>{const e=document.createElement('div');e.className='key'+(k==='0'?' zero':'');e.dataset.k=k;
+  const col=k==='0'?1:i%3,row=k==='0'?3:Math.floor(i/3);e.classList.add('r'+row,'c'+col);
+  e.style.left='calc('+KX[col]+' * var(--u))';e.style.top='calc('+KY[row]+' * var(--u))';
+  e.innerHTML='<b>'+k+'</b>'+(l?'<small>'+l+'</small>':'');$('pad').appendChild(e)});
+let len=P.len,code='',locked=false,waitT=null,lastPin='',armed=false;
+/* Peek only the code typed after the tilt (when tilt arms the next code) */
+function peekOk(){return !P.pkTilt||P.tilt!=='arm'||armed}
+function drawDots(){const d=$('dots');d.innerHTML='';for(let i=0;i<len;i++){const s=document.createElement('div');s.className='dot'+(i<code.length?' on':'');d.appendChild(s)}
+  $('cancel').textContent=code.length?'Delete':'Cancel'}
+drawDots();
+function toggleLen(){len=len===4?6:4;code='';locked=false;clearTimeout(waitT);drawDots();haptic('light')}
+/* Does the total need one more digit? 4 digits: a total under (year + time) is the start of a 5-digit total.
+   6 digits: 100000…100045 can be the start of a 7-digit total (PIN 996xxx and up). */
+function digit(k){
+  if(locked||view!=='pass'||code.length>=len)return;
+  if(!frozen)freeze();
+  code+=k;haptic();drawDots();
+  if(P.pkLive&&peekOk())psWrite(code.split('').join(' '));
+  if(code.length===len){locked=true;armCopy();setTimeout(complete,180)}}
+/* copy: iOS allows the clipboard only during a tap, so the PIN is copied when the finger lifts from the last key */
+let pendingCopy='';
+function armCopy(){pendingCopy=P.copy?calcPin(+code):''}
+function copyText(t){
+  let ok=false;
+  try{const a=document.createElement('textarea');a.value=t;a.readOnly=true;a.style.cssText='position:fixed;top:-100px;opacity:0';
+    document.body.appendChild(a);a.select();a.setSelectionRange(0,t.length);ok=document.execCommand('copy');a.remove()}catch(e){}
+  if(!ok){try{navigator.clipboard&&navigator.clipboard.writeText(t).catch(()=>{})}catch(e){}}}
+function flushCopy(){if(pendingCopy){const t=pendingCopy;pendingCopy='';copyText(t)}}
+function calcPin(total){
+  if(len===4&&code.length===4&&total<year()+timeNum()-1){ // first 4 digits of a 5-digit total
+    const lo=total*10-year()-timeNum(),hi=lo+10,c=n=>String(Math.max(0,Math.min(9999,n))).padStart(4,'0');
+    return c(lo)+'-'+c(hi)}
+  const p=total-year()-timeNum(),L=len,max=Math.pow(10,L);
+  const f=n=>(n>=0&&n<max)?String(n).padStart(L,'0'):null;
+  const a=f(p),b=f(p+1);
+  if(P.bday==='passed')return a||('? '+total);
+  if(P.bday==='not')return b||('? '+total);
+  let out=(a&&b)?a+'/'+b:(a||b||('? '+total));
+  /* 6 digits: a total of 100000 and up can also be the first 6 digits of a 7-digit total (PIN 995xxx and up).
+     Both are possible, so the peek shows the two answers: "097160/097161 or 999290-999300" */
+  if(L===6&&code.length===6){const lo=total*10-year()-timeNum();
+    if(lo>=0&&lo<=max-1){const r=String(lo).padStart(6,'0')+'-'+String(Math.min(max-1,lo+10)).padStart(6,'0');out=out[0]==='?'?r:out+' or '+r}}
+  return out}
+function complete(){
+  waitT=null;const total=+code;lastPin=calcPin(total);lastTotal=String(total);
+  const pk=peekOk();
+  if(pk){onScreen='';psWrite(lastPin);if(P.vib&&bleOn())aps.vibrate('.').catch(()=>{})}
+  if(P.online&&pk){try{PeekRelay.send(TOPIC,'PIN '+lastPin+'  (total '+total+', time '+timeNum()+')',Q.get('nt')||'PIN')}catch(e){}}
+  if(P.inj&&(P.injWhen==='code'||(P.injWhen==='tilt'&&armed)))injSend(false);
+  if(armed||P.after==='unlock'){armed=false;unlock();return}
+  const d=$('dots');d.classList.remove('shake');void d.offsetWidth;d.classList.add('shake');
+  try{navigator.vibrate&&navigator.vibrate([60,40,60])}catch(e){}
+  setTimeout(()=>{d.classList.remove('shake');code='';locked=false;drawDots();if(P.after==='lock')toLock(true)},560)}
+$('cancel').onclick=()=>{if(view!=='pass'||locked)return;
+  if(code.length){code=code.slice(0,-1);clearTimeout(waitT);waitT=null;drawDots();if(P.pkLive&&peekOk())psWrite(code?code.split('').join(' '):' ')}
+};
+
+/* key touches: instant highlight like iOS */
+const pad=$('pad');
+const press=el=>{el.classList.add('down');digit(el.dataset.k)};
+const release=()=>document.querySelectorAll('.key.down').forEach(k=>k.classList.remove('down'));
+pad.addEventListener('touchstart',e=>{const el=e.target.closest('.key');if(!el)return;e.preventDefault();press(el)},{passive:false});
+addEventListener('touchend',()=>{release();flushCopy()});
+addEventListener('mouseup',flushCopy);addEventListener('touchcancel',release);
+let touchUsed=false;addEventListener('touchstart',()=>touchUsed=true,{passive:true,capture:true});
+pad.addEventListener('mousedown',e=>{if(touchUsed)return;const el=e.target.closest('.key');if(el)press(el)});
+addEventListener('mouseup',()=>{if(!touchUsed)release()});
+
+/* ---------- swipes ---------- */
+let sx=0,sy=0,st=0,sOnSheet=false,sCode='';
+addEventListener('touchstart',()=>{sCode=code},{passive:true,capture:true});
+function gStart(x,y,t){sx=x;sy=y;st=Date.now();sOnSheet=!!(t.closest&&t.closest('#sheet'))||B.classList.contains('open')}
+function undoSwipeDigit(){if(code.length>sCode.length&&!locked){code=sCode;clearTimeout(waitT);waitT=null;drawDots()}}
+function gEnd(x,y){
+  if(sOnSheet||Date.now()-st>800)return;
+  const dx=x-sx,dy=y-sy,ax=Math.abs(dx),ay=Math.abs(dy);
+  if(view!=='pass')return;
+  if(dy>60&&ay>ax*1.5){undoSwipeDigit();freeze()}
+  else if(ax>70&&ax>ay*1.5)toggleLen()}
+addEventListener('touchstart',e=>{const t=e.changedTouches[0];gStart(t.clientX,t.clientY,e.target)},{passive:true});
+addEventListener('touchend',e=>{const t=e.changedTouches[0];gEnd(t.clientX,t.clientY);askMotion()},{passive:true});
+addEventListener('mousedown',e=>{if(!touchUsed){sCode=code;gStart(e.clientX,e.clientY,e.target)}},true);
+addEventListener('mouseup',e=>{if(!touchUsed)gEnd(e.clientX,e.clientY)});
+
+/* time: hold 1.5 s = settings, double-tap = live time again */
+(function(){const el=$('stime');let tm=null,last=0,moved=false;
+  el.addEventListener('touchstart',e=>{moved=false;tm=setTimeout(()=>{tm=null;openSheet()},1500)},{passive:true});
+  el.addEventListener('touchmove',()=>{moved=true;clearTimeout(tm)},{passive:true});
+  el.addEventListener('touchend',()=>{if(!tm)return;clearTimeout(tm);tm=null;if(moved)return;
+    const now=Date.now();if(now-last<350){last=0;if(frozen)unfreeze()}else last=now})})();
+(function(){const el=$('emergency');let tm=null;
+  const go=()=>{tm=setTimeout(openSheet,1000)},stop=()=>clearTimeout(tm);
+  el.addEventListener('touchstart',go,{passive:true});el.addEventListener('touchend',stop);el.addEventListener('touchmove',stop,{passive:true});
+  el.addEventListener('mousedown',go);el.addEventListener('mouseup',stop)})();
+
+/* ---------- tilt straight up = unlock ---------- */
+let motion='unknown',upSince=0;
+function motionText(){$('sMotion').textContent=motion==='granted'?'Allowed':motion==='denied'?'Denied (reload the page)':motion==='none'?'Not available':'Not allowed yet';
+  $('sMotionBtn').style.display=motion==='granted'||motion==='none'?'none':''}
+function askMotion(){
+  if(motion!=='unknown')return;
+  if(typeof DeviceOrientationEvent==='undefined'){motion='none';motionText();return}
+  if(typeof DeviceOrientationEvent.requestPermission!=='function'){motion='granted';motionText();return}
+  motion='asking';
+  DeviceOrientationEvent.requestPermission().then(s=>{motion=s==='granted'?'granted':'denied';motionText()}).catch(()=>{motion='unknown';motionText()})}
+$('sMotionBtn').onclick=()=>{motion='unknown';askMotion()};
+addEventListener('deviceorientation',e=>{
+  if(e.beta==null)return;
+  if(motion!=='granted'){motion='granted';motionText()}
+  if(P.tilt==='off'||view==='home'||B.classList.contains('open')||(P.tilt==='arm'&&armed)){upSince=0;return}
+  const up=e.beta>75&&e.beta<120&&Math.abs(e.gamma||0)<30;
+  if(!up){upSince=0;return}
+  if(!upSince)upSince=Date.now();
+  else if(Date.now()-upSince>=P.tiltMs){upSince=0;
+    if(P.tilt==='now'){unlock();return}
+    if(!armed){armed=true;haptic('light');if(bleOn())aps.vibrate('.').catch(()=>{})}}});
+
+/* ---------- PeekSmith ---------- */
+const AURA=!!(window.AuraPeekSmith&&AuraPeekSmith.isAvailable&&AuraPeekSmith.isAvailable());
+/* PeekSmith search time: one setting for all trick pages (localStorage "fvtBleTime", seconds, 0 = until found).
+   A search starts when the page opens, when it comes back on screen and when you tap Connect.
+   The page tries again and again until the PeekSmith connects or the search time ends. */
+const BLE_TIMES=[[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[0,'Until found']];
+function bleTime(){let v=NaN;try{v=parseInt(localStorage.getItem('fvtBleTime'),10)}catch(e){}return Number.isFinite(v)&&v>=0?v:0}
+let bleEnd=0,bleManual=false;
+function bleWinStart(){const t=bleTime();bleEnd=t?Date.now()+t*1000:0}
+function bleWinOpen(){return !bleEnd||Date.now()<bleEnd}
+function bleScanT(){return bleEnd?Math.max(3,Math.min(15,Math.ceil((bleEnd-Date.now())/1000))):15}
+function bleTimeUI(){const s=document.getElementById('bleTime');if(!s)return;
+  for(const [v,n] of BLE_TIMES){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}
+  s.value=String(bleTime());if(!s.value)s.value='0';
+  s.onchange=()=>{try{localStorage.setItem('fvtBleTime',s.value)}catch(e){}bleWinStart()}}
+bleWinStart();
+const BLE_NF='Not found – tap Connect';
+let aps=null,bleBusy=false,bleOff=false,wBusy=false,wPending=null,onScreen='';
+const bleOn=()=>!!(aps&&aps.connected);
+function bleStatus(t){$('bleSt').textContent=t}
+function bleBtnText(){$('bleBtn').textContent=bleOn()?'Disconnect':'Connect PeekSmith'}
+function psWrite(t){
+  if(!bleOn())return;if(wBusy){wPending=t;return}
+  if(t===onScreen)return;wBusy=true;onScreen=t;
+  aps.text(t,{raw:true}).catch(()=>{}).finally(()=>{wBusy=false;if(wPending!==null){const n=wPending;wPending=null;psWrite(n)}})}
+async function bleSearch(){
+  if(!AURA||bleBusy||bleOn())return;bleBusy=true;
+  aps=new AuraPeekSmith({lang:'en',timeout:bleScanT()});
+  aps.on('status',({state,name,attempt})=>{
+    if(state==='scanning')bleStatus('Searching…');if(state==='connecting')bleStatus('Connecting…');
+    if(state==='connected')bleStatus(name||'Connected');if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
+    if(state==='disconnected')bleStatus('Not connected');bleBtnText()});
+  aps.on('connect',()=>{aps.vibrate('.').catch(()=>{});onScreen='';bleBtnText();setTimeout(conShow,250)});
+  aps.on('button',({button,event})=>{
+    if(event==='click'&&button===1){onScreen='';psWrite(lastPin||'No PIN yet')}
+    if(event==='longpress'&&button===2){aps.clear().catch(()=>{});onScreen=''}
+    if(event==='click'&&button===0){toLock(true);aps.vibrate('.').catch(()=>{})}
+    if(event==='longpress'&&button===0){
+      if(P.side!=='inject')toggleBlack();
+      if(P.side!=='black'&&P.inj)injSend(true)}});
+  try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
+  bleBusy=false;bleBtnText()}
+async function bleToggle(){
+  if(!AURA){bleStatus('Only in Aura');return}
+  if(bleOn()){bleOff=true;bleManual=false;await aps.disconnect().catch(()=>{});aps=null;bleStatus('Not connected');bleBtnText();return}
+  bleOff=false;bleManual=true;bleWinStart();bleSearch()}
+if(!AURA){bleStatus('Only in Aura');$('bleNote').textContent='Bluetooth only works when this page is open in Aura (with the site in your Aura bookmarks). Online peeks still work.'}
+else{const auto=()=>{if((P.auto||bleManual)&&!bleOff&&!bleOn()&&!bleBusy&&document.visibilityState==='visible'){if(bleWinOpen())bleSearch();else bleStatus(BLE_NF)}};
+  setTimeout(auto,400);setInterval(auto,6000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){bleWinStart();setTimeout(auto,300)}})}
+bleTimeUI();
+
+/* ---------- black screen: PeekSmith side button hold = on/off ---------- */
+let black=false,blackAt=0;
+function setBlack(on){black=!!on;if(black)blackAt=Date.now();B.classList.toggle('black',black);
+  if(bleOn())aps.vibrate(black?'.':'..').catch(()=>{})}
+function toggleBlack(){setBlack(!black)}
+/* black screen: one tap anywhere = page again (the tap does not go to the page) */
+(function(){const k=$('blk');let x0=0,y0=0,t0=0;
+  const stop=e=>{e.preventDefault();e.stopPropagation()};
+  const tap=(x,y)=>{if(black&&Date.now()-blackAt>400&&Date.now()-t0<700&&Math.hypot(x-x0,y-y0)<20){setBlack(false);haptic('light')}};
+  k.addEventListener('touchstart',e=>{stop(e);const t=e.touches[0];x0=t.clientX;y0=t.clientY;t0=Date.now()},{passive:false});
+  k.addEventListener('touchmove',stop,{passive:false});
+  k.addEventListener('touchend',e=>{stop(e);const t=e.changedTouches[0];tap(t.clientX,t.clientY)},{passive:false});
+  k.addEventListener('touchcancel',stop,{passive:false});
+  k.addEventListener('mousedown',e=>{stop(e);if(touchUsed)return;x0=e.clientX;y0=e.clientY;t0=Date.now()});
+  k.addEventListener('mouseup',e=>{stop(e);if(!touchUsed)tap(e.clientX,e.clientY)});
+  ['click','dblclick','contextmenu'].forEach(t=>k.addEventListener(t,stop))})();
+
+/* hold the top of the screen 0.8 s (1 finger, not on the time) = black screen on/off */
+let topT=null,topX=0,topY=0;
+const topZone=()=>Math.max(70,innerHeight*.12);
+function topStop(){clearTimeout(topT);topT=null}
+function topStart(e){topStop();
+  if(e.touches.length!==1||B.classList.contains('open'))return;
+  const t=e.touches[0];if(t.clientY>topZone())return;
+  if(!black&&e.target.closest&&e.target.closest('#stime,#sheet'))return;
+  topX=t.clientX;topY=t.clientY;
+  topT=setTimeout(()=>{topT=null;haptic('medium');toggleBlack()},800)}
+addEventListener('touchstart',e=>{if(e.target!==$('blk'))topStart(e)},{passive:true,capture:true});
+addEventListener('touchmove',e=>{const t=e.touches[0];if(topT&&t&&Math.hypot(t.clientX-topX,t.clientY-topY)>12)topStop()},{passive:true,capture:true});
+addEventListener('touchend',topStop,{passive:true,capture:true});
+addEventListener('touchcancel',topStop,{passive:true,capture:true});
+
+/* ---------- settings sheet ---------- */
+function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+' = '+(y+t)+(frozen?' (frozen)':' (live)')}
+function syncSheet(){
+  $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
+  $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
+  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sSide').value=P.side;$('sOnline').checked=P.online;
+  $('sUAct').value=P.uAct;$('sUAnim').value=P.uAnim;$('sBack').value=P.back;$('sBackMs').value=String(P.backMs);$('sUCol').value=P.uCol;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
+  motionText();drawMath()}
+$('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
+$('sH24').onchange=e=>{P.h24=e.target.value==='1';saveP();if(frozen){const f=frozen;frozen=null;/* keep the same moment, new format */const h=Math.floor(f.num/100),m=f.num%100;frozen={str:(P.h24?pad2(h):h)+':'+pad2(m),num:f.num}}drawClock()};
+$('sBday').onchange=e=>{P.bday=e.target.value;saveP()};
+$('sLen').onchange=e=>{P.len=+e.target.value;len=P.len;saveP();code='';drawDots()};
+$('sAfter').onchange=e=>{P.after=e.target.value;saveP()};
+$('sTilt').onchange=e=>{P.tilt=e.target.value;saveP()};
+$('sTiltMs').onchange=e=>{P.tiltMs=+e.target.value;saveP()};
+$('sBatt').oninput=e=>{P.batt=+e.target.value||43;saveP();drawBatt()};
+$('sStyle').onchange=e=>{P.style=e.target.value;saveP();drawBatt()};
+$('sNet').onchange=e=>{P.net=e.target.value;saveP();drawBatt()};
+$('sBnum').onchange=e=>{P.bnum=e.target.checked;saveP();drawBatt()};
+$('sChg').onchange=e=>{P.chg=e.target.checked;saveP();drawBatt()};
+$('sCopy').onchange=e=>{P.copy=e.target.checked;saveP()};
+$('sInj').onchange=e=>{P.inj=e.target.checked;saveP()};
+$('sInjWhen').onchange=e=>{P.injWhen=e.target.value;saveP()};
+$('sInjWhich').onchange=e=>{P.injWhich=e.target.value;saveP()};
+$('sInjId').oninput=e=>{P.injId=e.target.value.replace(/\D/g,'');saveP()};
+$('sInjTest').onclick=()=>injSend(true);
+/* ---------- Send to Inject (same endpoint as the calculator) ---------- */
+let injSent='';
+function injValue(){
+  if(!lastPin||lastPin[0]==='?')return '';
+  const parts=lastPin.split(' or ')[0].split(/[\/-]/).filter(Boolean);
+  if(P.injWhich==='both'||P.injWhich==='space'||P.injWhich==='two')return parts.join(P.injWhich==='space'?' ':'/');
+  return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
+async function injSend(manual){
+  const st=$('sInjSt');let v=injValue();
+  if(!v&&manual)v='1234'; // test number when there is no PIN yet
+  if(!v){st.textContent='No PIN yet';if(manual){onScreen='';psWrite('Inject: no PIN')}return}
+  if(!manual&&v===injSent)return;
+  injSent=v;const id=(P.injId||'13297').replace(/\D/g,'')||'13297';
+  const vals=P.injWhich==='two'?v.split('/'):[v];
+  try{
+    for(let n=0;n<vals.length;n++){
+      if(n)await new Promise(r=>setTimeout(r,1500)); // 2nd notification after 1.5 s
+      /* Inject accepts JSON only (a form gives error 415) */
+      const r=await fetch('https://11z.co/_w/'+id+'/selection',{method:'POST',keepalive:true,
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({value:vals[n]})});
+      if(!r.ok){injSent='';st.textContent='Inject error '+r.status;onScreen='';psWrite('Inject error '+r.status);return}}
+    st.textContent='Sent '+vals.join(' + ')+' ✓';if(manual){onScreen='';psWrite('Inject: '+v)}}
+  catch(e){injSent='';st.textContent='Not sent (no internet?)';onScreen='';psWrite('Inject failed')}}
+$('sSc').oninput=e=>{P.sc=e.target.value.trim();saveP()};
+$('sScIn').onchange=e=>{P.scIn=e.target.value;saveP()};
+$('sScMs').onchange=e=>{P.scMs=+e.target.value;saveP()};
+$('sScTest').onclick=()=>{if(!P.sc){alert('Type the shortcut name first.');return}runShortcut()};
+$('sDim').onchange=e=>{P.dim=+e.target.value;saveP();applyBg()};
+$('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
+$('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
+$('sPkLive').onchange=e=>{P.pkLive=e.target.checked;saveP()};
+$('sBadge').onchange=e=>{P.badge=e.target.checked;saveP()};
+$('sBadgePos').onclick=placeBadge;
+$('sPkTilt').onchange=e=>{P.pkTilt=e.target.checked;saveP()};
+$('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
+$('sSide').onchange=e=>{P.side=e.target.value;saveP()};
+$('sOnline').onchange=e=>{P.online=e.target.checked;saveP()};
+$('sBack').onchange=e=>{P.back=e.target.value;saveP()};
+$('sBackMs').onchange=e=>{P.backMs=+e.target.value;saveP()};
+$('sUAnim').onchange=e=>{P.uAnim=e.target.value;saveP()};
+$('sUCol').onchange=e=>{P.uCol=e.target.value;saveP()};
+$('sUAct').onchange=e=>{P.uAct=e.target.value;saveP();syncSheet()};
+$('sUApp').onchange=e=>{P.uApp=e.target.value;saveP();syncSheet()};
+$('sUUrl').onchange=e=>{P.uUrl=e.target.value.trim();saveP()};
+$('sUTest').onclick=()=>{if(!openApp())alert('Type the app link first.')};
+$('bleBtn').onclick=bleToggle;
+$('bleTest').onclick=()=>{if(bleOn()){onScreen='';psWrite('Test 123')}else bleStatus(AURA?'Connect first':'Only in Aura')};
+function openSheet(){syncSheet();B.classList.add('open');haptic('medium')}
+const closeSheet=()=>B.classList.remove('open');
+$('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
+document.addEventListener('gesturestart',e=>e.preventDefault());
+/* test hook */
+window.__pin={calcPin,setCode:c=>{code=c},setLen:l=>{len=l},setFrozen:n=>{frozen={str:'',num:n}},P};
+</script>
+<script>
+/* Disconnect the PeekSmith when the page closes or goes to another page.
+   If the page comes back (Back button / page cache), the automatic search connects again. */
+addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=aps;aps=null;a.disconnect().catch(()=>{})}}catch(e){}
+  try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
+addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
+</script>
+<script src="../hui.js"></script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script src="../kill.js"></script>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<meta name="format-detection" content="telephone=no">
+<meta name="robots" content="noindex">
+<title>Apps</title>
+<style>
+:root{color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none;background:#000;color:#fff;
+  font-family:-apple-system,system-ui,"SF Pro Text","Helvetica Neue",sans-serif;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+/* Wallpaper */
+body{position:fixed;inset:0;
+  background:
+    radial-gradient(120% 70% at 15% 10%,#3a2a6b 0%,transparent 60%),
+    radial-gradient(110% 70% at 90% 95%,#0f4a63 0%,transparent 60%),
+    linear-gradient(160deg,#141026,#05070d);
+  padding:calc(env(safe-area-inset-top) + 34px) 22px calc(env(safe-area-inset-bottom) + 24px)}
+/* Apps sit in the dock at the bottom, like the iOS dock */
+.app{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
+.dock .label{display:none}
+.icon{width:62px;height:62px;border-radius:14px;position:relative;overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,.35);transition:transform .12s ease,filter .12s ease}
+.app.down .icon{transform:scale(.9);filter:brightness(.75)}
+.label{font-size:12px;font-weight:500;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.5);white-space:nowrap}
+/* Notes icon */
+.notes{background:#fff}
+.notes::before{content:"";position:absolute;left:0;right:0;top:0;height:22%;
+  background:linear-gradient(#ffd84a,#f5c400)}
+.notes i{position:absolute;left:13%;right:13%;height:1.5px;background:#d9d9de}
+.notes i:nth-child(1){top:44%}.notes i:nth-child(2){top:62%}.notes i:nth-child(3){top:80%}
+/* Calculator icon */
+.calc{background:#1c1c1e;display:grid;grid-template-columns:repeat(2,1fr);gap:5px;padding:9px;
+  box-shadow:inset 0 0 0 1px #2c2c2e,0 2px 8px rgba(0,0,0,.35)}
+.calc b{border-radius:50%;background:#505055;display:grid;place-items:center;
+  font:600 14px/1 -apple-system,system-ui;color:#fff}
+.calc b.o{background:#ff9f0a}
+/* Flashlight icon */
+.torch{background:linear-gradient(#3a3a3e,#1c1c1e);display:grid;place-items:center}
+.torch svg{width:30px;height:30px}
+/* Dock */
+.dock{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 10px);
+  height:92px;border-radius:30px;background:rgba(255,255,255,.14);
+  display:flex;align-items:center;justify-content:space-evenly;padding:0 8px;
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+/* Launch zoom */
+.fade{position:fixed;z-index:9;pointer-events:none;opacity:0;border-radius:14px;
+  transition:all .22s cubic-bezier(.2,.8,.2,1)}
+.fade.on{opacity:1;left:0!important;top:0!important;width:100vw!important;height:100vh!important;border-radius:0}
+</style>
+</head>
+<body>
+<div class="dock">
+  <div class="app" data-go="notes" data-bg="#fff" id="nApp">
+    <div class="icon notes"><i></i><i></i><i></i></div>
+    <div class="label">Notes</div>
+  </div>
+  <div class="app" data-go="calc" data-bg="#000">
+    <div class="icon calc"><b>−</b><b>+</b><b>×</b><b class="o">=</b></div>
+    <div class="label">Calculator</div>
+  </div>
+  <div class="app" data-go="torch" data-bg="#000">
+    <div class="icon torch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M7 3h10v3l-2 4v10a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1V10L7 6z"/>
+        <path d="M7 6h10"/><circle cx="12" cy="14" r="1.2" fill="#fff"/>
+      </svg>
+    </div>
+    <div class="label">Flashlight</div>
+  </div>
+</div>
+<div class="fade" id="fade"></div>
+<script>
+const BASE='https://frankiemagic13.github.io/aura-tricks/';
+const URLS={notes:BASE+'notes/',calc:BASE+'calculator/',torch:BASE+'flashlight/?as=spect',pin:BASE+'pincode/'};
+const q=new URLSearchParams(location.search);
+// Pass on extra URL settings (for example ?ps=0) to the trick page
+function target(key){
+  const u=new URL(URLS[key]);
+  q.forEach((v,k)=>{if(k!=='go')u.searchParams.set(k,v)});
+  return u.href;
+}
+// Direct open: ?go=notes, ?go=calc, ?go=torch or ?go=pin
+const go=q.get('go');
+if(go&&URLS[go])location.replace(target(go));
+let busy=false;
+function launch(key,el){
+  if(busy)return;busy=true;
+  if(navigator.vibrate)navigator.vibrate(8);
+  const f=document.getElementById('fade'),r=el.querySelector('.icon').getBoundingClientRect();
+  f.style.cssText=`left:${r.left}px;top:${r.top}px;width:${r.width}px;height:${r.height}px;background:${el.dataset.bg}`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('on')));
+  setTimeout(()=>location.replace(target(key)),230);
+}
+// Tap = open.
+document.querySelectorAll('.app').forEach(el=>{
+  let t=null,held=false,x0=0,y0=0;
+  el.addEventListener('touchstart',e=>{held=false;el.classList.add('down');const p=e.touches[0];x0=p.clientX;y0=p.clientY;
+  },{passive:true});
+  /* a finger that moves (a swipe over the dock) does not open the app */
+  el.addEventListener('touchmove',e=>{const p=e.touches[0];if(Math.hypot(p.clientX-x0,p.clientY-y0)>12){held=true;el.classList.remove('down')}},{passive:true});
+  const end=()=>{clearTimeout(t);el.classList.remove('down')};
+  el.addEventListener('touchend',e=>{end();e.preventDefault();if(!held)launch(el.dataset.go,el)});
+  el.addEventListener('touchcancel',end);
+  el.addEventListener('click',()=>{if(!held)launch(el.dataset.go,el)}); // desktop test
+});
+// Back from a trick (page cache): show the home screen again
+addEventListener('pageshow',()=>{busy=false;const f=document.getElementById('fade');f.className='fade';f.style.cssText=''});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+</script>
+<script src="../hui.js"></script>
+<script>
+/* Help panel */
+addEventListener("load",()=>{const help=HUI.helpPanel("Launcher","<h4>Open the tricks</h4>\n<ul><li>Tap <b>Notes</b>: the typing Notes (peeks, mirror, prediction).</li>\n<li>Tap <b>Calculator</b>: the calculator force.</li>\n<li>Tap <b>Flashlight</b>: the flashlight page as a <b>Spectator</b> phone (it does what your control phone sends).</li></ul>\n<h4>Direct links</h4>\n<p>Add <b>?go=notes</b>, <b>calc</b>, <b>torch</b> or <b>pin</b> to open a trick with no home screen. Other link settings (for example ?ps=0) go on to the trick.</p>\n<h4>This help</h4>\n<p>Hold the wallpaper (not an icon) for 1.5 seconds.</p>");
+let ht=null;const hs=e=>{clearTimeout(ht);if(!e.target.closest('.app'))ht=setTimeout(help.open,1500)},hx=()=>clearTimeout(ht);document.addEventListener('touchstart',hs,{passive:true,capture:true});document.addEventListener('mousedown',hs,true);['touchend','touchmove','touchcancel','mouseup'].forEach(n=>document.addEventListener(n,hx,{passive:true,capture:true}));});
+</script>
+</body>
+</html>
