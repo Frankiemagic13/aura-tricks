@@ -259,21 +259,83 @@ function render() {
 let device = null, chars = {}, userStop = false, started = false;
 let replyWaiter = null, stats = { pk: 0, bad: 0 };
 
-function onPenNotify(e) {
-  const dv = e.target.value;
+function onPenNotify(e) { handlePen(e.target.value); }
+function onReplyNotify(e) { handleReply(e.target.value); }
+function handlePen(dv) {
   if (!started) return;                       // ignore data before 23 01 00
   try { feed(parsePen(dv)); stats.pk++; }
   catch (err) { stats.bad++; log('malformed: ' + err.message + ' [' + hex(dv) + ']'); }
 }
-function onReplyNotify(e) {
-  const dv = e.target.value, b = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+function handleReply(dv) {
+  const b = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
   log('reply: ' + hex(dv));
   if (b.length === 3 && b[0] === START_REPLY[0] && b[1] === START_REPLY[1] && b[2] === START_REPLY[2]) {
     if (replyWaiter) { replyWaiter(); replyWaiter = null; }
   }
 }
 
-async function startSession() {
+/* ---------- Aura Browser backend (window.Aura.bluetooth) ---------- */
+const hasAura = () => !!(window.Aura && window.Aura.bluetooth);
+const hasWebBT = () => !!navigator.bluetooth;
+let mode = null;            // 'aura' | 'web'
+let auraId = null, auraConnected = false, auraHooked = false;
+const norm = u => String(u || '').toLowerCase();
+function hookAura() {
+  if (auraHooked) return; auraHooked = true;
+  Aura.on('bluetooth.notification', ({ id, characteristic, value }) => {
+    if (id !== auraId) return;
+    const c = norm(characteristic);
+    if (c === U.penChr) handlePen(value);
+    else if (c === U.rplChr) handleReply(value);
+  });
+  Aura.on('bluetooth.disconnected', ({ id }) => {
+    if (id !== auraId) return;
+    auraConnected = false; onDisconnected();
+  });
+}
+async function startSessionAura() {
+  setStatus('Connecting…', 'warn');
+  hookAura();
+  let info = null, lastErr = null;
+  for (let i = 1; i <= 3; i++) {
+    try { info = await Aura.bluetooth.connect(auraId); break; }
+    catch (e) { lastErr = e; log(`connect try ${i} failed: ${e.message}`); await new Promise(r => setTimeout(r, 600 * i)); }
+  }
+  if (!info) throw new Error('Could not connect (' + (lastErr ? lastErr.message : 'unknown') + '). Close the official app and turn the Pocket off and on.');
+  auraConnected = true;
+  const svcs = (info.services || []).map(x => norm(x.uuid));
+  log('services: ' + svcs.map(x => x.slice(0, 8)).join(', '));
+  if (!svcs.includes(U.penSvc)) throw new Error('Pen service missing');
+  if (!svcs.includes(U.cmdSvc)) throw new Error('Command service missing');
+
+  await Aura.bluetooth.startNotifications(auraId, U.penSvc, U.penChr);
+  await Aura.bluetooth.startNotifications(auraId, U.cmdSvc, U.rplChr);
+  log('notify on 8262 + 8273');
+
+  started = false;
+  const gotReply = new Promise((res, rej) => {
+    replyWaiter = res;
+    setTimeout(() => { if (replyWaiter) { replyWaiter = null; rej(new Error('No start reply (23 01 00)')); } }, REPLY_TIMEOUT_MS);
+  });
+  setStatus('Starting pen…', 'warn');
+  await Aura.bluetooth.write(auraId, U.cmdSvc, U.cmdChr, START_CMD);
+  log('wrote 21 01 00');
+  try { await gotReply; started = true; setStatus('Ready — write on the Pocket', 'ok'); }
+  catch (e) {
+    log(e.message + ' — trying write without response');
+    try { await Aura.bluetooth.write(auraId, U.cmdSvc, U.cmdChr, START_CMD, { withoutResponse: true }); } catch (e2) { log('write w/o response: ' + e2.message); }
+    started = true;
+    setStatus('No start reply — listening anyway', 'warn');
+  }
+  lastContact = 0;
+  $('bConnect').textContent = 'Disconnect';
+}
+function isConnected() {
+  return mode === 'aura' ? auraConnected : !!(device && device.gatt.connected);
+}
+function startSession() { return mode === 'aura' ? startSessionAura() : startSessionWeb(); }
+
+async function startSessionWeb() {
   setStatus('Connecting…', 'warn');
   let server = null, lastErr = null;
   for (let i = 1; i <= 3; i++) {
@@ -325,7 +387,7 @@ async function onDisconnected() {
   started = false;
   endStroke('disconnect'); lastContact = 0; hover = null; schedule();
   log('disconnected');
-  if (userStop || !device) { setStatus('Not connected', ''); $('bConnect').textContent = 'Connect'; return; }
+  if (userStop || (mode === 'aura' ? !auraId : !device)) { setStatus('Not connected', ''); $('bConnect').textContent = 'Connect'; return; }
   // auto-reconnect: rediscover, resubscribe, resend start, wait for reply
   for (let i = 1; i <= 5 && !userStop; i++) {
     setStatus(`Reconnecting (${i}/5)…`, 'warn');
@@ -346,13 +408,30 @@ function hintFor(e) {
   return '';
 }
 async function connect() {
-  if (!navigator.bluetooth) {
-    setStatus('No Web Bluetooth here', 'bad');
-    alertLike('This browser has no Web Bluetooth. Use Chrome or Edge on Mac, or Bluefy on iPhone/iPad.');
+  mode = hasAura() ? 'aura' : hasWebBT() ? 'web' : null;
+  if (!mode) {
+    setStatus('No Bluetooth in this browser', 'bad');
+    alertLike('Open this page in Aura Browser, Chrome on Mac, or Bluefy.');
     return;
   }
   userStop = false;
   try {
+    if (mode === 'aura') {
+      const st = await Aura.bluetooth.state();
+      log('Aura bluetooth state: ' + st);
+      if (st === 'poweredOff') throw new Error('Bluetooth is off — turn it on in Control Center');
+      if (st === 'unauthorized') throw new Error('Aura has no Bluetooth permission — Settings › Aura › Bluetooth');
+      if (!auraId) {
+        setStatus('Searching for Pocket…', 'warn');
+        const opts = scanAll ? { namePrefix: 'Lumen' } : { namePrefix: 'Lumen_ZY' };
+        let d;
+        try { d = await Aura.bluetooth.requestDevice(opts); }
+        catch (e) { throw new Error('Pocket not found. Close the official app (it holds the connection), turn the Pocket off and on, then try again.'); }
+        auraId = d.id; log('found: ' + d.name + ' rssi ' + d.rssi);
+      }
+      await startSession();
+      return;
+    }
     if (!device) {
       const opts = scanAll
         ? { acceptAllDevices: true, optionalServices: [U.penSvc, U.cmdSvc] }
@@ -369,13 +448,19 @@ async function connect() {
     if (e.name === 'NotFoundError' && !h) { setStatus('Not connected', ''); return; } // user cancelled picker
     setStatus(h || e.message, 'bad'); if (h) log('HINT: ' + h);
     logEl.classList.add('on'); $('bLog').classList.add('on'); requestAnimationFrame(resize);
-    if (device && !device.gatt.connected) { device.removeEventListener('gattserverdisconnected', onDisconnected); device = null; }
-    try { if (device && device.gatt.connected) { userStop = true; device.gatt.disconnect(); } } catch (_) {}
+    if (mode === 'aura') {
+      try { if (auraConnected) { userStop = true; await Aura.bluetooth.disconnect(auraId); } } catch (_) {}
+      auraConnected = false; auraId = null;
+    } else if (device && !device.gatt.connected) { device.removeEventListener('gattserverdisconnected', onDisconnected); device = null; }
+    try { if (mode === 'web' && device && device.gatt.connected) { userStop = true; device.gatt.disconnect(); } } catch (_) {}
   }
 }
 function disconnect() {
   userStop = true; endStroke('user stop');
-  try { device && device.gatt.connected && device.gatt.disconnect(); } catch (e) {}
+  try {
+    if (mode === 'aura') { if (auraId) Aura.bluetooth.disconnect(auraId).catch(() => {}); auraConnected = false; }
+    else if (device && device.gatt.connected) device.gatt.disconnect();
+  } catch (e) {}
   setStatus('Not connected', ''); $('bConnect').textContent = 'Connect';
 }
 function alertLike(msg) { showBanner(msg); setTimeout(() => showBanner(''), 4000); log(msg); }
@@ -441,7 +526,7 @@ function selfTest() {
 }
 
 /* ---------- Buttons ---------- */
-$('bConnect').onclick = () => (device && device.gatt.connected) ? disconnect() : connect();
+$('bConnect').onclick = () => isConnected() ? disconnect() : connect();
 $('bUndo').onclick = () => { if (cur) cur = null; else strokes.pop(); needFull = true; schedule(); };
 $('bClear').onclick = () => { strokes = []; cur = null; hover = null; needFull = true; schedule(); };
 $('bSave').onclick = savePNG;
@@ -453,13 +538,14 @@ $('bCal').onclick = () => {
 $('bCal').oncontextmenu = e => { e.preventDefault(); cal = { ...DEFAULT_CAL }; saveCal(); alertLike('Calibration reset'); needFull = true; schedule(); };
 $('bFit').onclick = () => { fitMode = !fitMode; $('bFit').classList.toggle('on', fitMode); needFull = true; schedule(); };
 $('bTest').onclick = selfTest;
-$('bScanAll').onclick = () => { if (device && device.gatt.connected) disconnect(); device = null; scanAll = true; connect().finally(() => { scanAll = false; }); };
+$('bScanAll').onclick = () => { if (isConnected()) disconnect(); device = null; auraId = null; scanAll = true; connect().finally(() => { scanAll = false; }); };
 log('browser: ' + navigator.userAgent);
 $('bLog').onclick = () => { const on = logEl.classList.toggle('on'); $('bLog').classList.toggle('on', on); requestAnimationFrame(resize); };
 
 resize();
 log('ready. cal X ' + cal.x0 + '–' + cal.x1 + ' Y ' + cal.y0 + '–' + cal.y1);
-if (!navigator.bluetooth) setStatus('No Web Bluetooth — use Chrome (Mac) or Bluefy (iOS)', 'bad');
+if (hasAura()) log('using Aura Browser Bluetooth');
+else if (!hasWebBT()) setStatus('No Bluetooth — open in Aura, Chrome (Mac) or Bluefy', 'bad');
 })();
 </script>
 </body>
