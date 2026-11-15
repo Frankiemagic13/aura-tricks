@@ -148,7 +148,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .vpk.f{background:#616161}.vpk.o{background:#EF9838}
 .vpk.down{transition:filter .04s,transform .12s;filter:brightness(1.55);transform:scale(1.04)}
 .vp-cd{position:absolute;left:0;right:0;top:3cqw;text-align:center;font-size:9px;color:#ff9f0a;opacity:0;transition:opacity .2s;white-space:nowrap}.vp-cd.on{opacity:.9}
-.vp-hint{text-align:center;font-size:11px;color:#7d818c;margin-top:6px}
+.vp-hint{text-align:center;font-size:11px;color:#7d818c;margin-top:5px}
+.vp-sel{margin-top:10px;position:relative}
+.vp-sel select{width:100%;height:36px;border:0;border-radius:12px;background:#1e2026;color:#ff9f0a;font:600 14px -apple-system,system-ui;text-align:center;text-align-last:center;
+  -webkit-appearance:none;appearance:none;outline:none;padding:0 22px 0 8px;box-shadow:3px 3px 7px #121318,-3px -3px 7px #2a2d35}
+.vp-sel::after{content:"";position:absolute;right:11px;top:14px;width:6px;height:6px;border-right:2px solid #ff9f0a;border-bottom:2px solid #ff9f0a;transform:rotate(45deg);pointer-events:none}
+.vp-sel select option{color:#000}
 </style>
 </head>
 <body>
@@ -227,27 +232,30 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Send to PeekSmith<label><input type="checkbox" id="cbPs" style="width:auto;transform:scale(1.3)"></label></div>
   </div>
   <div class="note">1. Hold <b>=</b> (or use the switch above). "Codebreaker" shows at the top. Hold <b>=</b> again to turn it off.<br>2. The spectator types an equation (for example 1 + 2 + 3) and taps <b>=</b>.<br>3. Tap C / AC. You can also clear the history.<br>4. With the display at 0, tap <b>=</b>: the first number of the order shows (Reverse: 3). Each tap of <b>=</b> shows the next number (2, then 1).<br>Send to PeekSmith: when the spectator taps =, the PeekSmith shows "CB: 1, 2, 3 = 6".</div>
-  <div class="lbl">Vanish &amp; reveal</div>
+  <div class="lbl">Vanish</div>
   <div class="grp">
     <div class="r">Swipe to vanish<label><input type="checkbox" id="vanOn" style="width:auto;transform:scale(1.3)"></label></div>
-    <div class="r">Swipe works on<select id="vanWho"><option value="mag">My phone only (Magician)</option><option value="all">Both phones</option></select></div>
-    <div class="r">Swipe direction<select id="vanDir"><option value="lr">Left or right</option><option value="l">Left</option><option value="r">Right</option><option value="u">Up</option><option value="d">Down</option><option value="any">Any</option></select></div>
-    <div class="r">Vanish (my phone)<select id="vanOut"></select></div>
-    <div class="r">Delay<select id="vanDelay"></select></div>
-    <div class="r">Reveal (their phone)<select id="vanIn"></select></div>
-    <div class="r">Speed<select id="vanSpeed"><option value="slow">Slow</option><option value="normal">Normal</option><option value="fast">Fast</option></select></div>
-    <div class="r">Buzz on their phone<select id="vanBuzz"><option value="off">Off</option><option value="light">Light</option><option value="medium">Medium</option><option value="heavy">Heavy</option></select></div>
     <div class="r">Status<span id="vanSt" style="color:rgba(235,235,245,.6)">—</span></div>
-    <div class="r"><button class="done" id="vanTest" style="width:auto;white-space:nowrap;text-align:left">Preview on this phone</button></div>
   </div>
-  <div class="note">1. Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>.<br>2. Type a number on your phone (or show a result).<br>3. Swipe across the display. The number goes away and your phone shows 0. The PeekSmith shows "Sent 1,234 · 3 s".<br>4. After the delay, the number comes into view on the spectator's phone with the reveal animation.<br>Your phone does not show the mirror again until you tap a key, so the number does not come back on your screen.<br>Random delay: 3 to 10 s. The PeekSmith shows the delay that the phone selected.</div>
   <div class="lbl">Vanish practice</div>
   <div class="grp"><div class="vp">
-    <div class="vp-ph"><div class="vp-tag">My phone</div><div class="vp-scr" id="vpA"><div class="vp-disp"><div class="vp-ex"></div><div class="vp-mn"><span></span></div></div><div class="vp-keys"></div></div><div class="vp-hint">&larr; swipe the number &rarr;</div></div>
-    <div class="vp-ph"><div class="vp-tag">Spectator</div><div class="vp-scr" id="vpB"><div class="vp-cd"></div><div class="vp-disp"><div class="vp-ex"></div><div class="vp-mn"><span></span></div></div><div class="vp-keys"></div></div><div class="vp-hint">AuraClip</div></div>
+    <div class="vp-ph"><div class="vp-tag">My phone</div><div class="vp-scr" id="vpA"><div class="vp-disp"><div class="vp-ex"></div><div class="vp-mn"><span></span></div></div><div class="vp-keys"></div></div><div class="vp-sel"><select id="vanOut"></select></div><div class="vp-hint">Vanish (swipe the number)</div></div>
+    <div class="vp-ph"><div class="vp-tag">Spectator</div><div class="vp-scr" id="vpB"><div class="vp-cd"></div><div class="vp-disp"><div class="vp-ex"></div><div class="vp-mn"><span></span></div></div><div class="vp-keys"></div></div><div class="vp-sel"><select id="vanIn"></select></div><div class="vp-hint">Reveal</div></div>
   </div>
   <div class="r"><button class="done" id="vpGo" style="width:auto;text-align:left">Swipe (vanish)</button><button class="done" id="vpReset" style="width:auto">Reset</button></div></div>
-  <div class="note">Practice with the settings above. Swipe the number on My phone (or tap Swipe). Tap the keys on My phone to type a different number. Change a setting and swipe again to see the change. Nothing goes to the other phone.</div>
+  <div class="lbl">Vanish timing</div>
+  <div class="grp">
+    <div class="r">Delay<select id="vanDelay"></select></div>
+    <div class="r">Speed<select id="vanSpeed"><option value="slow">Slow</option><option value="normal">Normal</option><option value="fast">Fast</option></select></div>
+    <div class="r">Buzz on their phone<select id="vanBuzz"><option value="off">Off</option><option value="light">Light</option><option value="medium">Medium</option><option value="heavy">Heavy</option></select></div>
+  </div>
+  <div class="note">Change a setting and the practice phones play it again.</div>
+  <div class="lbl">Vanish swipe</div>
+  <div class="grp">
+    <div class="r">Swipe works on<select id="vanWho"><option value="mag">My phone only (Magician)</option><option value="all">Both phones</option></select></div>
+    <div class="r">Swipe direction<select id="vanDir"><option value="lr">Left or right</option><option value="l">Left</option><option value="r">Right</option><option value="u">Up</option><option value="d">Down</option><option value="any">Any</option></select></div>
+  </div>
+  <div class="note">Type a number on your phone and swipe across the display. After the delay, the number comes into view on the spectator's phone. All steps are in the Help tab.</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -357,7 +365,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v44</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v46</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -369,7 +377,11 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <h4>Codebreaker</h4>
   <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
   <h4>Vanish &amp; reveal</h4>
-  <p>Type a number on your phone, then swipe across the display. The number goes away. After the delay, it comes into view on the spectator's phone (Aura peer must be connected). Animations, delay and direction are in the Vanish tab. Use <b>Preview on this phone</b> to see the animations.</p>
+  <ol><li>Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>. "Status" in the Vanish tab shows Linked.</li>
+  <li>Type a number on your phone (or show a result).</li>
+  <li>Swipe across the display. The number goes away and your phone shows 0. The PeekSmith shows "Sent 1,234 · 3 s".</li>
+  <li>After the delay, the number comes into view on the spectator's phone with the reveal animation.</li></ol>
+  <p>Your phone does not show the mirror again until you tap a key, so the number does not come back on your screen. Random delay: 3 to 10 s, and the PeekSmith shows the delay that the phone selected. Use the practice phones in the Vanish tab to see the animations.</p>
   <h4>Peeks</h4>
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
   <h4>Aura peer mirror (top right button)</h4>
@@ -900,7 +912,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v44. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v46. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -1169,8 +1181,9 @@ function vanFill(id,list,val){const s=$(id);if(!s.options.length)for(const [v,n]
 function vanSync(){$('vanOn').checked=!!S.vanOn;$('vanWho').value=S.vanWho;$('vanDir').value=S.vanDir;$('vanSpeed').value=S.vanSpeed;$('vanBuzz').value=S.vanBuzz;
   vanFill('vanOut',Object.entries(VAN_OUT),S.vanOut);vanFill('vanIn',Object.entries(VAN_IN),S.vanIn);vanFill('vanDelay',VAN_DELAYS,S.vanDelay);
   const linked=S.peerRole==='mirror'?(hosting&&guests.size>0):peerOk;$('vanSt').textContent=(linked?'Linked':'Not linked')+(vanLast?' · last: '+vanLast:'')}
-['vanWho','vanDir','vanOut','vanIn','vanSpeed','vanBuzz'].forEach(id=>$(id).onchange=()=>{S[id]=$(id).value;saveS()});
-$('vanDelay').onchange=()=>{S.vanDelay=+$('vanDelay').value;saveS()};
+let vanPractice=null;   // the practice phones play again when an animation setting changes
+['vanWho','vanDir','vanOut','vanIn','vanSpeed','vanBuzz'].forEach(id=>$(id).onchange=()=>{S[id]=$(id).value;saveS();if(['vanOut','vanIn','vanSpeed'].includes(id)&&vanPractice)vanPractice()});
+$('vanDelay').onchange=()=>{S.vanDelay=+$('vanDelay').value;saveS();if(vanPractice)vanPractice()};
 $('vanOn').onchange=()=>{S.vanOn=$('vanOn').checked;saveS()};
 function vanDelayMs(){return S.vanDelay<0?Math.round(30+Math.random()*70)*100:S.vanDelay*1000}
 const vanKey=c=>document.querySelector('.k[data-k="'+c+'"]');
@@ -1214,7 +1227,7 @@ function vanIn(d){clearTimeout(vanT);
     b.classList.add('down');setTimeout(()=>b.classList.remove('down'),120);
     if(k==='AC')A.cur='';else if(/^\d$/.test(k)&&A.cur.replace('.','').length<9)A.cur=(A.cur==='0'?'':A.cur)+k;else if(k==='.'&&!A.cur.includes('.'))A.cur=(A.cur||'0')+'.';
     A.show()});
-  function go(dir){if(busy||!A.cur)return;busy=true;const m=A.cur,sp=VAN_SP[S.vanSpeed]||1,d=vanDelayMs();
+  function go(dir){if(busy||!A.cur)return;busy=true;const m=A.cur;A.last=m;const sp=VAN_SP[S.vanSpeed]||1,d=vanDelayMs();
     const a=S.vanIn==='random'?VAN_KINDS[Math.floor(Math.random()*VAN_KINDS.length)]:S.vanIn;
     vanAnimOut(S.vanOut,dir,sp,A.mt,A.ex).then(an=>{A.cur='';A.show();an.forEach(x=>{try{x.cancel()}catch(e){}});A.mt.animate([{opacity:0},{opacity:1}],{duration:250})});
     const t0=Date.now(),name=VAN_IN[a]||a;
@@ -1228,12 +1241,11 @@ function vanIn(d){clearTimeout(vanT);
   el.addEventListener('mousedown',e=>{if(touchUsed)return;x0=e.clientX;y0=e.clientY});
   addEventListener('mouseup',e=>{if(!touchUsed)end(e.clientX,e.clientY)});
   $('vpGo').onclick=()=>go('l');
-  $('vpReset').onclick=()=>{clearTimeout(tm);clearInterval(cdI);cd.classList.remove('on');busy=false;A.cur='1234';B.cur='';draw()};
+  const rst=()=>{clearTimeout(tm);clearInterval(cdI);cd.classList.remove('on');busy=false;A.cur=A.cur||A.last||'1234';B.cur='';draw()};
+  $('vpReset').onclick=()=>{A.last='';A.cur='';rst()};
+  vanPractice=()=>{rst();setTimeout(()=>go('l'),350)};
   /* the phones get their size when the Vanish tab opens */
   if(window.ResizeObserver)new ResizeObserver(draw).observe(A.r);draw()})();
-$('vanTest').onclick=()=>{closeSheet();
-  if($mt.textContent.replace(/,/g,'')==='0'){reset();cur='1234';render()}
-  setTimeout(()=>vanSwipe('l',true),700)};
 /* swipe on the display (the black area above the keys) */
 (function(){const el=document.querySelector('.disp');let x0=null,y0=0,t0=0;
   function go(x,y){if(x0===null)return;const dx=x-x0,dy=y-y0,ax=Math.abs(dx),ay=Math.abs(dy);x0=null;
