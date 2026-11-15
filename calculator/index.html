@@ -1483,28 +1483,12 @@ addEventListener('pagehide',()=>{try{if(typeof aps!=='undefined'&&aps){const a=a
   try{if(typeof dev!=='undefined'&&dev&&dev.gatt&&dev.gatt.connected){dev.removeEventListener('gattserverdisconnected',onDisc);dev.gatt.disconnect()}}catch(e){}});
 addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchEvent(new Event('visibilitychange')),300)});
 </script>
+<script src="../perms.js" data-perms="motion"></script>
 <script>
-/* All permissions at launch.
-   Bluetooth (PeekSmith + Aura peer) and proximity already start when the page opens, so iOS asks for them at once.
-   iOS shows the motion message only after a tap. So the first tap anywhere asks for motion + orientation
-   (both in the same tap, because iOS stops a second request that waits for the first). The tap still works as usual. */
-(function(){
-  const DO=window.DeviceOrientationEvent,DM=window.DeviceMotionEvent;
-  const canDO=!!(DO&&typeof DO.requestPermission==='function'),canDM=!!(DM&&typeof DM.requestPermission==='function');
-  if(!canDO&&!canDM)return;                       // not iOS: no message is necessary
-  let asked=false;
-  function ask(){
-    if(asked)return;asked=true;
-    ['touchend','click'].forEach(t=>removeEventListener(t,ask,{capture:true}));
-    const ps=[];
-    try{if(canDO)ps.push(DO.requestPermission())}catch(e){}
-    try{if(canDM)ps.push(DM.requestPermission())}catch(e){}
-    Promise.all(ps.map(p=>Promise.resolve(p).catch(()=>'denied'))).then(r=>{
-      const ok=r.length&&r.every(x=>x==='granted');
-      const m=document.getElementById('motion'),rm=document.getElementById('rdMotion');
-      if(m)m.textContent=ok?'On':'Denied';if(rm)rm.textContent=ok?'Motion on':'Denied'})}
-  ['touchend','click'].forEach(t=>addEventListener(t,ask,{capture:true,passive:true}));
-})();
+/* motion answer → the Enable buttons in settings */
+addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.detail.state==='granted';
+  const m=document.getElementById('motion'),rm=document.getElementById('rdMotion');
+  if(m)m.textContent=ok?'On':'Denied';if(rm)rm.textContent=ok?'Motion on':'Denied'});
 </script>
 <script src="../hui.js"></script>
 </body>

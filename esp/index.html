@@ -95,7 +95,7 @@
   </div>
   <div class="actions">
     <svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
-    <svg viewBox="0 0 24 24" id="mic"><circle class="ring" cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r=".9"/><circle class="dot" cx="12" cy="12" r=".9"/><circle class="dot" cx="16.5" cy="12" r=".9"/></svg>
+    <svg viewBox="0 0 24 24" id="mic" data-perms-own><circle class="ring" cx="12" cy="12" r="9.5"/><circle class="dot" cx="7.5" cy="12" r=".9"/><circle class="dot" cx="12" cy="12" r=".9"/><circle class="dot" cx="16.5" cy="12" r=".9"/></svg>
   </div>
   <div class="dactions">
     <svg viewBox="0 0 24 24" id="undo"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
@@ -383,6 +383,7 @@ micBtn.addEventListener("click", () => {
 });
 </script>
 <script src="../relay.js"></script>
+<script src="../perms.js" data-perms="mic,speech"></script>
 <script src="../hui.js"></script>
 <script>
 /* Help panel */

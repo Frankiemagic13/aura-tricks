@@ -1203,6 +1203,9 @@ setInterval(()=>link(),2000);
 document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.querySelector(g.dataset.g);const v=src&&src.querySelector('svg');
   if(v){const c=v.cloneNode(true);c.removeAttribute('id');c.setAttribute('width','18');c.setAttribute('height','18');g.appendChild(c)}});
 </script>
+<script>window.fvtPerms=['motion','camera'].concat(isMag()?['mic']:[]);   // mic (Beat, finger snap) only on your phone</script>
+<script src="../perms.js"></script>
+<script>addEventListener('fvtperm',e=>{if(e.detail.name==='motion'&&e.detail.state==='granted')motionOk=true});</script>
 <script src="../hui.js"></script>
 </body>
 </html>
