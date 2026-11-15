@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pocket Capture</title>
+<style>
+  :root{
+    --bg:#1e2126; --bg2:#23272d; --hi:#2b3038; --sh:#15171b;
+    --tx:#e6e8eb; --dim:#8b929c; --ac:#6fd3ff; --ok:#5fe0a0; --warn:#ffcc66; --bad:#ff6b6b;
+    --ink:#f2f4f7;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);
+    font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;overflow:hidden}
+  #app{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top) 12px env(safe-area-inset-bottom)}
+  header{display:flex;align-items:center;gap:10px;padding:12px 2px 10px}
+  .dot{width:10px;height:10px;border-radius:50%;background:var(--dim);box-shadow:0 0 0 3px var(--bg2)}
+  .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+  #status{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #pen{font-size:12px;color:var(--dim);font-variant-numeric:tabular-nums}
+  #stage{flex:1;position:relative;border-radius:22px;background:var(--bg2);
+    box-shadow:inset 6px 6px 14px var(--sh),inset -6px -6px 14px var(--hi);overflow:hidden;min-height:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
+  #banner{position:absolute;left:50%;top:14px;transform:translateX(-50%);padding:7px 14px;border-radius:999px;
+    background:rgba(20,22,26,.85);font-size:13px;font-weight:600;display:none;white-space:nowrap}
+  #banner.on{display:block}
+  .bar{display:flex;gap:10px;padding:12px 0 8px;flex-wrap:wrap}
+  button{flex:1;min-width:64px;border:0;border-radius:14px;padding:12px 8px;font:inherit;font-weight:600;
+    color:var(--tx);background:var(--bg);box-shadow:5px 5px 10px var(--sh),-5px -5px 10px var(--hi);cursor:pointer}
+  button:active,button.on{box-shadow:inset 4px 4px 8px var(--sh),inset -4px -4px 8px var(--hi);color:var(--ac)}
+  button.primary{color:var(--ac)}
+  button:disabled{opacity:.4}
+  #log{display:none;height:120px;overflow:auto;margin-bottom:8px;padding:8px 10px;border-radius:12px;
+    background:#16181c;font:11px/1.4 ui-monospace,Menlo,monospace;color:#9fb3c8;white-space:pre-wrap}
+  #log.on{display:block}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div id="led" class="dot"></div>
+    <div id="status">Not connected</div>
+    <div id="pen"></div>
+  </header>
+
+  <div id="stage">
+    <canvas id="cv"></canvas>
+    <div id="banner"></div>
+  </div>
+
+  <div class="bar">
+    <button id="bConnect" class="primary">Connect</button>
+    <button id="bUndo">Undo</button>
+    <button id="bClear">Clear</button>
+    <button id="bSave">Save</button>
+  </div>
+  <div class="bar" style="padding-top:0">
+    <button id="bCal">Calibrate</button>
+    <button id="bFit">Fit</button>
+    <button id="bTest">Self-test</button>
+    <button id="bLog">Log</button>
+  </div>
+  <div id="log"></div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+/* ---------- Lumen Pocket BLE protocol (from hardware capture) ---------- */
+const SFX = '-2877-41c3-b46e-cf057c562023';
+const U = {
+  penSvc:  '1b7e8261' + SFX,
+  penChr:  '1b7e8262' + SFX,
+  cmdSvc:  '1b7e8271' + SFX,
+  cmdChr:  '1b7e8272' + SFX,
+  rplChr:  '1b7e8273' + SFX,
+};
+const START_CMD   = new Uint8Array([0x21, 0x01, 0x00]);
+const START_REPLY = [0x23, 0x01, 0x00];
+const REPLY_TIMEOUT_MS = 3000;
+
+/* ---------- Packet parser ---------- */
+// Returns array of {x,y,c} or throws Error with a reason.
+function parsePen(dv) {
+  const n = dv.byteLength;
+  if (n !== 8 && n !== 14 && n !== 20) throw new Error('bad length ' + n);
+  if (dv.getUint8(0) !== 0x11) throw new Error('bad header 0x' + dv.getUint8(0).toString(16));
+  const cnt = dv.getUint8(1);
+  if (cnt !== n - 2 || cnt % 6 !== 0 || cnt < 6 || cnt > 18) throw new Error('bad count ' + cnt);
+  const out = [];
+  for (let o = 2; o < n; o += 6) {
+    out.push({ x: dv.getUint16(o, true), y: dv.getUint16(o + 2, true), c: dv.getUint16(o + 4, true) });
+  }
+  return out;
+}
+const hex = dv => Array.from(new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength))
+  .map(b => b.toString(16).padStart(2, '0')).join(' ');
+
+/* ---------- Elements ---------- */
+const $ = id => document.getElementById(id);
+const cv = $('cv'), ctx = cv.getContext('2d');
+const led = $('led'), statusEl = $('status'), penEl = $('pen'), banner = $('banner'), logEl = $('log');
+
+function log(msg) {
+  const t = new Date().toLocaleTimeString([], { hour12: false });
+  logEl.textContent += `[${t}] ${msg}\n`;
+  if (logEl.textContent.length > 40000) logEl.textContent = logEl.textContent.slice(-30000);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function setStatus(text, kind) {
+  statusEl.textContent = text;
+  led.className = 'dot' + (kind ? ' ' + kind : '');
+}
+function showBanner(text) { banner.textContent = text; banner.classList.toggle('on', !!text); }
+
+/* ---------- Calibration (raw sensor box) ---------- */
+// Default = T-Watch paper-corner capture. Calibrate per unit.
+const DEFAULT_CAL = { x0: 318, y0: 388, x1: 5300, y1: 10006 };
+let cal = { ...DEFAULT_CAL };
+try { const s = JSON.parse(localStorage.getItem('pocketCal') || 'null'); if (s && s.x1 > s.x0 && s.y1 > s.y0) cal = s; } catch (e) {}
+function saveCal() { try { localStorage.setItem('pocketCal', JSON.stringify(cal)); } catch (e) {} }
+
+/* ---------- Strokes ---------- */
+let strokes = [];        // array of arrays of {x,y,c} (raw)
+let cur = null;          // current stroke
+let hover = null;        // last hover point (raw)
+let drawnUpTo = { s: 0, p: 0 }; // incremental render cursor
+let needFull = true;
+let fitMode = false;     // fit view to ink bounds instead of cal box
+
+function endStroke(reason) {
+  if (cur) {
+    if (cur.length) strokes.push(cur);
+    cur = null;
+    if (reason) log('stroke end: ' + reason);
+  }
+}
+
+/* Calibrate: next two pen-downs = top-left, then bottom-right */
+let calStep = 0, calA = null;
+function onPenDown(p) {
+  if (!calStep) return false;
+  if (calStep === 1) { calA = p; calStep = 2; showBanner('Tap BOTTOM-RIGHT corner'); return true; }
+  const x0 = Math.min(calA.x, p.x), x1 = Math.max(calA.x, p.x);
+  const y0 = Math.min(calA.y, p.y), y1 = Math.max(calA.y, p.y);
+  calStep = 0; $('bCal').classList.remove('on');
+  if (x1 - x0 < 200 || y1 - y0 < 200) { showBanner('Corners too close — try again'); setTimeout(() => showBanner(''), 1800); return true; }
+  cal = { x0, y0, x1, y1 }; saveCal();
+  log(`calibrated X ${x0}–${x1} Y ${y0}–${y1}`);
+  showBanner('Calibrated'); setTimeout(() => showBanner(''), 1200);
+  needFull = true; return true;
+}
+
+let lastContact = 0, swallowStroke = false;
+function feed(points) {
+  for (const p of points) {
+    if (p.c > 0) {
+      if (lastContact === 0) {                // pen down edge
+        swallowStroke = onPenDown(p);
+        if (!swallowStroke) cur = [];
+      }
+      if (!swallowStroke && cur) cur.push(p);
+      hover = null;
+    } else {
+      if (lastContact > 0) { endStroke(); swallowStroke = false; }
+      hover = p;                              // coalesce: keep only latest hover
+    }
+    lastContact = p.c;
+    penEl.textContent = `${p.x}, ${p.y}${p.c ? ' • ' + p.c : ''}`;
+  }
+  schedule();
+}
+
+/* ---------- Rendering ---------- */
+let W = 0, H = 0, dpr = 1;
+function resize() {
+  dpr = Math.max(1, window.devicePixelRatio || 1);
+  const r = cv.getBoundingClientRect();
+  W = r.width; H = r.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  needFull = true; schedule();
+}
+window.addEventListener('resize', resize);
+
+function viewBox() {
+  if (fitMode) {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    const all = cur ? strokes.concat([cur]) : strokes;
+    for (const s of all) for (const p of s) {
+      if (p.x < x0) x0 = p.x; if (p.x > x1) x1 = p.x;
+      if (p.y < y0) y0 = p.y; if (p.y > y1) y1 = p.y;
+    }
+    if (x0 < x1 && y0 < y1) {
+      const m = Math.max(x1 - x0, y1 - y0) * 0.08;
+      return { x0: x0 - m, y0: y0 - m, x1: x1 + m, y1: y1 + m };
+    }
+  }
+  return cal;
+}
+function mapper() {
+  const b = viewBox(), bw = b.x1 - b.x0, bh = b.y1 - b.y0, pad = 18;
+  const s = Math.min((W - pad * 2) / bw, (H - pad * 2) / bh);   // keep aspect ratio
+  const ox = (W - bw * s) / 2, oy = (H - bh * s) / 2;
+  return { s, f: p => [ox + (p.x - b.x0) * s, oy + (p.y - b.y0) * s], ox, oy, bw, bh };
+}
+
+function lineWidth(m) { return Math.max(1.6, Math.min(4, m.s * 18)); }
+
+function drawPaper(m) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,.06)'; ctx.lineWidth = 1;
+  ctx.setLineDash([6, 6]);
+  ctx.strokeRect(m.ox, m.oy, m.bw * m.s, m.bh * m.s);
+  ctx.restore();
+}
+
+function strokePath(s, m, from) {
+  if (!s.length) return;
+  const start = Math.max(0, from - 1);
+  ctx.beginPath();
+  let [x, y] = m.f(s[start]);
+  ctx.moveTo(x, y);
+  if (s.length === 1) { ctx.lineTo(x + 0.01, y); }
+  for (let i = start + 1; i < s.length; i++) { [x, y] = m.f(s[i]); ctx.lineTo(x, y); }
+  ctx.stroke();
+}
+
+let rafId = 0;
+function schedule() { if (!rafId) rafId = requestAnimationFrame(render); }
+function render() {
+  rafId = 0;
+  const m = mapper();
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (fitMode) needFull = true;
+  // Hover dot needs a clean frame; redraw everything (cheap for typical drawings).
+  ctx.clearRect(0, 0, W, H);
+  drawPaper(m);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--ink');
+  ctx.lineWidth = lineWidth(m);
+  for (const s of strokes) strokePath(s, m, 0);
+  if (cur) strokePath(cur, m, 0);
+  if (hover) {
+    const [hx, hy] = m.f(hover);
+    ctx.fillStyle = 'rgba(111,211,255,.55)';
+    ctx.beginPath(); ctx.arc(hx, hy, 4, 0, Math.PI * 2); ctx.fill();
+  }
+  needFull = false;
+}
+
+/* ---------- BLE ---------- */
+let device = null, chars = {}, userStop = false, started = false;
+let replyWaiter = null, stats = { pk: 0, bad: 0 };
+
+function onPenNotify(e) {
+  const dv = e.target.value;
+  if (!started) return;                       // ignore data before 23 01 00
+  try { feed(parsePen(dv)); stats.pk++; }
+  catch (err) { stats.bad++; log('malformed: ' + err.message + ' [' + hex(dv) + ']'); }
+}
+function onReplyNotify(e) {
+  const dv = e.target.value, b = new Uint8Array(dv.buffer, dv.byteOffset, dv.byteLength);
+  log('reply: ' + hex(dv));
+  if (b.length === 3 && b[0] === START_REPLY[0] && b[1] === START_REPLY[1] && b[2] === START_REPLY[2]) {
+    if (replyWaiter) { replyWaiter(); replyWaiter = null; }
+  }
+}
+
+async function startSession() {
+  setStatus('Connecting…', 'warn');
+  const server = await device.gatt.connect();
+  log('GATT connected');
+
+  let penSvc, cmdSvc;
+  try { penSvc = await server.getPrimaryService(U.penSvc); } catch (e) { throw new Error('Pen service missing'); }
+  try { cmdSvc = await server.getPrimaryService(U.cmdSvc); } catch (e) { throw new Error('Command service missing'); }
+  chars.pen = await penSvc.getCharacteristic(U.penChr);
+  chars.cmd = await cmdSvc.getCharacteristic(U.cmdChr);
+  chars.rpl = await cmdSvc.getCharacteristic(U.rplChr);
+
+  chars.pen.removeEventListener('characteristicvaluechanged', onPenNotify);
+  chars.rpl.removeEventListener('characteristicvaluechanged', onReplyNotify);
+  chars.pen.addEventListener('characteristicvaluechanged', onPenNotify);
+  chars.rpl.addEventListener('characteristicvaluechanged', onReplyNotify);
+  await chars.pen.startNotifications();
+  await chars.rpl.startNotifications();
+  log('notify on 8262 + 8273');
+
+  started = false;
+  const gotReply = new Promise((res, rej) => {
+    replyWaiter = res;
+    setTimeout(() => { if (replyWaiter) { replyWaiter = null; rej(new Error('No start reply (23 01 00)')); } }, REPLY_TIMEOUT_MS);
+  });
+  setStatus('Starting pen…', 'warn');
+  if (chars.cmd.writeValueWithResponse) await chars.cmd.writeValueWithResponse(START_CMD);
+  else await chars.cmd.writeValue(START_CMD);
+  log('wrote 21 01 00');
+  await gotReply;
+  started = true;
+  lastContact = 0;
+  setStatus('Ready — write on the Pocket', 'ok');
+  $('bConnect').textContent = 'Disconnect';
+}
+
+async function onDisconnected() {
+  started = false;
+  endStroke('disconnect'); lastContact = 0; hover = null; schedule();
+  log('disconnected');
+  if (userStop || !device) { setStatus('Not connected', ''); $('bConnect').textContent = 'Connect'; return; }
+  // auto-reconnect: rediscover, resubscribe, resend start, wait for reply
+  for (let i = 1; i <= 5 && !userStop; i++) {
+    setStatus(`Reconnecting (${i}/5)…`, 'warn');
+    try { await startSession(); return; }
+    catch (e) { log('reconnect failed: ' + e.message); await new Promise(r => setTimeout(r, 1000 * i)); }
+  }
+  setStatus('Lost connection — tap Connect', 'bad');
+  $('bConnect').textContent = 'Connect';
+}
+
+async function connect() {
+  if (!navigator.bluetooth) {
+    setStatus('No Web Bluetooth here', 'bad');
+    alertLike('This browser has no Web Bluetooth. Use Chrome or Edge on Mac, or Bluefy on iPhone/iPad.');
+    return;
+  }
+  userStop = false;
+  try {
+    if (!device) {
+      device = await navigator.bluetooth.requestDevice({
+        filters: [{ name: 'Lumen_ZY_Pocket' }, { namePrefix: 'Lumen' }],
+        optionalServices: [U.penSvc, U.cmdSvc],
+      });
+      device.addEventListener('gattserverdisconnected', onDisconnected);
+      log('picked: ' + (device.name || device.id));
+    }
+    await startSession();
+  } catch (e) {
+    log('connect error: ' + e.message);
+    if (e.name === 'NotFoundError') { setStatus('Not connected', ''); return; } // user cancelled picker
+    setStatus(e.message, 'bad');
+    try { if (device && device.gatt.connected) { userStop = true; device.gatt.disconnect(); } } catch (_) {}
+  }
+}
+function disconnect() {
+  userStop = true; endStroke('user stop');
+  try { device && device.gatt.connected && device.gatt.disconnect(); } catch (e) {}
+  setStatus('Not connected', ''); $('bConnect').textContent = 'Connect';
+}
+function alertLike(msg) { showBanner(msg); setTimeout(() => showBanner(''), 4000); log(msg); }
+
+/* ---------- Export ---------- */
+function savePNG() {
+  const all = strokes.concat(cur && cur.length ? [cur] : []);
+  if (!all.length) { alertLike('Nothing to save'); return; }
+  // crop to ink, white ink on black is hard to reuse → export black ink on transparent
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const s of all) for (const p of s) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); y0 = Math.min(y0, p.y); y1 = Math.max(y1, p.y); }
+  const scale = 0.25, pad = 24;
+  const w = Math.max(1, Math.round((x1 - x0) * scale) + pad * 2), h = Math.max(1, Math.round((y1 - y0) * scale) + pad * 2);
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 5; g.strokeStyle = '#111';
+  for (const s of all) {
+    g.beginPath();
+    s.forEach((p, i) => { const X = pad + (p.x - x0) * scale, Y = pad + (p.y - y0) * scale; i ? g.lineTo(X, Y) : g.moveTo(X, Y); });
+    if (s.length === 1) g.lineTo(pad + (s[0].x - x0) * scale + .01, pad + (s[0].y - y0) * scale);
+    g.stroke();
+  }
+  c.toBlob(async blob => {
+    const name = 'pocket-' + new Date().toISOString().replace(/[:.]/g, '-') + '.png';
+    const file = new File([blob], name, { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }, 'image/png');
+}
+
+/* ---------- Self-test (parser + stroke logic, no device needed) ---------- */
+function dvOf(arr) { return new DataView(new Uint8Array(arr).buffer); }
+function selfTest() {
+  const R = [];
+  const ok = (name, cond) => R.push((cond ? 'PASS ' : 'FAIL ') + name);
+  const throws = (name, arr) => { try { parsePen(dvOf(arr)); ok(name, false); } catch (e) { ok(name, true); } };
+  let r = parsePen(dvOf([0x11,0x06,0x34,0x12,0x78,0x56,0x01,0x00]));
+  ok('1 record (0x1234,0x5678,1)', r.length === 1 && r[0].x === 0x1234 && r[0].y === 0x5678 && r[0].c === 1);
+  r = parsePen(dvOf([0x11,0x0C, 1,1,2,2,0,0, 0xFF,0x13,0x00,0x27,5,0]));
+  ok('2 records, values >255', r.length === 2 && r[1].x === 0x13FF && r[1].y === 0x2700 && r[1].c === 5);
+  r = parsePen(dvOf([0x11,0x12, 1,0,1,0,0,0, 2,0,2,0,1,0, 3,0,3,0,0,0]));
+  ok('3 records, order kept', r.length === 3 && r[0].x === 1 && r[2].x === 3);
+  throws('reject bad header', [0x12,0x06,0,0,0,0,0,0]);
+  throws('reject bad length', [0x11,0x06,0,0,0,0,0]);
+  throws('reject count mismatch', [0x11,0x0C,0,0,0,0,0,0]);
+  throws('reject >3 records', [0x11,0x18].concat(new Array(24).fill(0)));
+  // stroke logic: hover → contact → hover
+  const saveS = strokes, saveC = cur, saveL = lastContact;
+  strokes = []; cur = null; lastContact = 0;
+  feed([{x:10,y:10,c:0},{x:11,y:11,c:3},{x:12,y:12,c:4},{x:13,y:13,c:0}]);
+  ok('hover→contact→hover = 1 stroke of 2 pts', strokes.length === 1 && strokes[0].length === 2 && !cur);
+  feed([{x:20,y:20,c:2}]); endStroke();
+  ok('disconnect mid-stroke closes stroke', strokes.length === 2 && !cur);
+  strokes = saveS; cur = saveC; lastContact = saveL;
+  logEl.classList.add('on'); $('bLog').classList.add('on');
+  R.forEach(log);
+  const fails = R.filter(x => x.startsWith('FAIL')).length;
+  alertLike(fails ? `${fails} self-test failure(s) — see log` : `All ${R.length} self-tests passed`);
+  needFull = true; schedule();
+}
+
+/* ---------- Buttons ---------- */
+$('bConnect').onclick = () => (device && device.gatt.connected) ? disconnect() : connect();
+$('bUndo').onclick = () => { if (cur) cur = null; else strokes.pop(); needFull = true; schedule(); };
+$('bClear').onclick = () => { strokes = []; cur = null; hover = null; needFull = true; schedule(); };
+$('bSave').onclick = savePNG;
+$('bCal').onclick = () => {
+  if (calStep) { calStep = 0; $('bCal').classList.remove('on'); showBanner(''); return; }
+  if (!started) { alertLike('Connect first, then calibrate'); return; }
+  calStep = 1; $('bCal').classList.add('on'); showBanner('Tap TOP-LEFT corner of the paper');
+};
+$('bCal').oncontextmenu = e => { e.preventDefault(); cal = { ...DEFAULT_CAL }; saveCal(); alertLike('Calibration reset'); needFull = true; schedule(); };
+$('bFit').onclick = () => { fitMode = !fitMode; $('bFit').classList.toggle('on', fitMode); needFull = true; schedule(); };
+$('bTest').onclick = selfTest;
+$('bLog').onclick = () => { const on = logEl.classList.toggle('on'); $('bLog').classList.toggle('on', on); requestAnimationFrame(resize); };
+
+resize();
+log('ready. cal X ' + cal.x0 + '–' + cal.x1 + ' Y ' + cal.y0 + '–' + cal.y1);
+if (!navigator.bluetooth) setStatus('No Web Bluetooth — use Chrome (Mac) or Bluefy (iOS)', 'bad');
+})();
+</script>
+</body>
+</html>
