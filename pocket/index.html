@@ -33,6 +33,20 @@
   button:active,button.on{box-shadow:inset 4px 4px 8px var(--sh),inset -4px -4px 8px var(--hi);color:var(--ac)}
   button.primary{color:var(--ac)}
   button:disabled{opacity:.4}
+  #words{display:flex;gap:8px;align-items:center;padding:10px 2px 0;min-height:44px;overflow-x:auto}
+  #words .chip{flex:none;padding:8px 14px;border-radius:999px;background:var(--bg);font-weight:600;
+    box-shadow:3px 3px 7px var(--sh),-3px -3px 7px var(--hi);cursor:pointer}
+  #words .chip.sel{color:var(--ac);box-shadow:inset 3px 3px 6px var(--sh),inset -3px -3px 6px var(--hi)}
+  #words .note{color:var(--dim);font-size:13px}
+  #iSt{flex:none;margin-left:auto;font-size:12px;color:var(--dim);white-space:nowrap}
+  #sets{display:none;margin-bottom:8px;padding:6px 12px;border-radius:14px;background:var(--bg2)}
+  #sets.on{display:block}
+  #sets .r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+  #sets .r:last-child{border:0}
+  #sets input[type=text],#sets select{background:var(--bg);color:var(--tx);border:0;border-radius:10px;padding:8px 10px;font:inherit;width:120px;
+    box-shadow:inset 2px 2px 5px var(--sh),inset -2px -2px 5px var(--hi)}
+  #sets input[type=checkbox]{width:22px;height:22px;accent-color:var(--ac)}
+  #sets button{flex:none;padding:8px 14px}
   #log{display:none;height:120px;overflow:auto;margin-bottom:8px;padding:8px 10px;border-radius:12px;
     background:#16181c;font:11px/1.4 ui-monospace,Menlo,monospace;color:#9fb3c8;white-space:pre-wrap}
   #log.on{display:block}
@@ -51,6 +65,7 @@
     <div id="banner"></div>
   </div>
 
+  <div id="words"><span class="note">Write, then tap Read</span><span id="iSt"></span></div>
   <div class="bar">
     <button id="bConnect" class="primary">Connect</button>
     <button id="bUndo">Undo</button>
@@ -64,7 +79,18 @@
     <button id="bLog">Log</button>
   </div>
   <div class="bar" style="padding-top:0">
-    <button id="bScanAll">Scan all devices</button>
+    <button id="bRead" class="primary">Read</button>
+    <button id="bSend">Send to Inject</button>
+    <button id="bSets">Settings</button>
+  </div>
+  <div id="sets">
+    <div class="r">Inject ID<input type="text" id="sId" inputmode="numeric" placeholder="13297"></div>
+    <div class="r">Read by itself after pen up<input type="checkbox" id="sAuto"></div>
+    <div class="r">Wait before read<select id="sWait"><option value="1500">1.5 s</option><option value="2500">2.5 s</option><option value="4000">4 s</option></select></div>
+    <div class="r">Send top word to Inject by itself<input type="checkbox" id="sAutoSend"></div>
+    <div class="r">Clear drawing after send<input type="checkbox" id="sClear"></div>
+    <div class="r">Read as<select id="sMode"><option value="text">Words</option><option value="num">Numbers</option></select></div>
+    <div class="r">Pocket not in the list?<button id="bScanAll">Scan all devices</button></div>
   </div>
   <div id="log"></div>
 </div>
@@ -166,10 +192,11 @@ function feed(points) {
         swallowStroke = onPenDown(p);
         if (!swallowStroke) cur = [];
       }
-      if (!swallowStroke && cur) cur.push(p);
+      if (!swallowStroke && cur) { p.t = performance.now(); cur.push(p); }
+      clearTimeout(autoTimer);
       hover = null;
     } else {
-      if (lastContact > 0) { endStroke(); swallowStroke = false; }
+      if (lastContact > 0) { const real = !swallowStroke; endStroke(); swallowStroke = false; if (real) armAuto(); }
       hover = p;                              // coalesce: keep only latest hover
     }
     lastContact = p.c;
@@ -465,6 +492,85 @@ function disconnect() {
 }
 function alertLike(msg) { showBanner(msg); setTimeout(() => showBanner(''), 4000); log(msg); }
 
+/* ---------- Settings ---------- */
+const S = Object.assign({ id: '13297', auto: false, wait: '2500', autoSend: false, clear: false, mode: 'text' },
+  (() => { try { return JSON.parse(localStorage.getItem('pocketSets') || '{}'); } catch (e) { return {}; } })());
+function saveS() { try { localStorage.setItem('pocketSets', JSON.stringify(S)); } catch (e) {} }
+$('sId').value = S.id; $('sAuto').checked = S.auto; $('sWait').value = S.wait;
+$('sAutoSend').checked = S.autoSend; $('sClear').checked = S.clear; $('sMode').value = S.mode;
+$('sId').oninput = e => { S.id = e.target.value.replace(/\D/g, ''); saveS(); };
+$('sAuto').onchange = e => { S.auto = e.target.checked; saveS(); };
+$('sWait').onchange = e => { S.wait = e.target.value; saveS(); };
+$('sAutoSend').onchange = e => { S.autoSend = e.target.checked; saveS(); };
+$('sClear').onchange = e => { S.clear = e.target.checked; saveS(); };
+$('sMode').onchange = e => { S.mode = e.target.value; saveS(); };
+$('bSets').onclick = () => { const on = $('sets').classList.toggle('on'); $('bSets').classList.toggle('on', on); requestAnimationFrame(resize); };
+
+/* ---------- Handwriting recognition (Google handwriting input) ---------- */
+let autoTimer = 0, words = [], picked = '', readSeq = 0;
+function armAuto() { clearTimeout(autoTimer); if (S.auto) autoTimer = setTimeout(() => readInk(true), +S.wait || 2500); }
+const iSt = $('iSt');
+function showWords(list, note) {
+  const box = $('words'); box.innerHTML = '';
+  if (note) { const n = document.createElement('span'); n.className = 'note'; n.textContent = note; box.appendChild(n); }
+  list.forEach((w, i) => {
+    const c = document.createElement('span'); c.className = 'chip' + (w === picked ? ' sel' : ''); c.textContent = w;
+    c.onclick = () => { picked = w; showWords(words); sendInject(w); };
+    box.appendChild(c);
+  });
+  box.appendChild(iSt);
+}
+function cleanNum(w) { return w.replace(/[oO]/g, '0').replace(/[lI|]/g, '1').replace(/[sS]/g, '5').replace(/[^0-9]/g, ''); }
+async function readInk(auto) {
+  const all = strokes.concat(cur && cur.length ? [cur] : []).filter(s => s.length);
+  if (!all.length) { if (!auto) showWords([], 'Nothing written'); return; }
+  const seq = ++readSeq;
+  showWords([], 'Reading…');
+  let t0 = Infinity; for (const st of all) for (const p of st) if (p.t < t0) t0 = p.t;
+  if (!isFinite(t0)) t0 = 0;
+  const K = 4;  // scale raw sensor units down
+  const ink = all.map(st => [st.map(p => Math.round(p.x / K)), st.map(p => Math.round(p.y / K)), st.map(p => Math.round((p.t || t0) - t0))]);
+  const body = { options: 'enable_pre_space', requests: [{
+    writing_guide: { writing_area_width: Math.round((cal.x1 - cal.x0) / K), writing_area_height: Math.round((cal.y1 - cal.y0) / K) },
+    ink, language: 'en', max_num_results: 8, max_completions: 0 }] };
+  try {
+    const r = await fetch('https://inputtools.google.com/request?ime=handwriting&app=mobilesearch&cs=1&oe=UTF-8', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json();
+    if (seq !== readSeq) return;
+    if (j[0] !== 'SUCCESS') throw new Error(String(j[0]));
+    let list = ((j[1] && j[1][0] && j[1][0][1]) || []).map(w => w.trim()).filter(Boolean);
+    if (S.mode === 'num') list = [...new Set(list.map(cleanNum).filter(Boolean))];
+    words = list.slice(0, 6); picked = words[0] || '';
+    log('read: ' + (words.join(' | ') || '(none)'));
+    if (!words.length) { showWords([], 'Could not read it'); return; }
+    showWords(words);
+    if (auto && S.autoSend) sendInject(picked);
+  } catch (e) {
+    if (seq !== readSeq) return;
+    log('read error: ' + e.message);
+    showWords([], 'Read failed (no internet?)');
+  }
+}
+
+/* ---------- Send to Inject (same endpoint as the Notes page) ---------- */
+let lastSent = '';
+async function sendInject(v) {
+  if (!v) { iSt.textContent = 'No word yet'; return; }
+  const id = (S.id || '13297').replace(/\D/g, '') || '13297';
+  iSt.textContent = 'Sending…';
+  try {
+    const r = await fetch('https://11z.co/_w/' + id + '/selection', { method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: v }) });
+    if (!r.ok) { iSt.textContent = 'Inject error ' + r.status; log('inject error ' + r.status); return; }
+    lastSent = v; iSt.textContent = 'Sent ✓ ' + v; log('inject: ' + v);
+    if (window.Aura && Aura.haptic) { try { Aura.haptic('success'); } catch (e) {} }
+    if (S.clear) { strokes = []; cur = null; needFull = true; schedule(); }
+  } catch (e) { iSt.textContent = 'Not sent (no internet?)'; log('inject failed: ' + e.message); }
+}
+$('bRead').onclick = () => readInk(false);
+$('bSend').onclick = () => sendInject(picked);
+
 /* ---------- Export ---------- */
 function savePNG() {
   const all = strokes.concat(cur && cur.length ? [cur] : []);
@@ -528,7 +634,7 @@ function selfTest() {
 /* ---------- Buttons ---------- */
 $('bConnect').onclick = () => isConnected() ? disconnect() : connect();
 $('bUndo').onclick = () => { if (cur) cur = null; else strokes.pop(); needFull = true; schedule(); };
-$('bClear').onclick = () => { strokes = []; cur = null; hover = null; needFull = true; schedule(); };
+$('bClear').onclick = () => { strokes = []; cur = null; hover = null; words = []; picked = ''; clearTimeout(autoTimer); showWords([], 'Write, then tap Read'); needFull = true; schedule(); };
 $('bSave').onclick = savePNG;
 $('bCal').onclick = () => {
   if (calStep) { calStep = 0; $('bCal').classList.remove('on'); showBanner(''); return; }
