@@ -344,14 +344,25 @@ let webDev = null, webWr = null;
 let doneWaiter = null;
 
 function onStatus(u8){
-  log('FF01 ← ' + hex(u8));
+  if (!(u8.length === 1 && u8[0] === 0 && !busy)) log('FF01 ← ' + hex(u8));
   if (doneWaiter && (u8.includes(0xAA) || String.fromCharCode(...u8).includes('OK'))) { const w = doneWaiter; doneWaiter = null; w(true); }
 }
 function onFlow(u8){ log('FF03 ← ' + hex(u8)); }
 function toU8(v){ if (v instanceof Uint8Array) return v; if (v instanceof DataView) return new Uint8Array(v.buffer, v.byteOffset, v.byteLength); if (v instanceof ArrayBuffer) return new Uint8Array(v);
   if (Array.isArray(v)) return Uint8Array.from(v); if (typeof v === 'string') { const h=v.replace(/[^0-9a-f]/gi,''); return Uint8Array.from(h.match(/../g)||[], x=>parseInt(x,16)); } if (v && v.data) return toU8(v.data); return new Uint8Array(); }
 
+let kaTimer = null, connAt = 0;
+function startKeepAlive(){
+  stopKeepAlive(); connAt = Date.now();
+  kaTimer = setInterval(async () => {
+    if (!connected || busy) return;
+    try { await write(Uint8Array.of(0x10,0xFF,0x40)); } catch(e){ log('keep-alive failed: ' + e.message); }
+  }, 15000);
+}
+function stopKeepAlive(){ if (kaTimer) clearInterval(kaTimer); kaTimer = null; }
 function setConnected(on){
+  if (!on && connected && connAt) log('connection lasted ' + Math.round((Date.now()-connAt)/1000) + ' s');
+  if (on) startKeepAlive(); else stopKeepAlive();
   connected = on;
   $('bConnect').textContent = on ? 'Disconnect' : 'Connect';
   $('bConnect').classList.toggle('pri', !on);
@@ -417,6 +428,7 @@ async function connectWeb(){
 }
 
 async function disconnect(){
+  log('disconnect (button)');
   try {
     if (mode === 'aura' && auraId) await Aura.bluetooth.disconnect(auraId);
     if (mode === 'web' && webDev && webDev.gatt.connected) webDev.gatt.disconnect();
@@ -492,6 +504,8 @@ $('bPrint').onclick = async () => {
 };
 $('bFeed').onclick = () => runJob(async () => { await write(CMD.feed(80)); });
 $('bConnect').onclick = () => connected ? disconnect() : connect();
+
+document.addEventListener('visibilitychange', () => log(document.hidden ? 'page hidden (iPhone locked or app switched)' : 'page visible'));
 
 /* ---------- Start ---------- */
 load();
