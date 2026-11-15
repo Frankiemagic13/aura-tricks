@@ -254,11 +254,11 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Swipe works on<select id="vanWho"><option value="mag">My phone only (Magician)</option><option value="all">Both phones</option></select></div>
     <div class="r">Swipe direction<select id="vanDir"><option value="lr">Left or right</option><option value="l">Left</option><option value="r">Right</option><option value="u">Up</option><option value="d">Down</option><option value="any">Any</option></select></div>
-    <div class="r">More than one number<select id="vanMulti"><option value="one">One per swipe</option><option value="all">All at once</option></select></div>
+    <div class="r">More than one number<select id="vanMulti"><option value="digit">One digit per swipe</option><option value="one">One number per swipe</option><option value="all">All at once</option></select></div>
     <div class="r">Order<select id="vanOrder"><option value="last">Last number first</option><option value="first">First number first</option></select></div>
     <div class="r">Their phone shows<select id="vanBuild"><option value="build">The equation, built up</option><option value="only">Only that number</option></select></div>
   </div>
-  <div class="note">Type a number on your phone and swipe across the display. After the delay, the number comes into view on the spectator's phone. With more than one number (for example 12 + 34 + 56), each swipe takes one number. Their display builds the equation up, one number at a time. All steps are in the Help tab.</div>
+  <div class="note">Type a number on your phone and swipe across the display. After the delay, the number comes into view on the spectator's phone. One number per swipe: with 12 + 34 + 56, each swipe takes one number (not after =, because a result is one number). One digit per swipe: each swipe takes one digit, also from a result. Their display builds it up again. All steps are in the Help tab.</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -368,7 +368,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v47</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v48</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -384,7 +384,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <li>Type a number on your phone (or show a result).</li>
   <li>Swipe across the display. The number goes away and your phone shows 0. The PeekSmith shows "Sent 1,234 · 3 s".</li>
   <li>After the delay, the number comes into view on the spectator's phone with the reveal animation.</li></ol>
-  <p><b>More than one number:</b> with "One per swipe", each swipe takes one number (default: the last number first). The number comes into view on their phone and their display builds the equation up (12 + 34 + 56 comes back as 56, then 34 + 56, then 12 + 34 + 56). Swipe again before the last number comes into view: the numbers come in one after the other, in order.</p>
+  <p><b>One digit per swipe:</b> each swipe takes one digit (1234 comes back as 4, 34, 234, 1234). This also works on a result after =.</p>
+  <p><b>More than one number:</b> with "One number per swipe", each swipe takes one number (default: the last number first). The number comes into view on their phone and their display builds the equation up (12 + 34 + 56 comes back as 56, then 34 + 56, then 12 + 34 + 56). Swipe again before the last number comes into view: the numbers come in one after the other, in order.</p>
   <p>Your phone does not show the mirror again until you tap a key, so the number does not come back on your screen. Random delay: 3 to 10 s, and the PeekSmith shows the delay that the phone selected. Use the practice phones in the Vanish tab to see the animations.</p>
   <h4>Peeks</h4>
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
@@ -916,7 +917,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v47. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v48. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -1179,7 +1180,7 @@ function vanAnimIn(kind,k,mt,ex,keyEl,fmt){
    comes into view on the other phone (Aura peer message {cmd:'reveal',m,e,a,d,b,sp}) ---------- */
 const VAN_DELAYS=[[0,'No delay'],[1,'1 s'],[2,'2 s'],[3,'3 s'],[5,'5 s'],[8,'8 s'],[10,'10 s'],[15,'15 s'],[20,'20 s'],[30,'30 s'],[60,'1 min'],[-1,'Random 3–10 s']];
 if(S.vanOn===undefined)S.vanOn=true;S.vanWho=S.vanWho||'mag';S.vanDir=S.vanDir||'lr';S.vanOut=S.vanOut||'smoke';S.vanIn=S.vanIn||'smoke';
-S.vanMulti=S.vanMulti||'one';S.vanOrder=S.vanOrder||'last';S.vanBuild=S.vanBuild||'build';
+if(!S.vanMultiV){S.vanMulti='digit';S.vanMultiV=1}S.vanMulti=S.vanMulti||'digit';   // one digit per swipe by default (also for settings saved before)S.vanOrder=S.vanOrder||'last';S.vanBuild=S.vanBuild||'build';
 if(S.vanDelay===undefined)S.vanDelay=3;S.vanSpeed=S.vanSpeed||'normal';S.vanBuzz=S.vanBuzz||'light';
 let vanBusy=false,vanT=null,vanLast='';
 function vanFill(id,list,val){const s=$(id);if(!s.options.length)for(const [v,n] of list){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}s.value=String(val)}
@@ -1196,21 +1197,25 @@ const vanKey=c=>document.querySelector('.k[data-k="'+c+'"]');
 const VOPS=['+','−','×','÷'],vOp=x=>VOPS.includes(x);
 function vanToks(s){return String(s).replace(/,/g,'').match(/-?[\d.]+(?:e[+-]?\d+)?|[+−×÷]/g)||[]}
 function vanStr(t){return t.map(x=>vOp(x)?x:fmtNum(x)).join('')}
+function vanDig(t){return t.join('').replace(/,/g,'').match(/[+−×÷]|-?[\d.]/g)||[]}   // one token for each digit
+const vanNorm=t=>vanToks(t.join(''));   // digits back to whole numbers
 /* order "last": the last number goes (the operator before it is kept for the next piece, "carry");
    order "first": the first number and the operator after it go. all = the last number of the equation. */
 function vanTake(t0,order,carry){
   const t=t0.slice();if(t.length&&vOp(t.at(-1)))t.pop();
   if(t.filter(x=>!vOp(x)).length<=1)return{all:true,send:t.concat(order==='last'&&carry?[carry]:[]),rest:[],carry:''};
-  if(order==='last'){const n=t.pop(),op=t.pop();return{send:[n].concat(carry?[carry]:[]),rest:t,carry:op,cut:[op,n],tail:true}}
-  const n=t.shift(),op=t.shift();return{send:[n,op],rest:t,carry:'',cut:[n,op],tail:false}}
+  if(order==='last'){const n=t.pop(),op=t.length&&vOp(t.at(-1))?t.pop():'';return{send:[n].concat(carry?[carry]:[]),rest:t,carry:op,cut:op?[op,n]:[n],tail:true}}
+  const n=t.shift(),op=t.length&&vOp(t[0])?t.shift():'';return{send:op?[n,op]:[n],rest:t,carry:'',cut:op?[n,op]:[n],tail:false}}
 /* the other phone: add the piece to its display (front or back), or show only the number */
 function vanJoin(curT,send,pos,first,mode){
   if(mode==='only')return{t:send.filter(x=>!vOp(x)),pos:'all'};
   const c=first?[]:curT.slice();return{t:pos==='front'?send.concat(c):c.concat(send),pos}}
 /* vanish only the piece (the rest of the display stays) */
 function vanPartOut(mt,tk,kind,dir,k){
-  const sp=document.createElement('span');sp.className='vch';sp.textContent=vanStr(tk.cut);
-  mt.textContent='';if(tk.tail)mt.append(vanStr(tk.rest),sp);else mt.append(sp,vanStr(tk.rest));
+  let full=mt.textContent;if(vOp(full.at(-1)))full=full.slice(0,-1);   // the operator at the end goes first
+  const pc=vanStr(tk.cut),L=pc.length,piece=tk.tail?full.slice(-L):full.slice(0,L),rest=tk.tail?full.slice(0,full.length-L):full.slice(L);
+  const sp=document.createElement('span');sp.className='vch';sp.textContent=piece;
+  mt.textContent='';if(tk.tail)mt.append(rest,sp);else mt.append(sp,rest);
   return vanAnimOut(kind,dir,k,sp,document.createElement('div'))}
 /* reveal only the new piece (the display already shows the full new text) */
 function vanPartIn(mt,piece,pos,kind,k,keyEl){
@@ -1225,8 +1230,9 @@ function vanSwipe(dir,test){
   if(!test&&S.vanWho==='mag'&&S.peerRole!=='mirror')return;
   const m=$mt.textContent.replace(/,/g,'');if(!/\d/.test(m)||m==='0'||m==='Error')return;
   vanBusy=true;
-  const k=VAN_SP[S.vanSpeed]||1,t=vanToks($mt.textContent),res=!!$e.textContent;
-  const one=!res&&S.vanMulti!=='all'&&(t.filter(x=>!vOp(x)).length>1||vanSer);
+  const k=VAN_SP[S.vanSpeed]||1,dig=S.vanMulti==='digit',t=dig?vanDig([$mt.textContent]):vanToks($mt.textContent),res=!!$e.textContent;
+  /* one number per swipe: not for a result (the total is one number). One digit per swipe: also a result. */
+  const one=(dig||(!res&&S.vanMulti==='one'))&&(t.filter(x=>!vOp(x)).length>1||vanSer);
   const msg={cmd:'reveal',m,e:$e.textContent,a:vanPick(),d:vanDelayMs(),b:S.vanBuzz,sp:S.vanSpeed};
   let tk=null,shown=fmtNum(m);
   if(one){tk=vanTake(t,S.vanOrder,vanCarry);
@@ -1239,7 +1245,7 @@ function vanSwipe(dir,test){
     if(sent)buzz('light')}
   (tk&&!tk.all?vanPartOut($mt,tk,S.vanOut,dir,k):vanAnimOut(S.vanOut,dir,k,$mt,$e)).then(A=>{
     if(S.peerRole==='mirror')vanHold=true;   // do not show the mirror (their number) on this phone
-    reset();if(tk&&tk.rest.length){const r=tk.rest.slice();if(!vOp(r.at(-1)))cur=r.pop();toks=r}
+    reset();if(tk&&tk.rest.length){const r=vanNorm(tk.rest);if(r.length&&!vOp(r.at(-1)))cur=r.pop();toks=r}
     render();A.forEach(a=>{try{a.cancel()}catch(e){}});
     if(!tk||tk.all)$mt.animate([{opacity:0},{opacity:1}],{duration:250});
     vanBusy=false;if(test)vanIn(msg)})}
@@ -1253,7 +1259,7 @@ function vanShow(d){
   if(P&&Array.isArray(P.send)){
     const curT=(vanHold||result!==null)?[]:toks.concat(cur!==''?[cur]:[]);
     const j=vanJoin(curT,P.send.map(String),P.pos,!!P.first,P.mode);
-    mirrorD=null;vanHold=false;reset();const t=j.t.slice();if(t.length&&!isOp(t.at(-1)))cur=t.pop();toks=t;
+    mirrorD=null;vanHold=false;reset();const t=vanNorm(j.t);if(t.length&&!isOp(t.at(-1)))cur=t.pop();toks=t;
     pos=j.pos;piece=pos==='all'?'':vanStr(P.send)}
   else{mirrorD=null;vanHold=false;reset();
     const m=String(d.m||'').replace(/,/g,''),num=/^-?[\d.]+(e[+-]?\d+)?$/;
@@ -1285,19 +1291,20 @@ function vanShow(d){
   function go(dir){if(out||!A.t.length||!/\d/.test(A.t.join('')))return;out=true;
     if(!ser)start=A.t.slice();
     const sp=VAN_SP[S.vanSpeed]||1,d=vanDelayMs(),a=vanPick(),first=!ser,g=gen;
-    const one=S.vanMulti!=='all'&&(A.t.filter(x=>!vOp(x)).length>1||ser);
+    const dig=S.vanMulti==='digit',at0=dig?vanDig(A.t):A.t;
+    const one=S.vanMulti!=='all'&&(at0.filter(x=>!vOp(x)).length>1||ser);
     let tk=null,send=A.t.slice();
-    if(one){tk=vanTake(A.t,S.vanOrder,carry);send=tk.send;ser=!tk.all;carry=tk.carry}else{ser=false;carry=''}
+    if(one){tk=vanTake(at0,S.vanOrder,carry);send=tk.send;ser=!tk.all;carry=tk.carry}else{ser=false;carry=''}
     const pos=one?(S.vanOrder==='last'?'front':'back'):'all';
     (tk&&!tk.all?vanPartOut(A.mt,tk,S.vanOut,dir,sp):vanAnimOut(S.vanOut,dir,sp,A.mt,A.ex)).then(an=>{
-      A.t=tk?tk.rest.slice():[];A.show();an.forEach(x=>{try{x.cancel()}catch(e){}});
+      A.t=tk?vanNorm(tk.rest):[];A.show();an.forEach(x=>{try{x.cancel()}catch(e){}});
       if(!tk||tk.all)A.mt.animate([{opacity:0},{opacity:1}],{duration:250});out=false});
     const at=Date.now()+d,name=VAN_IN[a]||a;
     clearInterval(cdI);if(d){cd.classList.add('on');const tk2=()=>cd.textContent='in '+Math.max(0,Math.ceil((at-Date.now())/1000))+' s · '+name;tk2();cdI=setInterval(tk2,100)}
     q=q.then(()=>new Promise(r=>{tmr=setTimeout(r,Math.max(0,at-Date.now()))})).then(()=>{if(g!==gen)return;
       if(Date.now()>=at-50){clearInterval(cdI);cd.classList.remove('on')}
       let piece='',p2='all';
-      if(one){const j=vanJoin(B.t,send,pos,first,S.vanBuild);B.t=j.t;p2=j.pos;piece=p2==='all'?'':vanStr(send)}else B.t=send.filter((x,i,arr)=>!(i===arr.length-1&&vOp(x)));
+      if(one){const j=vanJoin(B.t,send,pos,first,S.vanBuild);B.t=vanNorm(j.t);p2=j.pos;piece=p2==='all'?'':vanStr(send)}else B.t=send.filter((x,i,arr)=>!(i===arr.length-1&&vOp(x)));
       B.show();
       return (piece?vanPartIn(B.mt,piece,p2,a,sp,B.key):vanAnimIn(a,sp,B.mt,B.ex,B.key,fmtNum)).then(()=>{if(g===gen)B.show()})}).catch(()=>{})}
   const el=A.r.querySelector('.vp-disp');let x0=null,y0=0;
