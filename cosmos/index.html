@@ -347,7 +347,22 @@ function onStatus(u8){
   if (!(u8.length === 1 && u8[0] === 0 && !busy)) log('FF01 ← ' + hex(u8));
   if (doneWaiter && (u8.includes(0xAA) || String.fromCharCode(...u8).includes('OK'))) { const w = doneWaiter; doneWaiter = null; w(true); }
 }
-function onFlow(u8){ log('FF03 ← ' + hex(u8)); }
+// FF03 flow control: "01 NN" = printer allows NN more packets, "02 LL HH" = packet size
+let credits = null, mtu = 200;
+function onFlow(u8){
+  if (u8[0] === 0x01 && u8.length >= 2) { credits = (credits || 0) + u8[1]; if (!busy) log('FF03 ← ' + hex(u8) + ' (credits ' + credits + ')'); }
+  else if (u8[0] === 0x02 && u8.length >= 3) { mtu = u8[1] | (u8[2] << 8); log('FF03 ← ' + hex(u8) + ' (packet size ' + mtu + ')'); }
+  else log('FF03 ← ' + hex(u8));
+}
+async function waitCredit(){
+  if (credits === null) { await sleep(25); return; }          // printer never reported credits: go slowly
+  const t0 = performance.now();
+  while (credits <= 0) {
+    if (performance.now() - t0 > 3000) { log('no credit after 3 s — sending anyway'); credits = 1; break; }
+    await sleep(5);
+  }
+  credits--;
+}
 function toU8(v){ if (v instanceof Uint8Array) return v; if (v instanceof DataView) return new Uint8Array(v.buffer, v.byteOffset, v.byteLength); if (v instanceof ArrayBuffer) return new Uint8Array(v);
   if (Array.isArray(v)) return Uint8Array.from(v); if (typeof v === 'string') { const h=v.replace(/[^0-9a-f]/gi,''); return Uint8Array.from(h.match(/../g)||[], x=>parseInt(x,16)); } if (v && v.data) return toU8(v.data); return new Uint8Array(); }
 
@@ -371,6 +386,7 @@ function setConnected(on){
 }
 
 async function connect(){
+  credits = null;
   mode = hasAura() ? 'aura' : hasWeb() ? 'web' : null;
   if (!mode) { setStatus('No Bluetooth here', 'bad'); toast('Open this page in Aura Browser or Chrome'); return; }
   setStatus('Searching…', 'warn');
@@ -468,16 +484,16 @@ async function runJob(body){
   busy = true; $('bPrint').disabled = true; $('bFeed').disabled = true;
   let enabled = false;
   try {
-    await write(CMD.wake());
-    await write(CMD.density(+$('dens').value));
-    await write(CMD.enable()); enabled = true;
+    await waitCredit(); await write(CMD.wake());
+    await waitCredit(); await write(CMD.density(+$('dens').value));
+    await waitCredit(); await write(CMD.enable()); enabled = true;
     await body();
   } catch (e) {
     log('print error: ' + e.message); toast('Print error — see Log');
   } finally {
     if (enabled) {
       const done = new Promise(r => { doneWaiter = r; setTimeout(() => { if (doneWaiter) { doneWaiter = null; r(false); } }, 10000); });
-      try { await write(CMD.stop()); } catch(e){ log('stop failed: ' + e.message); }
+      try { await waitCredit(); await write(CMD.stop()); } catch(e){ log('stop failed: ' + e.message); }
       const ok = await done;
       setStatus(ok ? 'Printed ✓' : 'Sent (no done signal)', ok ? 'ok' : 'warn');
       if (ok) toast('Printed ✓');
@@ -494,11 +510,11 @@ $('bPrint').onclick = async () => {
   await runJob(async () => {
     const t0 = performance.now();
     for (let i = 0; i < chunks.length; i++) {
+      await waitCredit();
       await write(chunks[i]);
-      if (mode === 'aura') await sleep(4);
       if (i % 10 === 0) setStatus(`Printing… ${Math.round(i/chunks.length*100)}%`, 'warn');
     }
-    const f = +$('feed').value; if (f) await write(CMD.feed(f));
+    const f = +$('feed').value; if (f) { await waitCredit(); await write(CMD.feed(f)); }
     log(`sent in ${Math.round(performance.now()-t0)} ms`);
   });
 };
