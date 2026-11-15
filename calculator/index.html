@@ -132,6 +132,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .note{font-size:13px;color:rgba(235,235,245,.6);margin:8px 16px 0;line-height:1.35}
 .preview{font-size:13px;color:#FF9F0A;margin:8px 16px 0}
 .hide{display:none!important}
+.vch{display:inline-block;white-space:pre}
 </style>
 </head>
 <body>
@@ -176,7 +177,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","v":"list","roll":"unroll","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]},{"n":"Vanish","i":"vanish","s":["vanish"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -210,6 +211,20 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Send to PeekSmith<label><input type="checkbox" id="cbPs" style="width:auto;transform:scale(1.3)"></label></div>
   </div>
   <div class="note">1. Hold <b>=</b> (or use the switch above). "Codebreaker" shows at the top. Hold <b>=</b> again to turn it off.<br>2. The spectator types an equation (for example 1 + 2 + 3) and taps <b>=</b>.<br>3. Tap C / AC. You can also clear the history.<br>4. With the display at 0, tap <b>=</b>: the first number of the order shows (Reverse: 3). Each tap of <b>=</b> shows the next number (2, then 1).<br>Send to PeekSmith: when the spectator taps =, the PeekSmith shows "CB: 1, 2, 3 = 6".</div>
+  <div class="lbl">Vanish &amp; reveal</div>
+  <div class="grp">
+    <div class="r">Swipe to vanish<label><input type="checkbox" id="vanOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Swipe works on<select id="vanWho"><option value="mag">My phone only (Magician)</option><option value="all">Both phones</option></select></div>
+    <div class="r">Swipe direction<select id="vanDir"><option value="lr">Left or right</option><option value="l">Left</option><option value="r">Right</option><option value="u">Up</option><option value="d">Down</option><option value="any">Any</option></select></div>
+    <div class="r">Vanish (my phone)<select id="vanOut"></select></div>
+    <div class="r">Delay<select id="vanDelay"></select></div>
+    <div class="r">Reveal (their phone)<select id="vanIn"></select></div>
+    <div class="r">Speed<select id="vanSpeed"><option value="slow">Slow</option><option value="normal">Normal</option><option value="fast">Fast</option></select></div>
+    <div class="r">Buzz on their phone<select id="vanBuzz"><option value="off">Off</option><option value="light">Light</option><option value="medium">Medium</option><option value="heavy">Heavy</option></select></div>
+    <div class="r">Status<span id="vanSt" style="color:rgba(235,235,245,.6)">—</span></div>
+    <div class="r"><button class="done" id="vanTest" style="width:auto;white-space:nowrap;text-align:left">Preview on this phone</button></div>
+  </div>
+  <div class="note">1. Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>.<br>2. Type a number on your phone (or show a result).<br>3. Swipe across the display. The number goes away and your phone shows 0. The PeekSmith shows "Sent 1,234 · 3 s".<br>4. After the delay, the number comes into view on the spectator's phone with the reveal animation.<br>Your phone does not show the mirror again until you tap a key, so the number does not come back on your screen.<br>Random delay: 3 to 10 s. The PeekSmith shows the delay that the phone selected.</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -319,7 +334,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v42</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v43</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -330,6 +345,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p>Quick force: type a number, then hold <b>1</b> for 1 second. Battery: type 1–100, then hold <b>8</b>. AC makes the force ready again.</p>
   <h4>Codebreaker</h4>
   <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
+  <h4>Vanish &amp; reveal</h4>
+  <p>Type a number on your phone, then swipe across the display. The number goes away. After the delay, it comes into view on the spectator's phone (Aura peer must be connected). Animations, delay and direction are in the Vanish tab. Use <b>Preview on this phone</b> to see the animations.</p>
   <h4>Peeks</h4>
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
   <h4>Aura peer mirror (top right button)</h4>
@@ -392,7 +409,7 @@ function unit(){return parseFloat(getComputedStyle(document.getElementById('keys
 const BACK='<svg class="bk" viewBox="0 0 34 27" fill="none" stroke="#fff" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"><path d="M11.5 2.5h17.5a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H11.5L2 13.5z"/><path d="m15.8 8.8 9.4 9.4M25.2 8.8l-9.4 9.4"/></svg>';
 function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=1;el.style.fontSize=s+'px'}}
 function render(){
-  if(S.peerRole==='mirror'&&mirrorD&&S.mirr!==false)return renderMirror();
+  if(S.peerRole==='mirror'&&mirrorD&&S.mirr!==false&&!vanHold)return renderMirror();
   let main;
   if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
   else{const t=toks.concat(cur!==''?[cur]:[]);main=t.length?exprStr(t):'0';$e.textContent=''}
@@ -407,7 +424,7 @@ function render(){
   document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k));
   try{peerDisp()}catch(e){}}
 /* mirror: show the spectator's display (the last state that came from their phone) */
-let mirrorD=null;
+let mirrorD=null,vanHold=false;   // vanHold: after a vanish, the magician's phone shows 0, not the mirror, until a key is tapped
 function renderMirror(){const d=mirrorD,u=unit();
   $e.textContent=d.e||'';$mt.textContent=d.m||'0';
   let fs=67*u;const min=(d.r?30:60)*u;$m.style.fontSize=fs+'px';
@@ -441,7 +458,7 @@ function livePeek(){
   if(S.method!=='flip'||!armed||S.mode==='off'||result!==null){if(armed)peek(0);return}
   const nums=toks.filter(t=>!isOp(t)).length;
   if(nums===S.n-1&&cur!==''&&cur!=='-'&&(!toks.length||isOp(toks.at(-1)))){const d=target()-evalToks(toks.concat([cur]));peek(d>0?1:d<0?-1:0)}else peek(0)}
-function press(k){if(S.peerRole==='mirror')mirrorD=null;press0(k);livePeek();try{psAfter(k)}catch(e){}}
+function press(k){vanHold=false;if(S.peerRole==='mirror')mirrorD=null;press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to Peek Island and PeekLink ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(S.peerRole==='mirror')return;if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}try{peerSend(t)}catch(e){}if(!S.ps)return;
@@ -628,7 +645,7 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync()}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync();try{vanSync()}catch(e){}}
 function cbSync(){$('cbOn').checked=cbOn;$('cbKeep').checked=S.cbKeep;$('cbOrder').value=S.cbOrder;$('cbEnd').value=S.cbEnd;
   $('cbTotal').checked=S.cbTotal;$('cbHold').value=String(S.cbHold);$('cbBuzz').value=S.cbBuzz;$('cbPs').checked=S.cbPs}
 $('cbOn').onchange=()=>cbSet($('cbOn').checked,true);
@@ -860,7 +877,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v42. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v43. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -965,7 +982,7 @@ function peerCmd(d){
     if(!armed&&(force!==null||(cur===''&&toks.length&&(toks.at(-1)==='+'||toks.at(-1)==='−'))))computeForce();
     if(document.body.classList.contains('open'))syncSheet();
     render();peerRaw({type:'ack',cmd:'force',ok:true,n})}
-  else if(d.cmd==='reset'){reset();psHist.length=0;psLast='';render();peerRaw({type:'ack',cmd:'reset',ok:true})}
+  else if(d.cmd==='reset'){clearTimeout(vanT);reset();psHist.length=0;psLast='';render();peerRaw({type:'ack',cmd:'reset',ok:true})}
   else if(d.cmd==='inject'){injSend(true);peerRaw({type:'ack',cmd:'inject',ok:true})}
   else if(d.cmd==='ping')peerRaw(peerState());
   else if(d.cmd==='disp')peerDisp(true)}
@@ -982,6 +999,7 @@ function peerHook(){
     let d=data;if(kind==='text'){try{d=JSON.parse(data)}catch(e){return}}
     if(kind!=='json'&&kind!=='text')return;
     if(d&&typeof d==='object'&&echoIn(d))return;
+    if(d&&typeof d==='object'&&d.cmd==='reveal'){vanIn(d);return}   // both roles can get a reveal
     if(S.peerRole==='mirror'){if(!d||typeof d!=='object')return;
       if(d.cmd){peerRemote(d);return}
       if(d.type==='disp'){mirrorD=d;render()}
@@ -994,7 +1012,7 @@ function peerOut(o){const P=peerApi();if(!P)return false;
   if(S.peerRole==='mirror'){if(!hosting||!guests.size)return false;try{const r=P.send(o);if(r&&r.catch)r.catch(()=>{})}catch(e){return false}return true}
   return peerRaw(o)}
 /* mirror on/off and Spectator/Magician swap: the same change on this device and on the other device */
-function setMirr(on){S.mirr=on;saveS();
+function setMirr(on){S.mirr=on;if(on)vanHold=false;saveS();
   if(S.peerRole==='mirror'){render();if(on)peerOut({cmd:'disp'})}else if(on)peerDisp(true)}
 async function swapRole(){S.peerRole=S.peerRole==='mirror'?'spect':'mirror';roleSave(S.peerRole);S.peer=true;S.mirr=true;saveS();peerSync();
   mirrorD=null;await peerLeave();render();peerJoin(true)}
@@ -1059,6 +1077,120 @@ peerSync();
 {let n=0;const t=setInterval(()=>{n++;if(window.Aura||n>=20){clearInterval(t);peerJoin()}},250)}
 setInterval(()=>peerJoin(),2000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(()=>peerJoin(),300)});
+
+/* ---------- Vanish & reveal animations (Web Animations). mt = number span, ex = grey line, k = speed factor ---------- */
+const VAN_OUT={smoke:'Smoke',fade:'Fade',slide:'Slide away',shrink:'Shrink',dust:'Dust (digit by digit)',instant:'Instant'};
+const VAN_IN={smoke:'Out of smoke',fade:'Fade in',type:'Ghost typing',slot:'Slot machine',scramble:'Scramble',drop:'Drop in',count:'Count up',rise:'Rise',flash:'Flash',random:'Random',instant:'Instant'};
+const VAN_KINDS=['smoke','fade','type','slot','scramble','drop','count','rise','flash'];
+const VAN_SP={slow:1.6,normal:1,fast:.6};
+function vanSplit(mt){const t=mt.textContent;mt.textContent='';
+  return [...t].map(c=>{const s=document.createElement('span');s.className='vch';s.textContent=c;mt.appendChild(s);return s})}
+/* vanish: returns the animations (they stay at the end state until cancel) */
+function vanAnimOut(kind,dir,k,mt,ex){
+  const A=[],D=ms=>ms*k,F='forwards';
+  if(ex.textContent)A.push(ex.animate([{opacity:1},{opacity:0}],{duration:D(400),fill:F}));
+  if(kind==='fade')A.push(mt.animate([{opacity:1},{opacity:0}],{duration:D(700),easing:'ease-in',fill:F}));
+  else if(kind==='slide'){const tr={l:'translateX(-130%)',r:'translateX(130%)',u:'translateY(-160%)',d:'translateY(160%)'}[dir]||'translateX(-130%)';
+    A.push(mt.animate([{transform:'none',opacity:1},{transform:tr,opacity:0}],{duration:D(380),easing:'cubic-bezier(.5,0,.9,.4)',fill:F}))}
+  else if(kind==='smoke')A.push(mt.animate([{opacity:1,filter:'blur(0px)',transform:'none'},{opacity:0,filter:'blur(18px)',transform:'scale(1.3) translateY(-25%)'}],{duration:D(1200),easing:'ease-out',fill:F}));
+  else if(kind==='shrink')A.push(mt.animate([{opacity:1,transform:'none'},{opacity:0,transform:'scale(0)'}],{duration:D(450),easing:'cubic-bezier(.6,-.3,.8,.5)',fill:F}));
+  else if(kind==='dust')vanSplit(mt).forEach(s=>{const dx=(Math.random()*60+20)*(dir==='l'?-1:1),dy=-(Math.random()*80+20),rot=(Math.random()-.5)*90;
+    A.push(s.animate([{opacity:1,transform:'none',filter:'blur(0px)'},{opacity:0,transform:'translate('+dx+'px,'+dy+'px) rotate('+rot+'deg)',filter:'blur(6px)'}],
+      {duration:D(900),delay:D(Math.random()*500),easing:'ease-out',fill:F}))});
+  else A.push(mt.animate([{opacity:0},{opacity:0}],{duration:1,fill:F}));
+  return Promise.all(A.map(a=>a.finished.catch(()=>{}))).then(()=>A)}
+/* reveal: the display already shows the final number; keyEl(c) gives the key to flash (Ghost typing) */
+function vanAnimIn(kind,k,mt,ex,keyEl,fmt){
+  const A=[],P=[],D=ms=>ms*k,final=mt.textContent;
+  if(kind==='random')kind=VAN_KINDS[Math.floor(Math.random()*VAN_KINDS.length)];
+  const exIn=at=>{if(ex.textContent)A.push(ex.animate([{opacity:0},{opacity:1}],{duration:D(500),delay:at,fill:'backwards'}))};
+  const flashKey=c=>{const b=keyEl&&keyEl(c);if(!b)return;b.classList.add('down');setTimeout(()=>b.classList.remove('down'),120)};
+  if(kind==='fade'){A.push(mt.animate([{opacity:0},{opacity:1}],{duration:D(1300),easing:'ease-out'}));exIn(D(800))}
+  else if(kind==='smoke'){A.push(mt.animate([{opacity:0,filter:'blur(20px)',transform:'scale(1.3)'},{opacity:1,filter:'blur(0px)',transform:'none'}],{duration:D(1700),easing:'cubic-bezier(.2,.7,.3,1)'}));exIn(D(1200))}
+  else if(kind==='rise'){A.push(mt.animate([{opacity:0,transform:'translateY(70%)'},{opacity:1,transform:'none'}],{duration:D(750),easing:'cubic-bezier(.2,1.4,.4,1)'}));exIn(D(600))}
+  else if(kind==='flash'){A.push(mt.animate([{opacity:0,textShadow:'0 0 0 rgba(255,255,255,0)'},{opacity:1,textShadow:'0 0 28px #fff',offset:.12},{opacity:1,textShadow:'0 0 0 rgba(255,255,255,0)'}],{duration:D(1100),easing:'ease-out'}));exIn(D(300))}
+  else if(kind==='drop'){const cs=vanSplit(mt);
+    cs.forEach((s,i)=>A.push(s.animate([{opacity:0,transform:'translateY(-140%)'},{opacity:1,transform:'none'}],{duration:D(600),delay:D(i*110),easing:'cubic-bezier(.3,1.6,.5,1)',fill:'backwards'})));
+    exIn(D(cs.length*110+300))}
+  else if(kind==='type'){const cs=vanSplit(mt);let t=0;cs.forEach(s=>s.style.opacity='0');
+    P.push(new Promise(res=>{cs.forEach(s=>{const c=s.textContent;if(c!==',')t+=D(190);
+      setTimeout(()=>{s.style.opacity='';if(c!==',')flashKey(c)},t)});setTimeout(res,t+60)}));
+    exIn(t+D(200))}
+  else if(kind==='slot'||kind==='scramble'){const cs=vanSplit(mt),digs=cs.filter(s=>/\d/.test(s.textContent)),fin=digs.map(s=>s.textContent);
+    const slot=kind==='slot',stop=digs.map((_,i)=>slot?D(700+i*220):D(1100));
+    A.push(mt.animate([{opacity:0},{opacity:1}],{duration:D(200)}));
+    P.push(new Promise(res=>{if(!digs.length)return res();const t0=performance.now(),ok=digs.map(()=>false);
+      const iv=setInterval(()=>{const el=performance.now()-t0;let all=true;
+        digs.forEach((s,i)=>{
+          if(el>=stop[i]){if(!ok[i]){ok[i]=true;s.textContent=fin[i];s.style.opacity='';
+              s.animate(slot?[{transform:'translateY(-35%)'},{transform:'none'}]:[{textShadow:'0 0 18px #fff'},{textShadow:'0 0 0 rgba(255,255,255,0)'}],{duration:slot?180:500,easing:'cubic-bezier(.3,1.6,.5,1)'})}}
+          else{all=false;s.textContent=String(Math.floor(Math.random()*10));if(!slot)s.style.opacity=String(.35+Math.random()*.65)}});
+        if(all){clearInterval(iv);res()}},55)}));
+    exIn(D(slot?700+digs.length*220:1100))}
+  else if(kind==='count'){const v=Number(final.replace(/,/g,''));
+    if(!/^-?[\d,]+(\.\d+)?$/.test(final)||!isFinite(v)||Math.abs(v)>=1e15)return vanAnimIn('fade',k,mt,ex,keyEl,fmt);
+    const dec=(final.split('.')[1]||'').length,dur=D(1500);
+    P.push(new Promise(res=>{const t0=performance.now();
+      const step=now=>{const p=Math.min(1,(now-t0)/dur),e=1-Math.pow(1-p,3);
+        mt.textContent=p<1?fmt((v*e).toFixed(dec)):final;if(p<1)requestAnimationFrame(step);else res()};
+      requestAnimationFrame(step)}));
+    exIn(D(1200))}
+  return Promise.all(A.map(a=>a.finished.catch(()=>{})).concat(P)).then(()=>{mt.textContent=final})}
+/* ---------- Vanish & reveal: swipe the display = the number goes away here and, after the delay,
+   comes into view on the other phone (Aura peer message {cmd:'reveal',m,e,a,d,b,sp}) ---------- */
+const VAN_DELAYS=[[0,'No delay'],[1,'1 s'],[2,'2 s'],[3,'3 s'],[5,'5 s'],[8,'8 s'],[10,'10 s'],[15,'15 s'],[20,'20 s'],[30,'30 s'],[60,'1 min'],[-1,'Random 3–10 s']];
+if(S.vanOn===undefined)S.vanOn=true;S.vanWho=S.vanWho||'mag';S.vanDir=S.vanDir||'lr';S.vanOut=S.vanOut||'smoke';S.vanIn=S.vanIn||'smoke';
+if(S.vanDelay===undefined)S.vanDelay=3;S.vanSpeed=S.vanSpeed||'normal';S.vanBuzz=S.vanBuzz||'light';
+let vanBusy=false,vanT=null,vanLast='';
+function vanFill(id,list,val){const s=$(id);if(!s.options.length)for(const [v,n] of list){const o=document.createElement('option');o.value=v;o.textContent=n;s.appendChild(o)}s.value=String(val)}
+function vanSync(){$('vanOn').checked=!!S.vanOn;$('vanWho').value=S.vanWho;$('vanDir').value=S.vanDir;$('vanSpeed').value=S.vanSpeed;$('vanBuzz').value=S.vanBuzz;
+  vanFill('vanOut',Object.entries(VAN_OUT),S.vanOut);vanFill('vanIn',Object.entries(VAN_IN),S.vanIn);vanFill('vanDelay',VAN_DELAYS,S.vanDelay);
+  const linked=S.peerRole==='mirror'?(hosting&&guests.size>0):peerOk;$('vanSt').textContent=(linked?'Linked':'Not linked')+(vanLast?' · last: '+vanLast:'')}
+['vanWho','vanDir','vanOut','vanIn','vanSpeed','vanBuzz'].forEach(id=>$(id).onchange=()=>{S[id]=$(id).value;saveS()});
+$('vanDelay').onchange=()=>{S.vanDelay=+$('vanDelay').value;saveS()};
+$('vanOn').onchange=()=>{S.vanOn=$('vanOn').checked;saveS()};
+function vanDelayMs(){return S.vanDelay<0?Math.round(30+Math.random()*70)*100:S.vanDelay*1000}
+const vanKey=c=>document.querySelector('.k[data-k="'+c+'"]');
+function vanSwipe(dir,test){
+  if(vanBusy||(!S.vanOn&&!test)||document.body.classList.contains('open')||document.body.classList.contains('hopen'))return;
+  if(!test&&S.vanWho==='mag'&&S.peerRole!=='mirror')return;
+  const m=$mt.textContent.replace(/,/g,'');if(!/\d/.test(m)||m==='0'||m==='Error')return;
+  vanBusy=true;
+  const msg={cmd:'reveal',m,e:$e.textContent,a:S.vanIn==='random'?VAN_KINDS[Math.floor(Math.random()*VAN_KINDS.length)]:S.vanIn,d:vanDelayMs(),b:S.vanBuzz,sp:S.vanSpeed};
+  if(!test){const sent=peerOut(msg),sec=(msg.d/1000).toFixed(msg.d%1000?1:0)+' s';
+    vanLast=fmtNum(m)+(sent?'':' (not sent)');
+    try{bleShow(sent?'Sent '+fmtNum(m)+' · '+sec:'Not sent – no link')}catch(e){}
+    if(sent)buzz('light')}
+  vanAnimOut(S.vanOut,dir,VAN_SP[S.vanSpeed]||1,$mt,$e).then(A=>{
+    if(S.peerRole==='mirror')vanHold=true;   // do not show the mirror (their number) on this phone
+    reset();render();A.forEach(a=>{try{a.cancel()}catch(e){}});
+    $mt.animate([{opacity:0},{opacity:1}],{duration:250});vanBusy=false;
+    if(test)vanIn(msg)})}
+/* the other phone: after the delay, show the number with the reveal animation */
+function vanIn(d){clearTimeout(vanT);
+  vanT=setTimeout(()=>{
+    mirrorD=null;vanHold=false;reset();
+    const m=String(d.m||'').replace(/,/g,''),num=/^-?[\d.]+(e[+-]?\d+)?$/;
+    if(d.e&&num.test(m)){result=Number(m);shownExpr=String(d.e)}   // a result: also the grey line
+    else{const t=m.match(/-?[\d.]+(?:e[+-]?\d+)?|[+−×÷]/g)||[];if(t.length&&!isOp(t.at(-1)))cur=t.pop();toks=t}
+    render();
+    if(d.b&&d.b!=='off')buzz(d.b);
+    vanAnimIn(d.a||'fade',VAN_SP[d.sp]||1,$mt,$e,vanKey,fmtNum).then(()=>render())},Math.max(0,+d.d||0))}
+$('vanTest').onclick=()=>{closeSheet();
+  if($mt.textContent.replace(/,/g,'')==='0'){reset();cur='1234';render()}
+  setTimeout(()=>vanSwipe('l',true),700)};
+/* swipe on the display (the black area above the keys) */
+(function(){const el=document.querySelector('.disp');let x0=null,y0=0,t0=0;
+  function go(x,y){if(x0===null)return;const dx=x-x0,dy=y-y0,ax=Math.abs(dx),ay=Math.abs(dy);x0=null;
+    if(Date.now()-t0>900)return;let dir='';
+    if(ax>45&&ax>ay*1.4)dir=dx<0?'l':'r';else if(ay>45&&ay>ax*1.4)dir=dy<0?'u':'d';
+    const w=S.vanDir;if(dir&&(w==='any'||w===dir||(w==='lr'&&(dir==='l'||dir==='r'))))vanSwipe(dir)}
+  el.addEventListener('touchstart',e=>{if(e.touches.length!==1){x0=null;return}x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now()},{passive:true});
+  el.addEventListener('touchend',e=>{const t=e.changedTouches[0];go(t.clientX,t.clientY)},{passive:true});
+  el.addEventListener('touchcancel',()=>x0=null);
+  el.addEventListener('mousedown',e=>{if(touchUsed)return;x0=e.clientX;y0=e.clientY;t0=Date.now()});
+  addEventListener('mouseup',e=>{if(!touchUsed)go(e.clientX,e.clientY)})})();
+vanSync();
 
 /* ---------- when the phone locks (or the page goes to the background) ---------- */
 const lockSel=document.getElementById('lockSel'),lockUrl=document.getElementById('lockUrl');

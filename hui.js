@@ -24,6 +24,7 @@ link:'<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 
 log:'<path d="M4 6h16M4 12h16M4 18h10"/>',
 power:'<path d="M12 3v8.5"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/>',
 music:'<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+vanish:'<path d="M10 3l1.6 4.4L16 9l-4.4 1.6L10 15l-1.6-4.4L4 9l4.4-1.6z"/><path d="M18 14l.8 2.2 2.2.8-2.2.8L18 20l-.8-2.2L15 17l2.2-.8z"/>',
 more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>'};
 const svg=n=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(ICONS[n]||ICONS.more)+'</svg>';
 const CSS=`
@@ -84,11 +85,22 @@ main.hui{padding-top:0!important;max-width:560px!important;min-height:100vh}
 .hui .hui-pane>button:active{box-shadow:inset 4px 4px 9px var(--hd),inset -4px -4px 9px var(--hl)!important}
 .hui .hui-pane>small{display:block;margin:12px 6px 0;color:var(--hm)!important}
 .hui .dot{box-shadow:0 0 6px currentColor}
+/* list ("v":"list"): tabs from top to bottom; a tap rolls out the tab's settings under it */
+.hui .hui-acc{display:flex;align-items:center;gap:14px;width:calc(100% - 32px);height:58px;margin:14px 16px 0;padding:0 16px 0 18px;border-radius:19px;border:0;background:var(--hb);
+  box-shadow:5px 5px 12px var(--hd),-5px -5px 12px var(--hl);color:var(--ht);font:600 17px -apple-system,system-ui;text-align:left;transition:box-shadow .2s,color .2s}
+.hui .hui-acc>svg:first-child{width:22px;height:22px;color:var(--hm);flex:none;transition:color .2s}
+.hui .hui-acc span{flex:1}
+.hui .hui-acc .hui-chev{width:18px;height:18px;color:var(--hm);flex:none;transition:transform .3s cubic-bezier(.3,1.4,.5,1),color .2s}
+.hui .hui-acc.on{box-shadow:inset 4px 4px 9px var(--hd),inset -4px -4px 9px var(--hl);color:var(--ha)}
+.hui .hui-acc.on svg{color:var(--ha)!important}.hui .hui-acc.on .hui-chev{transform:rotate(90deg)}
+.hui-list .hui-pane{padding-bottom:6px}
+.hui-list .hui-top{padding-bottom:4px}
 `;
 function norm(t){return String(t||'').replace(/\s+/g,' ').trim().toLowerCase()}
 function build(box){
   if(box.classList.contains('hui'))return;
   let cfg={};try{cfg=JSON.parse(box.getAttribute('data-hui')||'{}')}catch(e){}
+  const H=!!cfg.h;
   const tabs=(cfg.tabs||[]).map(t=>({n:t.n,i:t.i||'more',s:(t.s||[]).map(norm),x:!!t.x,el:null,btn:null}));
   /* a page with a data-tab="Help" card gets a Help tab at the end */
   if(box.querySelector('[data-tab="Help"]')&&!tabs.some(t=>norm(t.n)==='help'))tabs.push({n:'Help',i:'help',s:[],x:true,el:null,btn:null});
@@ -117,11 +129,16 @@ function build(box){
   const done=head&&head.querySelector('button');
   if(done){done.classList.add('hui-done');row.appendChild(done)}
   top.appendChild(row);
-  const bar=document.createElement('div');bar.className='hui-tabs';if(tabs.length>1)top.appendChild(bar);
+  const lst=cfg.v==='list'&&tabs.length>1;
+  const bar=document.createElement('div');bar.className='hui-tabs';if(tabs.length>1&&!lst)top.appendChild(bar);
   box.insertBefore(top,box.firstChild);
-  tabs.forEach((t,i)=>{t.el=document.createElement('div');t.el.className='hui-pane';box.appendChild(t.el);
-    t.btn=document.createElement('button');t.btn.type='button';t.btn.innerHTML=svg(t.i)+'<span>'+t.n+'</span>';bar.appendChild(t.btn);
-    t.btn.addEventListener('click',()=>show(i))});
+  tabs.forEach((t,i)=>{
+    if(lst){t.btn=document.createElement('button');t.btn.type='button';t.btn.className='hui-acc';
+      t.btn.innerHTML=svg(t.i)+'<span>'+t.n+'</span><svg class="hui-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>';
+      box.appendChild(t.btn)}
+    t.el=document.createElement('div');t.el.className='hui-pane';box.appendChild(t.el);
+    if(!lst){t.btn=document.createElement('button');t.btn.type='button';t.btn.innerHTML=svg(t.i)+'<span>'+t.n+'</span>';bar.appendChild(t.btn)}
+    t.btn.addEventListener('click',()=>lst?toggle(i):show(i))});
   secs.forEach(s=>{
     let tab=null;
     if(s.t&&s.t[0]==='#')tab=tabs.find(t=>norm(t.n)===norm(s.t.slice(1)));
@@ -129,10 +146,41 @@ function build(box){
     (tab||tabs.filter(t=>!t.x).pop()||tabs[tabs.length-1]).el.append(...s.els)});
   if(!cfg.ver){const vn=[...box.querySelectorAll('.note,.snote,small')].map(e=>e.textContent.trim()).find(t=>/^[\w ]+ v\d+$/.test(t));if(vn)cfg.ver=vn.split(' ').pop()}
   const KEY='hui-tab:'+location.pathname;
+  const subOf=i=>i<0?(cfg.ver||''):tabs.length>1?tabs[i].n+(cfg.ver?'  ·  '+cfg.ver:''):(cfg.ver||tabs[0].n);
   function show(i){tabs.forEach((t,j)=>{t.el.classList.toggle('on',i===j);t.btn.classList.toggle('on',i===j)});
-    sub.textContent=tabs.length>1?tabs[i].n+(cfg.ver?'  ·  '+cfg.ver:''):(cfg.ver||tabs[0].n);box.scrollTop=0;try{localStorage.setItem(KEY,String(i))}catch(e){}}
-  let start=0;try{start=+localStorage.getItem(KEY)||0}catch(e){}
-  show(start<tabs.length?start:0);
+    sub.textContent=subOf(i);box.scrollTop=0;try{localStorage.setItem(KEY,String(i))}catch(e){}}
+  /* roll out the cards of a pane (style: HUI.rollStyle or cfg.roll: unroll, drop, rise, side, none) */
+  let rollA=[];
+  function roll(pane){rollA.forEach(a=>{try{a.cancel()}catch(e){}});rollA=[];
+    const st=window.HUI&&HUI.rollStyle||cfg.roll||'unroll';if(st==='none'||!pane.animate)return;
+    [...pane.children].filter(e=>e.offsetParent!==null).forEach((el,n)=>{const d=60+n*70;let k,o={duration:420,delay:d,easing:'cubic-bezier(.2,.8,.25,1)',fill:'backwards'};
+      if(st==='unroll'){
+        k=[{clipPath:'inset(-30px -30px 100% -30px)',opacity:.4},{clipPath:'inset(-30px -30px -30px -30px)',opacity:1}];o.duration=480;
+        el.querySelectorAll(':scope>.lbl,:scope>.grp>.r,:scope>.seg,:scope>.r,:scope>h4,:scope>p,:scope>ol,:scope>ul').forEach((r,m)=>rollA.push(r.animate(
+          [{opacity:0,transform:'translateY(-10px)'},{opacity:1,transform:'none'}],{duration:320,delay:d+80+m*40,easing:'ease-out',fill:'backwards'})))}
+      else if(st==='drop'){k=[{opacity:0,transform:'perspective(900px) rotateX(-75deg)',transformOrigin:'50% 0'},{opacity:1,transform:'perspective(900px) rotateX(0deg)',transformOrigin:'50% 0'}];
+        o.duration=560;o.easing='cubic-bezier(.3,1.35,.5,1)';o.delay=60+n*85}
+      else if(st==='side'){k=[{opacity:0,transform:'translateX(50px)'},{opacity:1,transform:'none'}];o.delay=60+n*55}
+      else k=[{opacity:0,transform:'translateY(34px) scale(.97)'},{opacity:1,transform:'none'}];
+      rollA.push(el.animate(k,o))})}
+  /* list: one tab open at a time; its pane opens under it (height animation) and rolls out its cards */
+  let openI=-1;
+  function hgt(el,from,to,ms){el.style.overflow='hidden';const a=el.animate([{height:from+'px'},{height:to+'px'}],{duration:ms,easing:'cubic-bezier(.25,.8,.25,1)'});
+    a.onfinish=a.oncancel=()=>{el.style.overflow=''};return a}
+  function collapse(i){const t=tabs[i],h=t.el.offsetHeight;t.btn.classList.remove('on');
+    const a=hgt(t.el,h,0,260);a.onfinish=()=>{t.el.style.overflow='';t.el.classList.remove('on')}}
+  function expand(i,quiet){const t=tabs[i];t.el.classList.add('on');t.btn.classList.add('on');const h=t.el.offsetHeight;
+    if(!quiet){hgt(t.el,0,h,380);roll(t.el);
+      setTimeout(()=>{const y=t.btn.getBoundingClientRect().top-box.getBoundingClientRect().top+box.scrollTop-top.offsetHeight-8;box.scrollTo({top:Math.max(0,y),behavior:'smooth'})},openI>=0?280:40)}}
+  function toggle(i,quiet){const was=openI;if(was>=0)collapse(was);openI=was===i?-1:i;if(openI>=0)expand(openI,quiet);
+    sub.textContent=subOf(openI);try{localStorage.setItem(KEY,String(openI))}catch(e){}}
+  let start=0;try{start=+(localStorage.getItem(KEY)??0)}catch(e){}
+  if(lst){box.classList.add('hui-list');if(start>=0&&start<tabs.length)toggle(start,true);else sub.textContent=subOf(-1);
+    /* the settings open (body gets the class "open"): roll out the open tab again */
+    let was=document.body.classList.contains('open');
+    new MutationObserver(()=>{const now=document.body.classList.contains('open');if(now&&!was&&openI>=0){box.scrollTop=0;roll(tabs[openI].el)}was=now})
+      .observe(document.body,{attributes:true,attributeFilter:['class']})}
+  else show(start>=0&&start<tabs.length?start:0);
   box.classList.add('hui')}
 function init(){document.querySelectorAll('[data-hui]').forEach(build)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
