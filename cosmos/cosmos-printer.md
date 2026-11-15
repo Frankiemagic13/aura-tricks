@@ -1,4 +1,4 @@
-# Cosmos
+# Cosmos printer
 
 **Scope:** Send print jobs (raster images and plain text) to an Electricks Cosmos wallet printer over Bluetooth Low Energy without the Cosmos app. This is an independently observed, partial protocol for one physical Cosmos (advertised as `LuckP_L2_D323_BLE`). Its firmware version was not recorded. It does not cover the Cosmos app's own traffic (no PacketLogger trace was captured), battery or paper-status decoding, or the purpose of the secondary GATT services. Findings were collected on 2026-11-11 (nRF Connect, iPhone) and 2026-11-14 (LightBlue, macOS, and a test page in Aura Browser on iPhone).
 
