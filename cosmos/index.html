@@ -86,7 +86,7 @@ details[open] summary::before{content:"▾ ";}
     <div class="card">
       <div class="top">
         <h1>Cosmos Print</h1><div class="sp"></div>
-        <span class="dot" id="dot"></span><span id="status">Not connected</span>
+        <span id="batt" title="Cosmos battery" style="display:none;font-size:13px;color:var(--dim);margin-right:6px"></span><span class="dot" id="dot"></span><span id="status">Not connected</span>
       </div>
       <div class="row" style="margin-top:12px">
         <button class="pri" id="bConnect" style="flex:1">Connect</button>
@@ -343,7 +343,21 @@ let auraId = null, auraSvc = null, auraWr = null, auraSt = null, auraFc = null, 
 let webDev = null, webWr = null;
 let doneWaiter = null;
 
+let battAsk = 0;
+function showBatt(p){
+  const el = $('batt'); el.style.display = '';
+  el.textContent = '🔋 ' + p + '%';
+  el.style.color = p <= 20 ? 'var(--bad)' : p <= 40 ? 'var(--warn)' : 'var(--dim)';
+}
+async function askBattery(){
+  if (!connected || busy) return;
+  battAsk = Date.now();
+  try { await waitCredit(); await write(Uint8Array.of(0x10,0xFF,0x50,0xF1)); } catch(e){ log('battery request failed: ' + e.message); }
+}
 function onStatus(u8){
+  if (battAsk && Date.now() - battAsk < 3000 && u8.length === 2 && u8[1] <= 100) {
+    battAsk = 0; showBatt(u8[1]); log('battery ' + u8[1] + '% (status ' + u8[0] + ')'); return;
+  }
   if (!(u8.length === 1 && u8[0] === 0 && !busy)) log('FF01 ← ' + hex(u8));
   if (doneWaiter && (u8.includes(0xAA) || String.fromCharCode(...u8).includes('OK'))) { const w = doneWaiter; doneWaiter = null; w(true); }
 }
@@ -369,9 +383,12 @@ function toU8(v){ if (v instanceof Uint8Array) return v; if (v instanceof DataVi
 let kaTimer = null, connAt = 0;
 function startKeepAlive(){
   stopKeepAlive(); connAt = Date.now();
+  let tick = 0;
+  setTimeout(askBattery, 800);
   kaTimer = setInterval(async () => {
     if (!connected || busy) return;
-    try { await write(Uint8Array.of(0x10,0xFF,0x40)); } catch(e){ log('keep-alive failed: ' + e.message); }
+    if (++tick % 4 === 0) return askBattery();
+    try { await waitCredit(); await write(Uint8Array.of(0x10,0xFF,0x40)); } catch(e){ log('keep-alive failed: ' + e.message); }
   }, 15000);
 }
 function stopKeepAlive(){ if (kaTimer) clearInterval(kaTimer); kaTimer = null; }
@@ -379,6 +396,7 @@ function setConnected(on){
   if (!on && connected && connAt) log('connection lasted ' + Math.round((Date.now()-connAt)/1000) + ' s');
   if (on) startKeepAlive(); else stopKeepAlive();
   connected = on;
+  if (!on) $('batt').style.display = 'none';
   $('bConnect').textContent = on ? 'Disconnect' : 'Connect';
   $('bConnect').classList.toggle('pri', !on);
   $('bPrint').disabled = !on; $('bFeed').disabled = !on;
@@ -498,7 +516,7 @@ async function runJob(body){
       setStatus(ok ? 'Printed ✓' : 'Sent (no done signal)', ok ? 'ok' : 'warn');
       if (ok) toast('Printed ✓');
     }
-    busy = false; if (connected) { $('bPrint').disabled = false; $('bFeed').disabled = false; }
+    busy = false; if (connected) { $('bPrint').disabled = false; $('bFeed').disabled = false; setTimeout(askBattery, 1500); }
   }
 }
 
