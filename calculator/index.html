@@ -240,7 +240,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Birthday<select id="pmBday"><option value="both">Send both PINs</option><option value="passed">Passed</option><option value="not">Not passed</option></select></div>
     <div class="r">Now<span id="pmMath" style="color:rgba(235,235,245,.6)">—</span></div>
   </div>
-  <div class="note">Hold <b>+/−</b> (bottom left) for 1 second to turn PIN math on or off. "PIN on" or "PIN off" shows at the top. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
+  <div class="note">Hold <b>+/−</b> (bottom left) for 1 second to turn PIN math on or off. "PIN on" or "PIN off" shows at the top. PIN math turns off by itself after the spectator taps <b>=</b>, so hold +/− again for the next spectator. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
   <div class="lbl">Vanish</div>
   <div class="grp">
     <div class="r">Swipe to vanish<label><input type="checkbox" id="vanOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -399,7 +399,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <h4>Codebreaker</h4>
   <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
   <h4>PIN math</h4>
-  <p>Hold <b>+/−</b> (bottom left) to turn it on or off ("PIN on" / "PIN off" shows at the top), or use <b>PIN peek on =</b> in the Code tab. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The PeekSmith shows "PIN 4820/4821": the first PIN is correct when the birthday has passed, the second when it has not.</p>
+  <p>Hold <b>+/−</b> (bottom left) to turn it on or off ("PIN on" / "PIN off" shows at the top), or use <b>PIN peek on =</b> in the Code tab. It turns off by itself after one <b>=</b>. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The PeekSmith shows "PIN 4820/4821": the first PIN is correct when the birthday has passed, the second when it has not.</p>
   <h4>Vanish &amp; reveal</h4>
   <ol><li>Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>. "Status" in the Vanish tab shows Linked.</li>
   <li>Type a number on your phone (or show a result).</li>
@@ -562,7 +562,8 @@ function pinPeek(total){
   return out?'PIN '+out:null}
 function psAfter(k){
   if(k==='='){if(result!==null&&cbOn&&S.cbPs){psNow('CB: '+eqNums.map(fmtNum).join(', ')+' = '+fmtNum(result));return}
-    if(result!==null){const pp=pinPeek(result);pmT=null;const bp=pp?null:birthPeek(eqNums);psNow(pp||bp||lastExpr+' = '+fmtNum(result))}else pmT=null;return}
+    if(result!==null){const pp=pinPeek(result);pmT=null;if(S.pmOn){S.pmOn=false;saveS();try{$('pmOn').checked=false}catch(e){}}   // PIN math turns off after one =, with no sign on the screen
+      const bp=pp?null:birthPeek(eqNums);psNow(pp||bp||lastExpr+' = '+fmtNum(result))}else pmT=null;return}
   if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
   if(force!==null&&fi>0)return;
   if(toks.length===0&&cur===''){psLast='';pmT=null;return}   // cleared: the same number typed again is sent again
