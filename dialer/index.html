@@ -205,6 +205,20 @@
   </div>
 
   <div class="item neo" data-item>
+    <div class="item-h"><div class="ic neo-in">🔀</div>Call method<div class="chev">›</div></div>
+    <div class="item-b"><div class="inner">
+      <label class="cap">Dial with</label>
+      <div class="seg" id="method">
+        <button class="neo" data-v="tel">Phone link</button>
+        <button class="neo" data-v="shortcut">Shortcut</button>
+      </div>
+      <label class="cap" style="margin-top:14px">Shortcut name</label>
+      <div class="row"><input type="tel" inputmode="text" id="scname" class="neo-in" placeholder="Dial" autocomplete="off"></div>
+      <div class="hint">Shortcut: no "Call?" prompt. The shortcut must be on this phone (see Help).</div>
+    </div></div>
+  </div>
+
+  <div class="item neo" data-item>
     <div class="item-h"><div class="ic neo-in">❓</div>Help<div class="chev">›</div></div>
     <div class="item-b"><div class="inner help">
       <p><b>Open settings:</b> push and hold the <b>#</b> key for 1 second.</p>
@@ -212,7 +226,9 @@
       <p><b>Trigger:</b> select "First key tap" or "Call button". When the spectator does this, the screen glitches.</p>
       <p><b>The effect:</b> the screen glitches for approximately 2 seconds. Then your number shows on the display and the phone calls it.</p>
       <p><b>Reset:</b> when you come back to the page after the call, the display is empty again.</p>
-      <p><b>Note:</b> iOS can show a "Call" prompt before it dials. This is an iOS rule for web pages.</p>
+      <p><b>Note:</b> with "Phone link", iOS shows a "Call" prompt before it dials. This is an iOS rule.</p>
+      <p><b>Shortcut setup (one time):</b> open the Shortcuts app. Make a new shortcut with the name <b>Dial</b>. Add the <b>Call</b> action. Tap the contact field in the action and select <b>Shortcut Input</b>. Then set Call method to "Shortcut".</p>
+      <p><b>Shortcut note:</b> iOS can ask "Open in Shortcuts?" the first time. Tap Open. Run the trick one time before the show.</p>
     </div></div>
   </div>
 </div>
@@ -231,6 +247,8 @@
   let called = false;
   let target = store.get('dialer.num', '');
   let trigger = store.get('dialer.trigger', 'key');
+  let method = store.get('dialer.method', 'tel');
+  let scName = store.get('dialer.scname', 'Dial');
 
   /* ---------- formatting like iOS (US) ---------- */
   function fmt(s){
@@ -391,7 +409,15 @@
         setTimeout(() => {
           release(callBtn);
           const n = targetDigits();
-          if (n){ called = true; window.location.href = 'tel:' + n; }
+          if (n){
+            called = true;
+            if (method === 'shortcut'){
+              window.location.href = 'shortcuts://run-shortcut?name=' + encodeURIComponent(scName || 'Dial') +
+                '&input=text&text=' + encodeURIComponent(n);
+            } else {
+              window.location.href = 'tel:' + n;
+            }
+          }
           else { busy = false; }
         }, 220);
       }, 450);
@@ -442,6 +468,17 @@
   document.querySelectorAll('#trig button').forEach(b => b.addEventListener('click', () => {
     trigger = b.dataset.v; store.set('dialer.trigger', trigger); syncTrig();
   }));
+
+  const scInput = $('#scname');
+  function syncMethod(){
+    document.querySelectorAll('#method button').forEach(b => b.classList.toggle('on', b.dataset.v === method));
+    scInput.value = scName;
+  }
+  document.querySelectorAll('#method button').forEach(b => b.addEventListener('click', () => {
+    method = b.dataset.v; store.set('dialer.method', method); syncMethod();
+  }));
+  scInput.addEventListener('input', () => { scName = scInput.value.trim() || 'Dial'; store.set('dialer.scname', scName); });
+  syncMethod();
 
   render('');
 })();
