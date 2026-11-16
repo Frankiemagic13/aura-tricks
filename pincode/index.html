@@ -97,6 +97,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   border-radius:3.2vw;background:#ff3b30;color:#fff;font:700 4.4vw/6.4vw -apple-system,system-ui,"SF Pro Text",sans-serif;
   text-align:center;letter-spacing:.1px;transition:transform .28s cubic-bezier(.3,1.5,.5,1) .35s}
 #badge.on,#badge2.on{display:block}
+/* badge edit (Set…): drag a badge; a name shows above each one */
+.placing #home{touch-action:none}
+.placing #badge,.placing #badge2{cursor:grab}
+.placing #badge::after,.placing #badge2::after{content:attr(data-name);position:absolute;left:50%;bottom:100%;transform:translate(-50%,-1.2vw);
+  white-space:nowrap;padding:.6vw 2vw;border-radius:2vw;background:rgba(0,0,0,.72);color:#fff;font:600 3.2vw/1.3 -apple-system,system-ui,sans-serif;pointer-events:none}
+.placing .bsel{box-shadow:0 0 0 .7vw #fff}
 .unlocked #badge.on,.unlocked #badge2.on{transform:translate(-50%,-50%) scale(1)}
 .unlocked #app{opacity:0;transition:opacity .25s}
 
@@ -158,7 +164,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="foot" id="cancel">Cancel</div>
   </div>
 </div>
-<div id="home"><div id="badge"></div><div id="badge2"></div></div>
+<div id="home"><div id="badge" data-name="Passed"></div><div id="badge2" data-name="Not passed"></div></div>
 <div id="launch"><div class="ph"></div><div class="col"></div></div>
 <div id="blk"></div>
 
@@ -255,7 +261,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Second badge (birthday not passed)<input type="checkbox" id="sBadge2"></div>
     <div class="r">Second badge position<button class="sbtn" id="sBadge2Pos">Set…</button></div>
   </div>
-  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens; tap the place for the badge. A test badge "1234" shows there. Tap the photo 3 times quickly to go back. With two PINs and "Second badge" on, the first badge shows the PIN for "birthday passed" and the second badge shows the PIN for "birthday not passed" (for example 4820 and 4821). With "Second badge" off, the badge shows the PIN from "Which PIN". Each badge has its own position: put them on two apps.</div>
+  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens with both test badges ("1234" Passed, "1235" Not passed, with their names above them). Drag a badge to move it, or tap the photo to move the selected badge (white ring). Tap the photo 3 times quickly to go back. With two PINs and "Second badge" on, the first badge shows the PIN for "birthday passed" and the second badge shows the PIN for "birthday not passed" (for example 4820 and 4821). With "Second badge" off, the badge shows the PIN from "Which PIN". Each badge has its own position: put them on two apps.</div>
   <input type="file" id="file" accept="image/*" hidden>
   <input type="file" id="fileHome" accept="image/*" hidden>
 
@@ -371,7 +377,7 @@ function unfreeze(){frozen=null;haptic('light');drawClock()}
 
 /* ---------- screens ---------- */
 let view='pass';
-function toLock(live){placing=false;launchReset();showBadge('');view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
+function toLock(live){placing=false;B.classList.remove('placing');launchReset();showBadge('');view='pass';armed=false;injSent='';B.classList.remove('unlocked');code='';locked=false;clearTimeout(waitT);waitT=null;drawDots();if(live&&frozen)unfreeze()}
 function unlock(){if(view==='home')return;view='home';unlockT=Date.now();clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
@@ -392,14 +398,27 @@ function showBadge(t,t2){
   const b=$('badge');b.textContent=t||'';b.style.left=P.bx+'%';b.style.top=P.by+'%';b.classList.toggle('on',!!t);
   const c=$('badge2');c.textContent=t2||'';c.style.left=P.bx2+'%';c.style.top=P.by2+'%';c.classList.toggle('on',!!t2)}
 let placeWhich=1;
-function placeTest(){showBadge('1234',P.badge2?'1235':'')}
+function placeTest(){showBadge('1234',P.badge2?'1235':'');
+  $('badge').classList.toggle('bsel',placing&&placeWhich===1);$('badge2').classList.toggle('bsel',placing&&placeWhich===2)}
 function placeBadge(w){
   placeWhich=w===2?2:1;
-  B.classList.remove('open');placing=true;view='home';
+  B.classList.remove('open');placing=true;view='home';B.classList.add('placing');
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
   placeTest();B.classList.add('unlocked')}
+/* drag a badge to move it (both badges show while you edit); a tap on the photo moves the selected badge */
+let bDrag=0,bMoved=false,bDragAt=0;
+$('home').addEventListener('pointerdown',e=>{if(!placing)return;
+  const t=e.target.closest('#badge,#badge2');if(!t)return;
+  e.preventDefault();e.stopPropagation();bDrag=t.id==='badge2'?2:1;placeWhich=bDrag;bMoved=false;placeTest();
+  try{t.setPointerCapture(e.pointerId)}catch(_){}},true);
+addEventListener('pointermove',e=>{if(!bDrag)return;e.preventDefault();bMoved=true;
+  const x=+(Math.min(100,Math.max(0,e.clientX/innerWidth*100))).toFixed(2),y=+(Math.min(100,Math.max(0,e.clientY/innerHeight*100))).toFixed(2);
+  if(bDrag===2){P.bx2=x;P.by2=y}else{P.bx=x;P.by=y}placeTest()},{passive:false});
+const bEnd=()=>{if(!bDrag)return;bDrag=0;bDragAt=Date.now();saveP();haptic('light')};
+addEventListener('pointerup',bEnd);addEventListener('pointercancel',bEnd);
 $('home').addEventListener('click',e=>{if(!placing)return;
+  if(Date.now()-bDragAt<500||e.target.closest('#badge,#badge2'))return;   // the end of a drag, or a tap on a badge (selects it)
   const x=+(e.clientX/innerWidth*100).toFixed(2),y=+(e.clientY/innerHeight*100).toFixed(2);
   if(placeWhich===2){P.bx2=x;P.by2=y}else{P.bx=x;P.by=y}saveP();
   placeTest();haptic('light')},true);
@@ -464,7 +483,7 @@ let homeHeld=false,multiTouch=false;
   h.addEventListener('touchmove',e=>{const t=e.touches[0];if(Math.hypot(t.clientX-x0,t.clientY-y0)>20)stop()},{passive:true});
   h.addEventListener('touchend',e=>{if(P.back==='two'&&e.touches.length<2)stop();else if(!e.touches.length)stop()});h.addEventListener('touchcancel',stop);
   h.addEventListener('mousedown',e=>{homeHeld=false;multiTouch=false;if(P.back!=='two')go(e.clientX,e.clientY)});h.addEventListener('mouseup',stop)})();
-(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeHeld||multiTouch){homeHeld=false;return}if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
+(function(){let n=0,t=0;$('home').addEventListener('click',e=>{if(homeHeld||multiTouch){homeHeld=false;return}if(placing&&(Date.now()-bDragAt<500||e.target.closest('#badge,#badge2')))return;if(homeTap(e))return;const now=Date.now();n=now-t<450?n+1:1;t=now;if(n>=3){n=0;toLock(true)}})})();
 
 /* ---------- passcode ---------- */
 const KEYS=[['1',''],['2','ABC'],['3','DEF'],['4','GHI'],['5','JKL'],['6','MNO'],['7','PQRS'],['8','TUV'],['9','WXYZ'],['0','']];
