@@ -240,7 +240,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Birthday<select id="pmBday"><option value="both">Send both PINs</option><option value="passed">Passed</option><option value="not">Not passed</option></select></div>
     <div class="r">Now<span id="pmMath" style="color:rgba(235,235,245,.6)">—</span></div>
   </div>
-  <div class="note">Hold <b>+/−</b> (bottom left) for 1 second to turn PIN math on or off. "PIN on" or "PIN off" shows at the top. PIN math turns off by itself after the spectator taps <b>=</b>, so hold +/− again for the next spectator. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
+  <div class="note">Hold <b>+/−</b> (bottom left) for 1 second to turn PIN math on or off. "PIN on" or "PIN off" shows at the top. PIN math turns off by itself after the spectator taps <b>=</b> (the PeekSmith shows "PIN 4820/4821 off"), so hold +/− again for the next spectator. With Aura peer, PIN math is on or off on both phones: "PIN on" / "PIN off" shows on the PeekSmith and on your phone (My phone), not on the spectator's phone. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
   <div class="lbl">Vanish</div>
   <div class="grp">
     <div class="r">Swipe to vanish<label><input type="checkbox" id="vanOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -562,8 +562,10 @@ function pinPeek(total){
   return out?'PIN '+out:null}
 function psAfter(k){
   if(k==='='){if(result!==null&&cbOn&&S.cbPs){psNow('CB: '+eqNums.map(fmtNum).join(', ')+' = '+fmtNum(result));return}
-    if(result!==null){const pp=pinPeek(result);pmT=null;if(S.pmOn){S.pmOn=false;saveS();try{$('pmOn').checked=false}catch(e){}}   // PIN math turns off after one =, with no sign on the screen
-      const bp=pp?null:birthPeek(eqNums);psNow(pp||bp||lastExpr+' = '+fmtNum(result))}else pmT=null;return}
+    if(result!==null){const wasOn=S.pmOn,pp=pinPeek(result);pmT=null;
+      const bp=pp?null:birthPeek(eqNums);psNow((pp||bp||lastExpr+' = '+fmtNum(result))+(wasOn?(pp?' off':' · PIN off'):''))
+      if(wasOn)pmSet(false,true)}   // PIN math turns off after one =
+    else pmT=null;return}
   if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
   if(force!==null&&fi>0)return;
   if(toks.length===0&&cur===''){psLast='';pmT=null;return}   // cleared: the same number typed again is sent again
@@ -741,7 +743,16 @@ $('cbHold').onchange=()=>{S.cbHold=+$('cbHold').value;saveS()};
 $('cbBuzz').onchange=()=>{S.cbBuzz=$('cbBuzz').value;saveS();if(S.cbBuzz!=='off')buzz(S.cbBuzz)};
 $('cbPs').onchange=()=>{S.cbPs=$('cbPs').checked;saveS()};
 function pmSync(){$('pmOn').checked=S.pmOn;$('pmYear').value=S.pmYear;$('pmYear').placeholder='Auto ('+new Date().getFullYear()+')';$('pmH24').value=S.pmH24?'1':'0';$('pmBday').value=S.pmBday;pmMathDraw()}
-function pmSet(on){S.pmOn=!!on;saveS();try{buzz()}catch(e){}toast(S.pmOn?'PIN on':'PIN off');try{bleShow(S.pmOn?'PIN math on':'PIN math off')}catch(e){}try{$('pmOn').checked=S.pmOn}catch(e){}}
+/* PIN math on / off: the same state on both phones (Aura peer). "PIN on" / "PIN off" shows on the PeekSmith
+   and on the Magician phone (mirror). The spectator's phone shows nothing when it is linked to the Magician phone.
+   auto = turned off by = : the PeekSmith already shows the PIN peek with "off", so it is not changed. */
+function pmShow(on,linked,auto){
+  if(S.peerRole==='mirror'||!linked){try{buzz()}catch(e){}toast(on?'PIN on':'PIN off')}
+  if(!auto)try{bleShow(on?'PIN on':'PIN off')}catch(e){}}
+function pmSet(on,auto){S.pmOn=!!on;saveS();try{$('pmOn').checked=S.pmOn}catch(e){}
+  let linked=false;try{linked=peerOut({cmd:'pm',on:S.pmOn,auto:!!auto})}catch(e){}
+  pmShow(S.pmOn,linked,auto)}
+function pmRemote(d){S.pmOn=!!d.on;saveS();try{$('pmOn').checked=S.pmOn}catch(e){}pmT=null;pmShow(S.pmOn,true,!!d.auto)}
 $('pmOn').onchange=()=>{S.pmOn=$('pmOn').checked;saveS()};
 $('pmYear').oninput=e=>{S.pmYear=e.target.value.trim();saveS();pmMathDraw()};
 $('pmH24').onchange=e=>{S.pmH24=e.target.value==='1';saveS();pmMathDraw()};
@@ -1100,6 +1111,7 @@ function peerHook(){
     if(d&&typeof d==='object'&&echoIn(d))return;
     if(d&&typeof d==='object'&&d.cmd==='reveal'){vanIn(d);return}   // both roles can get a reveal
     if(d&&typeof d==='object'&&d.cmd==='ragdoll'){rdStart();return}
+    if(d&&typeof d==='object'&&d.cmd==='pm'){pmRemote(d);return}   // PIN math on / off from the other phone
     if(d&&typeof d==='object'&&d.cmd==='ragback'){rdBack(false);return}
     if(S.peerRole==='mirror'){if(!d||typeof d!=='object')return;
       if(d.cmd){peerRemote(d);return}
