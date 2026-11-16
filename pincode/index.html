@@ -93,11 +93,11 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 #launch .col{position:absolute;inset:0;opacity:0;will-change:opacity}
 .launching #home{transform:scale(1.12);filter:brightness(.8);transition:transform .45s cubic-bezier(.3,.8,.2,1),filter .45s}
 /* PIN peek as an iOS notification badge on the home photo */
-#badge{position:absolute;display:none;transform:translate(-50%,-50%) scale(0);height:6.4vw;min-width:6.4vw;padding:0 1.8vw;
+#badge,#badge2{position:absolute;display:none;transform:translate(-50%,-50%) scale(0);height:6.4vw;min-width:6.4vw;padding:0 1.8vw;
   border-radius:3.2vw;background:#ff3b30;color:#fff;font:700 4.4vw/6.4vw -apple-system,system-ui,"SF Pro Text",sans-serif;
   text-align:center;letter-spacing:.1px;transition:transform .28s cubic-bezier(.3,1.5,.5,1) .35s}
-#badge.on{display:block}
-.unlocked #badge.on{transform:translate(-50%,-50%) scale(1)}
+#badge.on,#badge2.on{display:block}
+.unlocked #badge.on,.unlocked #badge2.on{transform:translate(-50%,-50%) scale(1)}
 .unlocked #app{opacity:0;transition:opacity .25s}
 
 /* ---------- secret settings sheet ---------- */
@@ -158,7 +158,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="foot" id="cancel">Cancel</div>
   </div>
 </div>
-<div id="home"><div id="badge"></div></div>
+<div id="home"><div id="badge"></div><div id="badge2"></div></div>
 <div id="launch"><div class="ph"></div><div class="col"></div></div>
 <div id="blk"></div>
 
@@ -252,8 +252,10 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Show the PIN as a badge<input type="checkbox" id="sBadge"></div>
     <div class="r">Badge position<button class="sbtn" id="sBadgePos">Set…</button></div>
+    <div class="r">Second badge (birthday not passed)<input type="checkbox" id="sBadge2"></div>
+    <div class="r">Second badge position<button class="sbtn" id="sBadge2Pos">Set…</button></div>
   </div>
-  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens; tap the place for the badge. A test badge "1234" shows there. Tap the photo 3 times quickly to go back. With two PINs, the badge shows the PIN from "Which PIN".</div>
+  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens; tap the place for the badge. A test badge "1234" shows there. Tap the photo 3 times quickly to go back. With two PINs and "Second badge" on, the first badge shows the PIN for "birthday passed" and the second badge shows the PIN for "birthday not passed" (for example 4820 and 4821). With "Second badge" off, the badge shows the PIN from "Which PIN". Each badge has its own position: put them on two apps.</div>
   <input type="file" id="file" accept="image/*" hidden>
   <input type="file" id="fileHome" accept="image/*" hidden>
 
@@ -301,7 +303,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto',back:'two',backMs:1500,side:'black'},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,badge2:true,bx2:38.8,by2:10.5,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto',back:'two',backMs:1500,side:'black'},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
@@ -373,24 +375,34 @@ function toLock(live){placing=false;launchReset();showBadge('');view='pass';arme
 function unlock(){if(view==='home')return;view='home';unlockT=Date.now();clearTimeout(waitT);
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
-  haptic('medium');showBadge(badgePin());B.classList.add('unlocked');
+  haptic('medium');showBadge(...badgePin());B.classList.add('unlocked');
   if(P.inj&&P.injWhen==='unlock')injSend(false);
   if(P.sc)setTimeout(runShortcut,P.scMs)}
 let lastTotal='',placing=false;
 /* Badge peek */
+/* returns [first badge, second badge]. Two PINs ("4820/4821") and Second badge on:
+   first = birthday passed, second = birthday not passed. A range ("8999-9009") stays one badge. */
 function badgePin(){
-  if(!P.badge||!lastPin||lastPin[0]==='?')return '';
-  const parts=lastPin.split(' or ')[0].split(/[\/-]/).filter(Boolean);
-  return (P.injWhich==='b'&&parts[1])?parts[1]:parts[0]}
-function showBadge(t){const b=$('badge');b.textContent=t;b.style.left=P.bx+'%';b.style.top=P.by+'%';b.classList.toggle('on',!!t)}
-function placeBadge(){
+  if(!P.badge||!lastPin||lastPin[0]==='?')return ['',''];
+  const one=lastPin.split(' or ')[0],two=one.includes('/')?one.split('/').filter(Boolean):null;
+  if(two&&two.length>1&&P.badge2)return [two[0],two[1]];
+  const parts=one.split(/[\/-]/).filter(Boolean);
+  return [(P.injWhich==='b'&&parts[1])?parts[1]:parts[0],'']}
+function showBadge(t,t2){
+  const b=$('badge');b.textContent=t||'';b.style.left=P.bx+'%';b.style.top=P.by+'%';b.classList.toggle('on',!!t);
+  const c=$('badge2');c.textContent=t2||'';c.style.left=P.bx2+'%';c.style.top=P.by2+'%';c.classList.toggle('on',!!t2)}
+let placeWhich=1;
+function placeTest(){showBadge('1234',P.badge2?'1235':'')}
+function placeBadge(w){
+  placeWhich=w===2?2:1;
   B.classList.remove('open');placing=true;view='home';
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
-  showBadge('1234');B.classList.add('unlocked')}
+  placeTest();B.classList.add('unlocked')}
 $('home').addEventListener('click',e=>{if(!placing)return;
-  P.bx=+(e.clientX/innerWidth*100).toFixed(2);P.by=+(e.clientY/innerHeight*100).toFixed(2);saveP();
-  showBadge('1234');haptic('light')},true);
+  const x=+(e.clientX/innerWidth*100).toFixed(2),y=+(e.clientY/innerHeight*100).toFixed(2);
+  if(placeWhich===2){P.bx2=x;P.by2=y}else{P.bx=x;P.by=y}saveP();
+  placeTest();haptic('light')},true);
 function runShortcut(){
   if(!P.sc)return;
   let u='shortcuts://run-shortcut?name='+encodeURIComponent(P.sc);
@@ -663,7 +675,7 @@ function drawMath(){const y=year(),t=timeNum();$('sMath').textContent=y+' + '+t+
 function syncSheet(){
   $('sYear').value=P.year;$('sYear').placeholder='Auto ('+new Date().getFullYear()+')';$('sH24').value=P.h24?'1':'0';$('sBday').value=P.bday;
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
-  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sSide').value=P.side;$('sOnline').checked=P.online;
+  $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sBadge2').checked=P.badge2;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sSide').value=P.side;$('sOnline').checked=P.online;
   $('sUAct').value=P.uAct;$('sUAnim').value=P.uAnim;$('sBack').value=P.back;$('sBackMs').value=String(P.backMs);$('sUCol').value=P.uCol;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
@@ -716,7 +728,9 @@ $('sAuto').onchange=e=>{P.auto=e.target.checked;saveP()};
 $('sPkTime').onchange=e=>{P.pkTime=e.target.checked;saveP()};
 $('sPkLive').onchange=e=>{P.pkLive=e.target.checked;saveP()};
 $('sBadge').onchange=e=>{P.badge=e.target.checked;saveP()};
-$('sBadgePos').onclick=placeBadge;
+$('sBadgePos').onclick=()=>placeBadge(1);
+$('sBadge2').onchange=e=>{P.badge2=e.target.checked;saveP()};
+$('sBadge2Pos').onclick=()=>{if(!P.badge2){P.badge2=true;saveP();$('sBadge2').checked=true}placeBadge(2)};
 $('sPkTilt').onchange=e=>{P.pkTilt=e.target.checked;saveP()};
 $('sVib').onchange=e=>{P.vib=e.target.checked;saveP()};
 $('sSide').onchange=e=>{P.side=e.target.value;saveP()};
