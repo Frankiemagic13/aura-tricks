@@ -198,7 +198,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div id="hList"></div>
 </div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Calculator","v":"list","roll":"unroll","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker"]},{"n":"Vanish","i":"vanish","s":["vanish","ragdoll"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Calculator","v":"list","roll":"unroll","tabs":[{"n":"Force","i":"calc","s":["force","date","method"]},{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Screen","i":"phone","s":["status bar","when the phone"]},{"n":"Code","i":"magic","s":["codebreaker","pin math"]},{"n":"Vanish","i":"vanish","s":["vanish","ragdoll"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="done" id="done">Done</button></div>
   <div class="seg" id="mode"><button data-v="date">Date &amp; Time</button><button data-v="custom">Custom</button><button data-v="off">Off</button></div>
@@ -232,6 +232,15 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Send to PeekSmith<label><input type="checkbox" id="cbPs" style="width:auto;transform:scale(1.3)"></label></div>
   </div>
   <div class="note">1. Hold <b>=</b> (or use the switch above). "Codebreaker" shows at the top. Hold <b>=</b> again to turn it off.<br>2. The spectator types an equation (for example 1 + 2 + 3) and taps <b>=</b>.<br>3. Tap C / AC. You can also clear the history.<br>4. With the display at 0, tap <b>=</b>: the first number of the order shows (Reverse: 3). Each tap of <b>=</b> shows the next number (2, then 1).<br>Send to PeekSmith: when the spectator taps =, the PeekSmith shows "CB: 1, 2, 3 = 6".</div>
+  <div class="lbl">PIN math</div>
+  <div class="grp">
+    <div class="r">PIN peek on =<label><input type="checkbox" id="pmOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Year<input type="number" id="pmYear" inputmode="numeric" placeholder="Auto"></div>
+    <div class="r">Clock<select id="pmH24"><option value="0">12 h (1:30 = 130)</option><option value="1">24 h (13:30 = 1330)</option></select></div>
+    <div class="r">Birthday<select id="pmBday"><option value="both">Send both PINs</option><option value="passed">Passed</option><option value="not">Not passed</option></select></div>
+    <div class="r">Now<span id="pmMath" style="color:rgba(235,235,245,.6)">—</span></div>
+  </div>
+  <div class="note">The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
   <div class="lbl">Vanish</div>
   <div class="grp">
     <div class="r">Swipe to vanish<label><input type="checkbox" id="vanOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -389,6 +398,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p>Quick force: type a number, then hold <b>1</b> for 1 second. Battery: type 1–100, then hold <b>8</b>. AC makes the force ready again.</p>
   <h4>Codebreaker</h4>
   <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
+  <h4>PIN math</h4>
+  <p>Turn on <b>PIN peek on =</b> in the Code tab. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The PeekSmith shows "PIN 4820/4821": the first PIN is correct when the birthday has passed, the second when it has not.</p>
   <h4>Vanish &amp; reveal</h4>
   <ol><li>Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>. "Status" in the Vanish tab shows Linked.</li>
   <li>Type a number on your phone (or show a result).</li>
@@ -427,7 +438,7 @@ const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm'
 try{Object.assign(S,JSON.parse(localStorage.getItem('cset')||'{}'))}catch(e){}
 /* Codebreaker settings (defaults for settings saved before) */
 S.cbOrder=S.cbOrder||'rev';S.cbEnd=S.cbEnd||'zero';S.cbHold=+S.cbHold||700;S.cbBuzz=S.cbBuzz||'medium';
-S.cbKeep=!!S.cbKeep;S.cbTotal=!!S.cbTotal;S.cbPs=!!S.cbPs;
+S.cbKeep=!!S.cbKeep;S.pmOn=!!S.pmOn;S.pmH24=!!S.pmH24;if(S.pmYear==null)S.pmYear='';if(!S.pmBday)S.pmBday='both';S.cbTotal=!!S.cbTotal;S.cbPs=!!S.cbPs;
 if(!S.injOnV){S.inj=Q.get('inj')!=='0';S.injOnV=1;saveS()}   // Inject on by default (also for settings saved before)
 if(!S.injWhatV){S.injWhat=Q.get('iw')||'last';S.injWhatV=1;saveS()}   // Inject: last number typed by default (also for settings saved before)
 if(Q.get('inj')==='0')S.inj=false;
@@ -537,12 +548,25 @@ function birthPeek(nums){
   if(days<0)return null;
   return lastBirth=days.toLocaleString('en-US')+' days '+starSign(m,d)}
 let lastBirth='';
+/* PIN math: birth year + age + time + PIN = total, so PIN = total − year − time (+1 when the birthday has not passed) */
+let pmT=null;
+function pmYearNow(){const y=parseInt(S.pmYear,10);return y>0?y:new Date().getFullYear()}
+function pmTimeNow(){const d=new Date(),h=d.getHours();return (S.pmH24?h:(h%12||12))*100+d.getMinutes()}
+function pmMathDraw(){const e=$('pmMath');if(!e)return;const y=pmYearNow(),t=pmT!==null?pmT:pmTimeNow();e.textContent=y+' + '+t+' = '+(y+t)}
+function pinPeek(total){
+  if(!S.pmOn||total===null||!Number.isInteger(total))return null;
+  const p=total-pmYearNow()-(pmT!==null?pmT:pmTimeNow());
+  const f=n=>n<0||n>999999?null:String(n).padStart(n<10000?4:6,'0');
+  const a=f(p),b=f(p+1);
+  const out=S.pmBday==='passed'?a:S.pmBday==='not'?b:(a&&b?a+'/'+b:a||b);
+  return out?'PIN '+out:null}
 function psAfter(k){
   if(k==='='){if(result!==null&&cbOn&&S.cbPs){psNow('CB: '+eqNums.map(fmtNum).join(', ')+' = '+fmtNum(result));return}
-    if(result!==null){const bp=birthPeek(eqNums);psNow(bp||lastExpr+' = '+fmtNum(result))}return}
+    if(result!==null){const pp=pinPeek(result);pmT=null;const bp=pp?null:birthPeek(eqNums);psNow(pp||bp||lastExpr+' = '+fmtNum(result))}else pmT=null;return}
   if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
   if(force!==null&&fi>0)return;
-  if(toks.length===0&&cur===''){psLast='';return}   // cleared: the same number typed again is sent again
+  if(toks.length===0&&cur===''){psLast='';pmT=null;return}   // cleared: the same number typed again is sent again
+  if(pmT===null&&toks.length===0&&cur!=='')pmT=pmTimeNow();   // PIN math: the time when the first number is typed   // cleared: the same number typed again is sent again
   let t=psExpr(toks.concat(cur!==''?[cur]:[]));
   if(S.method==='flip'&&armed&&S.mode!=='off'&&cur!==''&&toks.filter(x=>!isOp(x)).length===S.n-1){const d=target()-evalToks(toks.concat([cur]));t+=d>0?' (+)':d<0?' (-)':''}
   if(force!==null&&fi===0)t+=' '+force.length+' taps';
@@ -699,7 +723,7 @@ function syncSheet(){
   $('prev').textContent='Result now: '+fmtNum(String(dateTarget()));
   document.querySelectorAll('#method button').forEach(b=>b.classList.toggle('on',b.dataset.v===S.method));
   $('addBox').classList.toggle('hide',S.method!=='add');$('flipBox').classList.toggle('hide',S.method!=='flip');
-  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync();try{vanSync()}catch(e){}try{rdSync()}catch(e){}}
+  $('autoEq').checked=!!S.autoEq;$('psOn').checked=!!S.ps;$('sbOn').checked=!!S.sb;$('batV').textContent=S.bat;$('barsV').textContent=S.bars;$('netSel').value=S.net;$('fdNow').textContent=faceDown?'Yes':'No';injSync();try{peerSync()}catch(e){}cbSync();try{pmSync()}catch(e){}try{vanSync()}catch(e){}try{rdSync()}catch(e){}}
 function cbSync(){$('cbOn').checked=cbOn;$('cbKeep').checked=S.cbKeep;$('cbOrder').value=S.cbOrder;$('cbEnd').value=S.cbEnd;
   $('cbTotal').checked=S.cbTotal;$('cbHold').value=String(S.cbHold);$('cbBuzz').value=S.cbBuzz;$('cbPs').checked=S.cbPs}
 $('cbOn').onchange=()=>cbSet($('cbOn').checked,true);
@@ -710,6 +734,12 @@ $('cbTotal').onchange=()=>{S.cbTotal=$('cbTotal').checked;saveS()};
 $('cbHold').onchange=()=>{S.cbHold=+$('cbHold').value;saveS()};
 $('cbBuzz').onchange=()=>{S.cbBuzz=$('cbBuzz').value;saveS();if(S.cbBuzz!=='off')buzz(S.cbBuzz)};
 $('cbPs').onchange=()=>{S.cbPs=$('cbPs').checked;saveS()};
+function pmSync(){$('pmOn').checked=S.pmOn;$('pmYear').value=S.pmYear;$('pmYear').placeholder='Auto ('+new Date().getFullYear()+')';$('pmH24').value=S.pmH24?'1':'0';$('pmBday').value=S.pmBday;pmMathDraw()}
+$('pmOn').onchange=()=>{S.pmOn=$('pmOn').checked;saveS()};
+$('pmYear').oninput=e=>{S.pmYear=e.target.value.trim();saveS();pmMathDraw()};
+$('pmH24').onchange=e=>{S.pmH24=e.target.value==='1';saveS();pmMathDraw()};
+$('pmBday').onchange=e=>{S.pmBday=e.target.value;saveS()};
+setInterval(pmMathDraw,5000);
 document.querySelectorAll('#method button').forEach(b=>b.onclick=()=>{S.method=b.dataset.v;syncSheet()});
 $('autoEq').onchange=()=>{S.autoEq=$('autoEq').checked};
 $('psOn').onchange=()=>{S.ps=$('psOn').checked};
