@@ -469,7 +469,7 @@ async function setLight(on,quiet){
     lightOn=on;lStatus(on?'On':'Off');
     if(quiet||recOn)return;
     if(P.showSt)bleShow(on?'Light on':'Light off');
-    if(P.vib&&bleOn())aps.vibrate('..').catch(()=>{})}
+    if(P.vib&&bleOn())aps.vibrate("''").catch(()=>{})}
   catch(e){lStatus('Error: '+e.name);bleShow('Light error')}}
 const toggleLight=()=>setLight(!lightOn);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&!camAlive()){lightOn=false;lStatus('Tap the screen to prepare')}});
@@ -526,7 +526,7 @@ async function bleSearch(){
     if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');
     bleBtnText()});
-  aps.on('connect',()=>{aps.vibrate('..').catch(()=>{});bleBtnText();setTimeout(conShow,250)});
+  aps.on('connect',()=>{aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
@@ -567,7 +567,7 @@ function recStop(){
   if(recEv.length&&recEv[recEv.length-1].on)recEv.push({t:end,on:false});
   if(recEv.length){P.routine={ev:recEv,len:Math.max(end,recEv[recEv.length-1].t),t:Date.now()};saveP();cloudSave()}
   bleShow(recEv.length?'Saved '+Math.ceil(recEv.length/2)+' flashes':'Nothing recorded');
-  if(bleOn())aps.vibrate('...').catch(()=>{});rSync()}
+  if(bleOn())aps.vibrate("'''").catch(()=>{});rSync()}
 async function playStart(){
   const R=P.routine;if(!R||!R.ev||!R.ev.length){bleShow('No routine');return}
   if(recOn)return;

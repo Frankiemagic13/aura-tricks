@@ -157,7 +157,7 @@ async function connectAura1(){
     if(state==='connected')setB(name||'Connected','on');
     if(state==='reconnecting')setB('Reconnecting… ('+attempt+')','err');
     if(state==='disconnected')setB('Not connected','err')});
-  aps.on('connect',({name})=>{log('Connected to '+name+' (Aura)');aps.vibrate('..').catch(()=>{});setTimeout(conShow,250)});
+  aps.on('connect',({name})=>{log('Connected to '+name+' (Aura)');aps.vibrate("''").catch(()=>{});setTimeout(conShow,250)});
   aps.on('disconnect',()=>log('Disconnected'));
   aps.on('button',({button,event})=>onButton(button,event));
   try{await aps.connect()}catch(e){setB('Not connected','err');log('Connect failed: '+e.message);aps=null}}
@@ -175,7 +175,7 @@ const psReady=()=>AURA?!!(aps&&aps.connected):!!chr;
 function show(t){
   $('last').textContent=t;speak(t);
   if(!psReady()){log('Not sent (PeekSmith not connected): '+t);return}
-  if(AURA){aps.text(t,{raw:!$('cards').checked}).catch(e=>log(e.message));if($('vib').checked)aps.vibrate('..').catch(()=>{})}
+  if(AURA){aps.text(t,{raw:!$('cards').checked}).catch(e=>log(e.message));if($('vib').checked)aps.vibrate("''").catch(()=>{})}
   else{writeCmd(($('cards').checked?$('pre').value:"'")+t.replace(/\n/g,'\r')+'\n');if($('vib').checked)writeCmd('~.\n')}
   log('Sent: '+t)}
 function clearPS(){

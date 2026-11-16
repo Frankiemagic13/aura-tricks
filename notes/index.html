@@ -457,7 +457,7 @@ async function bleSearch(){
     if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');
     bleBtnText()});
-  aps.on('connect',()=>{aps.vibrate('..').catch(()=>{});bleBtnText();setTimeout(conShow,250)});
+  aps.on('connect',()=>{aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
@@ -476,7 +476,7 @@ function bleWrite(t){
   if(t===bleOnScreen)return;bleBusyW=true;bleOnScreen=t;
   aps.text(t,{raw:true}).catch(()=>{}).finally(()=>{bleBusyW=false;if(blePending!==null){const n=blePending;blePending=null;bleWrite(n)}})}
 function bleLive(){if(!P.live)return;const t=tail(note.innerText.split('\n').map(s=>s.trim()).filter(Boolean).join(' | '));if(t)bleWrite(t)}
-function bleShow(t,isPeek){if(!bleOn())return;bleWrite(isPeek?tail(t):String(t));if(isPeek&&P.vib)aps.vibrate('..').catch(()=>{})}
+function bleShow(t,isPeek){if(!bleOn())return;bleWrite(isPeek?tail(t):String(t));if(isPeek&&P.vib)aps.vibrate("''").catch(()=>{})}
 function bleSend(t){hist.push(t);if(hist.length>50)hist.shift();back=0;bleShow(t,true)}
 function bleButton(b,e){
   if(e!=='click'&&e!=='longpress')return;

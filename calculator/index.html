@@ -773,7 +773,7 @@ async function bleSearch(){
     if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');
     bleBtnText()});
-  aps.on('connect',()=>{aps.vibrate('..').catch(()=>{});bleBtnText();setTimeout(conShow,250)});
+  aps.on('connect',()=>{aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
@@ -784,7 +784,7 @@ function bleShow(t){if(!bleConnected())return;blePend=String(t);if(!bleSending)b
 async function bleFlush(){bleSending=true;
   while(blePend!==null&&bleConnected()){const t=blePend;blePend=null;
     const lim=p=>Promise.race([p,new Promise(r=>setTimeout(r,3000))]);   // a stalled send never blocks the next peeks
-    try{await lim(aps.text(t,{raw:true}));if(S.bleVib&&blePend===null)await lim(aps.vibrate('..'))}catch(e){}}
+    try{await lim(aps.text(t,{raw:true}));if(S.bleVib&&blePend===null)await lim(aps.vibrate("''"))}catch(e){}}
   blePend=null;bleSending=false}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
