@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Phone</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;background:#000;overflow:hidden}
+  body{
+    font-family:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+    color:#fff;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;
+  }
+  #screen{
+    position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;background:#000;
+    padding-top:calc(env(safe-area-inset-top) + 50px);
+    padding-bottom:max(21px, env(safe-area-inset-bottom));
+  }
+
+  /* number display */
+  #display{
+    height:64px;width:100%;padding:0 20px;display:flex;align-items:center;justify-content:center;
+    font-size:42px;font-weight:600;letter-spacing:.5px;white-space:nowrap;overflow:hidden;
+    font-variant-numeric:tabular-nums;
+  }
+  .spacer{flex:1;min-height:20px}
+
+  /* keypad */
+  #pad{display:grid;grid-template-columns:repeat(3,76px);column-gap:24px;row-gap:18px}
+  .key{
+    width:76px;height:76px;border-radius:50%;background:#232323;
+    border:1px solid rgba(255,255,255,.07);
+    box-shadow:inset 0 1px 1px rgba(255,255,255,.10), inset 0 -2px 4px rgba(0,0,0,.45);
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:12px;
+    transition:background .35s ease;
+  }
+  .key.down{background:#5a5a5a;transition:none}
+  .key .n{font-size:36px;font-weight:700;line-height:36px}
+  .key .l{font-size:10.5px;font-weight:800;letter-spacing:2px;margin-top:3px;padding-left:2px}
+  .key.one{padding-top:17px}
+  .key.star .n{font-size:44px;line-height:46px;margin-top:2px}
+  .key.hash .n{font-size:34px;line-height:46px}
+  .key.zero .l{font-size:18px;letter-spacing:0;margin-top:-3px;font-weight:700}
+
+  /* call row */
+  #callrow{display:grid;grid-template-columns:repeat(3,76px);column-gap:24px;margin-top:18px;align-items:center}
+  #call{
+    grid-column:2;width:78px;height:78px;border-radius:50%;background:#3b7f3d;
+    border:1.5px solid #6fd06f;display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 1px 2px rgba(255,255,255,.18);transition:filter .3s;
+  }
+  #call.down{filter:brightness(1.45);transition:none}
+  #del{grid-column:3;justify-self:center;width:34px;height:24px;opacity:0;pointer-events:none;transition:opacity .15s}
+  #del.show{opacity:1;pointer-events:auto}
+
+  /* tab bar */
+  #tabs{display:flex;align-items:center;gap:8px;margin-top:60px}
+  #pill{
+    width:284px;height:60px;border-radius:30px;background:#1f1f1f;border:1px solid rgba(255,255,255,.07);
+    display:flex;align-items:center;padding:4px;position:relative
+  }
+  .tab{flex:1;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+  .tab span{font-size:10.5px;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,sans-serif}
+  .tab.sel{background:#0a0a0a}
+  .tab.sel span{color:#3d8ef0}
+  .badge{
+    position:absolute;left:61px;top:5px;min-width:24px;height:22px;border-radius:11px;background:#e5484d;
+    font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;
+    font-family:-apple-system,BlinkMacSystemFont,sans-serif
+  }
+  #search{width:61px;height:61px;border-radius:50%;background:#1f1f1f;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center}
+
+  /* glitch layers */
+  .ghost{position:fixed;inset:0;pointer-events:none;mix-blend-mode:screen;opacity:.85;z-index:5}
+  .ghost .key,.ghost #call,.ghost #pill,.ghost #search,.ghost .tab.sel,.ghost .badge{background:transparent!important;box-shadow:none!important}
+  .ghost.r{filter:sepia(1) saturate(30) hue-rotate(-50deg)}
+  .ghost.c{filter:sepia(1) saturate(30) hue-rotate(140deg)}
+  .bar{position:fixed;left:0;right:0;pointer-events:none;z-index:6;-webkit-backdrop-filter:invert(1);backdrop-filter:invert(1)}
+  .noise{position:fixed;inset:0;pointer-events:none;z-index:7;opacity:0;
+    background:repeating-linear-gradient(0deg,rgba(255,255,255,.07) 0 1px,transparent 1px 3px)}
+
+  /* settings — soft dark */
+  #settings{
+    position:fixed;inset:0;z-index:50;background:#1d1e22;display:none;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 18px) 18px calc(env(safe-area-inset-bottom) + 18px);
+    font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;-webkit-user-select:text;user-select:text;overflow-y:auto
+  }
+  #settings.open{display:flex}
+  .s-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+  .s-head h1{font-size:22px;font-weight:700;color:#e8e9ee}
+  .neo{background:#1d1e22;border-radius:18px;box-shadow:6px 6px 14px #131417,-6px -6px 14px #272930}
+  .neo-in{background:#1d1e22;border-radius:14px;box-shadow:inset 4px 4px 9px #131417,inset -4px -4px 9px #272930}
+  .x{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#cfd1d8;font-size:20px;border:none}
+  .item{margin-bottom:16px;overflow:hidden}
+  .item-h{display:flex;align-items:center;gap:12px;padding:16px 18px;color:#e2e3e8;font-size:16px;font-weight:600}
+  .item-h .ic{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px}
+  .item-h .chev{margin-left:auto;color:#7d808a;transition:transform .25s}
+  .item.open .chev{transform:rotate(90deg)}
+  .item-b{max-height:0;transition:max-height .3s ease;padding:0 18px}
+  .item.open .item-b{max-height:520px}
+  .item-b .inner{padding:4px 0 18px}
+  label.cap{display:block;color:#8e919b;font-size:12px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin:6px 0 8px}
+  .row{display:flex;gap:10px}
+  input[type=tel]{
+    flex:1;min-width:0;border:none;outline:none;color:#f1f2f5;font-size:19px;padding:14px 14px;font-family:inherit;
+  }
+  .btn{border:none;color:#e2e3e8;font-size:15px;font-weight:600;padding:0 16px;border-radius:14px;font-family:inherit}
+  .btn:active{box-shadow:inset 4px 4px 9px #131417,inset -4px -4px 9px #272930}
+  .seg{display:flex;gap:10px}
+  .seg button{flex:1;padding:13px 6px;border:none;color:#a9acb6;font-size:14px;font-weight:600;font-family:inherit;border-radius:14px}
+  .seg button.on{color:#6fd06f;box-shadow:inset 4px 4px 9px #131417,inset -4px -4px 9px #272930}
+  .hint{color:#7d808a;font-size:13px;margin-top:10px;line-height:1.4}
+  .help p{color:#b8bac3;font-size:14.5px;line-height:1.5;margin-bottom:9px}
+  .help b{color:#e8e9ee}
+  .saved{color:#6fd06f;font-size:13px;margin-top:8px;opacity:0;transition:opacity .3s}
+  .saved.on{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="screen">
+  <div id="display"></div>
+  <div class="spacer"></div>
+
+  <div id="pad">
+    <div class="key one" data-k="1"><div class="n">1</div></div>
+    <div class="key" data-k="2"><div class="n">2</div><div class="l">ABC</div></div>
+    <div class="key" data-k="3"><div class="n">3</div><div class="l">DEF</div></div>
+    <div class="key" data-k="4"><div class="n">4</div><div class="l">GHI</div></div>
+    <div class="key" data-k="5"><div class="n">5</div><div class="l">JKL</div></div>
+    <div class="key" data-k="6"><div class="n">6</div><div class="l">MNO</div></div>
+    <div class="key" data-k="7"><div class="n">7</div><div class="l">PQRS</div></div>
+    <div class="key" data-k="8"><div class="n">8</div><div class="l">TUV</div></div>
+    <div class="key" data-k="9"><div class="n">9</div><div class="l">WXYZ</div></div>
+    <div class="key star" data-k="*"><div class="n">✱</div></div>
+    <div class="key zero" data-k="0"><div class="n">0</div><div class="l">+</div></div>
+    <div class="key hash" data-k="#" id="hash"><div class="n">#</div></div>
+  </div>
+
+  <div id="callrow">
+    <div id="call">
+      <svg width="40" height="40" viewBox="0 0 24 24"><path fill="#fff" d="M6.6 2.6c.5-.5 1.3-.5 1.8 0l2.3 2.6c.4.5.5 1.2.1 1.8l-1.2 1.6c-.2.3-.2.7 0 1 .9 1.6 2.1 3 3.6 4.1.3.2.7.2 1 0l1.7-1.1c.6-.4 1.3-.3 1.8.1l2.5 2.3c.5.5.6 1.3.1 1.8l-1.2 1.6c-.8 1-2.1 1.5-3.3 1.1-3.3-1-6.2-3-8.4-5.6C5.2 11.6 3.8 9.1 3.1 6.4c-.3-1.2.1-2.4 1-3.2z"/></svg>
+    </div>
+    <div id="del">
+      <svg width="34" height="24" viewBox="0 0 34 24"><path fill="#3a3a3c" d="M10 1h20a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H10L1 12z"/><path d="M15 7l10 10M25 7L15 17" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+
+  <div id="tabs">
+    <div id="pill">
+      <div class="tab">
+        <svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="#fff"/><path d="M15 8v7.5h-5" stroke="#1f1f1f" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+        <span>Calls</span>
+      </div>
+      <div class="badge">12</div>
+      <div class="tab">
+        <svg width="30" height="30" viewBox="0 0 30 30"><circle cx="15" cy="15" r="13" fill="#fff"/><circle cx="15" cy="11.5" r="4.6" fill="#1f1f1f"/><path d="M6.5 23.5c1.6-3.6 4.8-5.3 8.5-5.3s6.9 1.7 8.5 5.3" fill="#1f1f1f"/></svg>
+        <span>Contacts</span>
+      </div>
+      <div class="tab sel">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="#3d8ef0"><circle cx="7" cy="6" r="3.3"/><circle cx="15" cy="6" r="3.3"/><circle cx="23" cy="6" r="3.3"/><circle cx="7" cy="15" r="3.3"/><circle cx="15" cy="15" r="3.3"/><circle cx="23" cy="15" r="3.3"/><circle cx="7" cy="24" r="3.3"/><circle cx="15" cy="24" r="3.3"/><circle cx="23" cy="24" r="3.3"/></svg>
+        <span>Keypad</span>
+      </div>
+    </div>
+    <div id="search">
+      <svg width="28" height="28" viewBox="0 0 28 28"><circle cx="12" cy="12" r="8" stroke="#fff" stroke-width="3" fill="none"/><path d="M18 18l6 6" stroke="#fff" stroke-width="3.4" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+</div>
+
+<div class="noise" id="noise"></div>
+
+<!-- SETTINGS -->
+<div id="settings">
+  <div class="s-head">
+    <h1>Dialer settings</h1>
+    <button class="x neo" id="close">✕</button>
+  </div>
+
+  <div class="item neo open" data-item>
+    <div class="item-h"><div class="ic neo-in">📞</div>Phone number<div class="chev">›</div></div>
+    <div class="item-b"><div class="inner">
+      <label class="cap">Number to call</label>
+      <div class="row">
+        <input type="tel" id="num" class="neo-in" placeholder="(818) 472-4264" autocomplete="off">
+        <button class="btn neo" id="paste">Paste</button>
+      </div>
+      <div class="saved" id="saved">Saved</div>
+      <div class="hint">Copy a number, then push Paste. The page saves the number automatically.</div>
+    </div></div>
+  </div>
+
+  <div class="item neo" data-item>
+    <div class="item-h"><div class="ic neo-in">⚡</div>Glitch trigger<div class="chev">›</div></div>
+    <div class="item-b"><div class="inner">
+      <label class="cap">Start the glitch on</label>
+      <div class="seg" id="trig">
+        <button class="neo" data-v="key">First key tap</button>
+        <button class="neo" data-v="call">Call button</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="item neo" data-item>
+    <div class="item-h"><div class="ic neo-in">❓</div>Help<div class="chev">›</div></div>
+    <div class="item-b"><div class="inner help">
+      <p><b>Open settings:</b> push and hold the <b>#</b> key for 1 second.</p>
+      <p><b>Set the number:</b> copy a phone number. Open Phone number and push Paste. You can also type the number.</p>
+      <p><b>Trigger:</b> select "First key tap" or "Call button". When the spectator does this, the screen glitches.</p>
+      <p><b>The effect:</b> the screen glitches for approximately 2 seconds. Then your number shows on the display and the phone calls it.</p>
+      <p><b>Reset:</b> when you come back to the page after the call, the display is empty again.</p>
+      <p><b>Note:</b> iOS can show a "Call" prompt before it dials. This is an iOS rule for web pages.</p>
+    </div></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const display = $('#display'), del = $('#del'), callBtn = $('#call'), screen = $('#screen');
+  const store = {
+    get(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+  };
+
+  let digits = '';
+  let busy = false;
+  let called = false;
+  let target = store.get('dialer.num', '');
+  let trigger = store.get('dialer.trigger', 'key');
+
+  /* ---------- formatting like iOS (US) ---------- */
+  function fmt(s){
+    if (/[^0-9]/.test(s)) return s;
+    let p = '';
+    if (s.length === 11 && s[0] === '1'){ p = '1 '; s = s.slice(1); }
+    else if (s.length > 10) return s;
+    const n = s.length;
+    if (n <= 3) return p + s;
+    if (n <= 7) return p + s.slice(0,3) + '-' + s.slice(3);
+    return p + '(' + s.slice(0,3) + ') ' + s.slice(3,6) + '-' + s.slice(6);
+  }
+  function fit(){
+    display.style.fontSize = '42px';
+    let size = 42;
+    while (display.scrollWidth > display.clientWidth && size > 22){ size -= 2; display.style.fontSize = size + 'px'; }
+  }
+  function render(text){
+    display.textContent = text;
+    del.classList.toggle('show', text.length > 0);
+    fit();
+  }
+  const targetDigits = () => target.replace(/[^\d+]/g, '');
+
+  /* ---------- keys ---------- */
+  function press(el){ el.classList.add('down'); }
+  function release(el){ el.classList.remove('down'); }
+
+  function typeKey(k){
+    if (busy) return;
+    if (trigger === 'key'){ glitch(); return; }
+    digits += k;
+    render(fmt(digits));
+  }
+
+  let holdTimer = null, held = false;
+  document.querySelectorAll('.key').forEach(el => {
+    const k = el.dataset.k;
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      press(el);
+      if (k === '#'){
+        held = false;
+        holdTimer = setTimeout(() => { held = true; release(el); openSettings(); }, 1000);
+      } else {
+        typeKey(k);
+      }
+    });
+    const up = () => {
+      release(el);
+      if (k === '#'){
+        clearTimeout(holdTimer);
+        if (!held && holdTimer) typeKey('#');
+        holdTimer = null;
+      }
+    };
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', () => { release(el); clearTimeout(holdTimer); holdTimer = null; });
+    el.addEventListener('pointerleave', () => { release(el); if (k === '#'){ clearTimeout(holdTimer); holdTimer = null; } });
+  });
+
+  callBtn.addEventListener('pointerdown', e => { e.preventDefault(); press(callBtn); });
+  callBtn.addEventListener('pointerup', () => {
+    release(callBtn);
+    if (busy) return;
+    glitch();
+  });
+  del.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (busy) return;
+    digits = digits.slice(0, -1);
+    render(fmt(digits));
+  });
+
+  /* ---------- glitch ---------- */
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+
+  function glitch(){
+    busy = true;
+    const keys = [...document.querySelectorAll('#screen .key')];
+    const tgt = fmt(targetDigits().replace(/^\+1/, '1'));
+    const ghosts = ['r','c'].map(c => {
+      const g = screen.cloneNode(true);
+      g.removeAttribute('id');
+      g.classList.add('ghost', c);
+      g.style.position = 'fixed';
+      document.body.appendChild(g);
+      return g;
+    });
+    const bars = [];
+    for (let i = 0; i < 4; i++){ const b = document.createElement('div'); b.className = 'bar'; b.style.display = 'none'; document.body.appendChild(b); bars.push(b); }
+    const noise = $('#noise');
+    const dur = 2300, resolveAt = 1500;
+    const t0 = performance.now();
+    const chars = '0123456789#*+()-';
+
+    function frame(now){
+      const t = now - t0;
+      const p = Math.min(t / dur, 1);
+      const amp = t < resolveAt ? Math.min(1, t / 700) : Math.max(0, 1 - (t - resolveAt) / (dur - resolveAt));
+
+      // shake + skew
+      screen.style.transform = `translate(${rnd(-8,8)*amp}px,${rnd(-4,4)*amp}px) skewX(${rnd(-6,6)*amp*(Math.random()<.3?1:0)}deg)`;
+      screen.style.filter = Math.random() < .07*amp ? 'invert(1)' : (Math.random() < .15*amp ? `hue-rotate(${rnd(0,360)}deg) contrast(1.6)` : 'none');
+
+      // RGB split + slices
+      ghosts.forEach((g, i) => {
+        const dx = (i ? -1 : 1) * rnd(3, 22) * amp;
+        g.style.transform = `translate(${dx}px,${rnd(-3,3)*amp}px)`;
+        const top = rnd(0, 90), h = rnd(4, 40);
+        g.style.clipPath = Math.random() < .6 ? `inset(${top}% 0 ${Math.max(0,100-top-h)}% 0)` : 'none';
+        g.style.opacity = amp > .05 ? .85 : 0;
+      });
+
+      // invert bars
+      bars.forEach(b => {
+        if (Math.random() < .5*amp){
+          b.style.display = 'block';
+          b.style.top = rnd(0, 100) + '%';
+          b.style.height = rnd(2, 40) + 'px';
+          b.style.transform = `translateX(${rnd(-30,30)}px)`;
+        } else b.style.display = 'none';
+      });
+      noise.style.opacity = .9 * amp;
+
+      // keys flash
+      keys.forEach(k => k.classList.toggle('down', Math.random() < .18*amp));
+
+      // display: scramble then resolve left to right
+      if (t < resolveAt){
+        let s = ''; const len = Math.floor(rnd(6, 15));
+        for (let i = 0; i < len; i++) s += pick(chars);
+        render(s);
+      } else {
+        const r = (t - resolveAt) / (dur - resolveAt - 200);
+        const fixed = Math.floor(Math.min(1, r) * tgt.length);
+        let s = tgt.slice(0, fixed);
+        for (let i = fixed; i < tgt.length; i++) s += /\d/.test(tgt[i]) ? pick('0123456789') : tgt[i];
+        render(s);
+      }
+
+      if (p < 1) requestAnimationFrame(frame);
+      else finish();
+    }
+
+    function finish(){
+      ghosts.forEach(g => g.remove());
+      bars.forEach(b => b.remove());
+      noise.style.opacity = 0;
+      screen.style.transform = '';
+      screen.style.filter = '';
+      keys.forEach(k => k.classList.remove('down'));
+      digits = targetDigits();
+      render(tgt);
+      setTimeout(() => {
+        press(callBtn);
+        setTimeout(() => {
+          release(callBtn);
+          const n = targetDigits();
+          if (n){ called = true; window.location.href = 'tel:' + n; }
+          else { busy = false; }
+        }, 220);
+      }, 450);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function resetIfCalled(){
+    if (!called) return;
+    setTimeout(() => { called = false; busy = false; digits = ''; render(''); }, 600);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') resetIfCalled(); });
+  window.addEventListener('pageshow', resetIfCalled);
+  window.addEventListener('focus', resetIfCalled);
+
+  /* ---------- settings ---------- */
+  const settings = $('#settings'), num = $('#num'), saved = $('#saved');
+  function openSettings(){ num.value = target; syncTrig(); settings.classList.add('open'); }
+  $('#close').addEventListener('click', () => settings.classList.remove('open'));
+
+  document.querySelectorAll('[data-item] .item-h').forEach(h => {
+    h.addEventListener('click', () => {
+      const it = h.parentElement, was = it.classList.contains('open');
+      document.querySelectorAll('[data-item]').forEach(x => x.classList.remove('open'));
+      if (!was) it.classList.add('open');
+    });
+  });
+
+  let savedT;
+  function saveNum(v){
+    target = v.trim();
+    store.set('dialer.num', target);
+    saved.classList.add('on'); clearTimeout(savedT);
+    savedT = setTimeout(() => saved.classList.remove('on'), 1200);
+  }
+  num.addEventListener('input', () => saveNum(num.value));
+  $('#paste').addEventListener('click', async () => {
+    try{
+      const txt = await navigator.clipboard.readText();
+      const clean = (txt || '').replace(/[^\d+]/g, '');
+      if (clean){ num.value = fmt(clean.replace(/^\+1/, '1')); saveNum(clean); }
+    }catch(e){ num.focus(); }
+  });
+
+  function syncTrig(){
+    document.querySelectorAll('#trig button').forEach(b => b.classList.toggle('on', b.dataset.v === trigger));
+  }
+  document.querySelectorAll('#trig button').forEach(b => b.addEventListener('click', () => {
+    trigger = b.dataset.v; store.set('dialer.trigger', trigger); syncTrig();
+  }));
+
+  render('');
+})();
+</script>
+</body>
+</html>
