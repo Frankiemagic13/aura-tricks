@@ -103,6 +103,10 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .placing #badge::after,.placing #badge2::after{content:attr(data-name);position:absolute;left:50%;bottom:100%;transform:translate(-50%,-1.2vw);
   white-space:nowrap;padding:.6vw 2vw;border-radius:2vw;background:rgba(0,0,0,.72);color:#fff;font:600 3.2vw/1.3 -apple-system,system-ui,sans-serif;pointer-events:none}
 .placing .bsel{box-shadow:0 0 0 .7vw #fff}
+#placeDone{display:none;position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 6vw);transform:translateX(-50%);z-index:99;
+  padding:3vw 9vw;border:0;border-radius:99px;background:rgba(0,0,0,.75);color:#fff;font:600 4.4vw -apple-system,system-ui,sans-serif;
+  -webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);box-shadow:0 0 0 1px rgba(255,255,255,.25)}
+.placing #placeDone{display:block}
 .unlocked #badge.on,.unlocked #badge2.on{transform:translate(-50%,-50%) scale(1)}
 .unlocked #app{opacity:0;transition:opacity .25s}
 
@@ -164,6 +168,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="foot" id="cancel">Cancel</div>
   </div>
 </div>
+<button id="placeDone">Done</button>
 <div id="home"><div id="badge" data-name="Passed"></div><div id="badge2" data-name="Not passed"></div></div>
 <div id="launch"><div class="ph"></div><div class="col"></div></div>
 <div id="blk"></div>
@@ -261,7 +266,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Second badge (birthday not passed)<input type="checkbox" id="sBadge2"></div>
     <div class="r">Second badge position<button class="sbtn" id="sBadge2Pos">Set…</button></div>
   </div>
-  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens with both test badges ("1234" Passed, "1235" Not passed, with their names above them). Drag a badge to move it, or tap the photo to move the selected badge (white ring). Tap the photo 3 times quickly to go back. With two PINs and "Second badge" on, the first badge shows the PIN for "birthday passed" and the second badge shows the PIN for "birthday not passed" (for example 4820 and 4821). With "Second badge" off, the badge shows the PIN from "Which PIN". Each badge has its own position: put them on two apps.</div>
+  <div class="snote">When the phone unlocks, the PIN shows as a red notification badge on the home photo (for example on Messages, over its real badge). "Set…": the home photo opens with both test badges ("1234" Passed, "1235" Not passed, with their names above them). Drag a badge to move it. Tap <b>Done</b> at the bottom to go back to the settings. Tap the photo 3 times quickly to go back. With two PINs and "Second badge" on, the first badge shows the PIN for "birthday passed" and the second badge shows the PIN for "birthday not passed" (for example 4820 and 4821). With "Second badge" off, the badge shows the PIN from "Which PIN". Each badge has its own position: put them on two apps.</div>
   <input type="file" id="file" accept="image/*" hidden>
   <input type="file" id="fileHome" accept="image/*" hidden>
 
@@ -406,7 +411,7 @@ function placeBadge(w){
   const h=$('home');h.style.backgroundImage='url("'+(img('pinhome')||img('pinbg')||'')+'")';
   if(!img('pinhome')&&!img('pinbg'))h.style.background='#111';
   placeTest();B.classList.add('unlocked')}
-/* drag a badge to move it (both badges show while you edit); a tap on the photo moves the selected badge */
+/* drag a badge to move it (both badges show while you edit) */
 let bDrag=0,bMoved=false,bDragAt=0;
 $('home').addEventListener('pointerdown',e=>{if(!placing)return;
   const t=e.target.closest('#badge,#badge2');if(!t)return;
@@ -417,11 +422,8 @@ addEventListener('pointermove',e=>{if(!bDrag)return;e.preventDefault();bMoved=tr
   if(bDrag===2){P.bx2=x;P.by2=y}else{P.bx=x;P.by=y}placeTest()},{passive:false});
 const bEnd=()=>{if(!bDrag)return;bDrag=0;bDragAt=Date.now();saveP();haptic('light')};
 addEventListener('pointerup',bEnd);addEventListener('pointercancel',bEnd);
-$('home').addEventListener('click',e=>{if(!placing)return;
-  if(Date.now()-bDragAt<500||e.target.closest('#badge,#badge2'))return;   // the end of a drag, or a tap on a badge (selects it)
-  const x=+(e.clientX/innerWidth*100).toFixed(2),y=+(e.clientY/innerHeight*100).toFixed(2);
-  if(placeWhich===2){P.bx2=x;P.by2=y}else{P.bx=x;P.by=y}saveP();
-  placeTest();haptic('light')},true);
+/* Done (bottom of the screen) closes the badge edit and opens the settings again */
+$('placeDone').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toLock(true);openSheet()});
 function runShortcut(){
   if(!P.sc)return;
   let u='shortcuts://run-shortcut?name='+encodeURIComponent(P.sc);
