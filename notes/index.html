@@ -663,9 +663,11 @@ async function drawToPS(force){
 document.addEventListener('gesturestart',e=>e.preventDefault());
 
 /* ================= Send to Inject (same as the calculator) ================= */
-Object.assign(P,Object.assign({inj:false,iWhat:'lastWord',iPos:1,iCust:'',iWhen:'prox',iId:'13297',px:true},
+Object.assign(P,Object.assign({inj:true,iWhat:'lastWord',iPos:1,iCust:'',iWhen:'prox',iId:'13297',px:true},
   Object.fromEntries(['inj','iWhat','iPos','iCust','iWhen','iId','px'].filter(k=>k in P).map(k=>[k,P[k]]))));
+if(!P.injDef){P.inj=true;P.injDef=1;saveP()}   // Send to Inject is on by default (one time, also on phones that saved "off" before); after that your own choice is kept
 if(Q.get('inj')==='1')P.inj=true;
+if(Q.get('inj')==='0')P.inj=false;
 P.px=Q.get('px')!=='0';   // the sensor toggle is not kept: each page load starts with the sensor on
 let iSent='';
 function noteWords(){return note.innerText.replace(/ /g,' ').split(/\s+/).filter(Boolean)}

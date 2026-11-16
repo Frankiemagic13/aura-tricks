@@ -378,7 +378,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v49</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v50</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -516,7 +516,7 @@ let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLa
 function psPost(t){if(S.peerRole==='mirror')return;if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}try{peerSend(t)}catch(e){}if(!S.ps)return;
   try{PeekRelay.send(PS_TOPIC,t,Q.get('nt')||'Peek')}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
-function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),400)}
+function psDeb(t){clearTimeout(psT);psT=setTimeout(()=>psPost(t),250)}
 function psExpr(t){return t.map(x=>x==='−'?' - ':x==='×'?' x ':x==='÷'?' / ':x==='+'?' + ':x).join('').trim()}
 /* birthday peek: if the first 3 numbers are a birth date (for example 10 + 29 + 1999),
    the peek is the days since birth and the star sign, for example "9,874 days Scorpio" */
@@ -540,7 +540,7 @@ function psAfter(k){
     if(result!==null){const bp=birthPeek(eqNums);psNow(bp||lastExpr+' = '+fmtNum(result))}return}
   if(isOp(k)){const nn=toks.filter(x=>!isOp(x));const bp=birthPeek(nn);if(bp&&cur===''){psNow(bp);return}}
   if(force!==null&&fi>0)return;
-  if(toks.length===0&&cur==='')return;
+  if(toks.length===0&&cur===''){psLast='';return}   // cleared: the same number typed again is sent again
   let t=psExpr(toks.concat(cur!==''?[cur]:[]));
   if(S.method==='flip'&&armed&&S.mode!=='off'&&cur!==''&&toks.filter(x=>!isOp(x)).length===S.n-1){const d=target()-evalToks(toks.concat([cur]));t+=d>0?' (+)':d<0?' (-)':''}
   if(force!==null&&fi===0)t+=' '+force.length+' taps';
@@ -775,7 +775,14 @@ async function bleSearch(){
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
-function bleShow(t){if(!bleConnected())return;aps.text(String(t),{raw:true}).catch(()=>{});if(S.bleVib)aps.vibrate('.').catch(()=>{})}
+/* newest text wins: the PeekSmith takes about 200 ms per 19 characters, so a queue of old peeks made it lag.
+   Now only one send is on its way; while it goes, a newer text replaces the waiting one. */
+let blePend=null,bleSending=false;
+function bleShow(t){if(!bleConnected())return;blePend=String(t);if(!bleSending)bleFlush()}
+async function bleFlush(){bleSending=true;
+  while(blePend!==null&&bleConnected()){const t=blePend;blePend=null;
+    try{await aps.text(t,{raw:true});if(S.bleVib&&blePend===null)await aps.vibrate('.')}catch(e){}}
+  blePend=null;bleSending=false}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
 const BACT={none:'Nothing',inject:'Send to Inject',birthday:'Show birthday peek',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith'};
@@ -929,7 +936,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v49. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v50. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
