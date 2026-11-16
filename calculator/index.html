@@ -240,7 +240,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Birthday<select id="pmBday"><option value="both">Send both PINs</option><option value="passed">Passed</option><option value="not">Not passed</option></select></div>
     <div class="r">Now<span id="pmMath" style="color:rgba(235,235,245,.6)">—</span></div>
   </div>
-  <div class="note">The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
+  <div class="note">Hold <b>+/−</b> (bottom left) for 1 second to turn PIN math on or off. "PIN on" or "PIN off" shows at the top. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The total shows as normal, and the PeekSmith shows "PIN 4820/4821" (PIN = total − year − time). The first PIN is correct when the birthday has passed this year, the second when it has not. The time is the time when the spectator typed the first number. If the total does not give a PIN, the normal peek goes to the PeekSmith.</div>
   <div class="lbl">Vanish</div>
   <div class="grp">
     <div class="r">Swipe to vanish<label><input type="checkbox" id="vanOn" style="width:auto;transform:scale(1.3)"></label></div>
@@ -399,7 +399,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <h4>Codebreaker</h4>
   <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
   <h4>PIN math</h4>
-  <p>Turn on <b>PIN peek on =</b> in the Code tab. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The PeekSmith shows "PIN 4820/4821": the first PIN is correct when the birthday has passed, the second when it has not.</p>
+  <p>Hold <b>+/−</b> (bottom left) to turn it on or off ("PIN on" / "PIN off" shows at the top), or use <b>PIN peek on =</b> in the Code tab. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The PeekSmith shows "PIN 4820/4821": the first PIN is correct when the birthday has passed, the second when it has not.</p>
   <h4>Vanish &amp; reveal</h4>
   <ol><li>Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>. "Status" in the Vanish tab shows Linked.</li>
   <li>Type a number on your phone (or show a result).</li>
@@ -648,7 +648,7 @@ function blindTap(e){if(!faceDown||document.body.classList.contains('open'))retu
 const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
 /* secret: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
    The held digit is taken back, the display goes back to 0, and the PeekSmith shows "Force: …". */
-let digT=null,eqT=null,eqDown=false,eqHeld=false;
+let digT=null,eqT=null,eqDown=false,eqHeld=false,negT=null,negDown=false,negHeld=false;
 function snap(){return{toks:toks.slice(),cur,result,shownExpr,armed,force,fi,before,fOp,forceTarget,eqNums:eqNums.slice()}}
 function unsnap(z){toks=z.toks;cur=z.cur;result=z.result;shownExpr=z.shownExpr;armed=z.armed;force=z.force;fi=z.fi;before=z.before;fOp=z.fOp;forceTarget=z.forceTarget;eqNums=z.eqNums}
 /* quick force: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
@@ -681,10 +681,14 @@ function down(b){
      Enter the waiting 0 / = first, so the order stays correct. */
   if(zeroDown&&!held){zeroDown=false;clearTimeout(holdT);press('0')}
   if(eqDown&&!eqHeld){eqDown=false;clearTimeout(eqT);press('=')}
+  if(negDown&&!negHeld){negDown=false;clearTimeout(negT);press('neg')}
   b.classList.add('down');
   const k=b.dataset.k;
   if(k==='='){eqDown=true;eqHeld=false;clearTimeout(eqT);
     eqT=setTimeout(()=>{eqHeld=true;b.classList.remove('down');cbSet(!cbOn)},S.cbHold||700);return}
+  /* hold +/− (bottom left) 0.7 s = PIN math on / off */
+  if(k==='neg'){negDown=true;negHeld=false;clearTimeout(negT);
+    negT=setTimeout(()=>{negHeld=true;b.classList.remove('down');pmSet(!S.pmOn)},700);return}
   if(k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700);return}
   if(k==='1'&&force===null){
     const z=snap();
@@ -706,7 +710,8 @@ function down(b){
 function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove('down'));
   clearTimeout(digT);digT=null;
   if(zeroDown){zeroDown=false;clearTimeout(holdT);if(!held)press('0')}
-  if(eqDown){eqDown=false;clearTimeout(eqT);if(!eqHeld)press('=')}}
+  if(eqDown){eqDown=false;clearTimeout(eqT);if(!eqHeld)press('=')}
+  if(negDown){negDown=false;clearTimeout(negT);if(!negHeld)press('neg')}}
 keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();down(b)},{passive:false});
 keys.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
 keys.addEventListener('touchcancel',up);
@@ -735,6 +740,7 @@ $('cbHold').onchange=()=>{S.cbHold=+$('cbHold').value;saveS()};
 $('cbBuzz').onchange=()=>{S.cbBuzz=$('cbBuzz').value;saveS();if(S.cbBuzz!=='off')buzz(S.cbBuzz)};
 $('cbPs').onchange=()=>{S.cbPs=$('cbPs').checked;saveS()};
 function pmSync(){$('pmOn').checked=S.pmOn;$('pmYear').value=S.pmYear;$('pmYear').placeholder='Auto ('+new Date().getFullYear()+')';$('pmH24').value=S.pmH24?'1':'0';$('pmBday').value=S.pmBday;pmMathDraw()}
+function pmSet(on){S.pmOn=!!on;saveS();try{buzz()}catch(e){}toast(S.pmOn?'PIN on':'PIN off');try{bleShow(S.pmOn?'PIN math on':'PIN math off')}catch(e){}try{$('pmOn').checked=S.pmOn}catch(e){}}
 $('pmOn').onchange=()=>{S.pmOn=$('pmOn').checked;saveS()};
 $('pmYear').oninput=e=>{S.pmYear=e.target.value.trim();saveS();pmMathDraw()};
 $('pmH24').onchange=e=>{S.pmH24=e.target.value==='1';saveS();pmMathDraw()};
