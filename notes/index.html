@@ -336,7 +336,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v2</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v3</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -1358,7 +1358,7 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
 <script>
 /* ---------- fake lock: the screen goes black (looks locked); hold the screen = peek of the note ----------
    Settings in P.fl (Volume tab, "Fake lock" card). The lock sound is made with Web Audio (no sound file). */
-P.fl=Object.assign({sound:true,sVol:'med',what:'lines',lines:5,size:18,color:'gray',pos:'mid',align:'center',font:'sys',hold:450,buzz:true,exit3:true},P.fl||{});
+P.fl=Object.assign({sound:true,sType:'synth',sVol:'med',what:'lines',lines:5,size:18,color:'gray',pos:'mid',align:'center',font:'sys',hold:450,buzz:true,exit3:true},P.fl||{});
 const FakeLock=(function(){
   let el=null,pk=null,on=false,t=null,sb=null,ac=null,taps=[];
   const COLORS={dim:'#2c2c2e',gray:'#6b6b70',light:'#aeaeb2',white:'#ffffff',red:'#7a2020',green:'#1f5f2e',blue:'#1f3f7a'};
@@ -1368,9 +1368,21 @@ const FakeLock=(function(){
       const b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start(0)}catch(e){ac=null}return ac}
   ['touchend','mousedown'].forEach(n=>addEventListener(n,()=>{const a=audio();if(a&&a.state==='suspended')a.resume().catch(()=>{})},{passive:true,capture:true}));
   /* a short "clack" like the iPhone lock: filtered noise + a fast high tone + a low thump */
+  /* your own sound file (kept only on this phone, in localStorage "fvtLockSnd"; not in the GitHub repo) */
+  const SND_KEY='fvtLockSnd';let fileBuf=null,fileKey='';
+  function fileData(){try{return localStorage.getItem(SND_KEY)||''}catch(e){return ''}}
+  async function fileBuffer(a){const d=fileData();if(!d)return null;if(fileBuf&&fileKey===d.length+':'+d.slice(-40))return fileBuf;
+    const bin=atob(d.split(',')[1]||''),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+    const buf=await new Promise((ok,no)=>a.decodeAudioData(u.buffer,ok,no));
+    /* skip the silence at the start, so the sound plays at once */
+    const ch=buf.getChannelData(0);let st=0;while(st<ch.length&&Math.abs(ch[st])<0.02)st++;st=Math.max(0,st-Math.round(buf.sampleRate*.004));
+    const len=Math.max(1,buf.length-st),nb=a.createBuffer(buf.numberOfChannels,len,buf.sampleRate);
+    for(let c=0;c<buf.numberOfChannels;c++)nb.getChannelData(c).set(buf.getChannelData(c).subarray(st));
+    fileBuf=nb;fileKey=d.length+':'+d.slice(-40);return nb}
   function lockSound(){
     if(!P.fl.sound)return;const a=audio();if(!a)return;if(a.state==='suspended')a.resume().catch(()=>{});
     const g0={low:.25,med:.55,high:1}[P.fl.sVol]||.55,t0=a.currentTime+.01,out=a.createGain();out.gain.value=g0;out.connect(a.destination);
+    if(P.fl.sType==='file'&&fileData()){fileBuffer(a).then(b=>{if(!b)return;const src=a.createBufferSource();src.buffer=b;out.gain.value=g0*1.6;src.connect(out);src.start()}).catch(()=>{});return}
     const n=a.createBuffer(1,Math.round(a.sampleRate*.05),a.sampleRate),d=n.getChannelData(0);
     for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
     const ns=a.createBufferSource();ns.buffer=n;const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=3200;bp.Q.value=1.2;
@@ -1414,7 +1426,15 @@ const FakeLock=(function(){
     k.style.cssText='position:absolute;left:14px;right:14px;'+pos+'color:'+(COLORS[f.color]||COLORS.gray)+';font:500 '+Math.max(9,Math.round((+f.size||18)*sc))+'px/1.35 '+(FONTS[f.font]||FONTS.sys)+';text-align:'+(f.align==='left'?'left':'center')+';white-space:pre-wrap';
     const l=noteLines();k.textContent=l.length?textOf():(f.what==='word'?'ELEPHANT':f.what==='line'?'My word is ELEPHANT':'Line one\nLine two\nMy word is ELEPHANT');
     d.appendChild(k);box.appendChild(d)}
-  return{toggle:()=>set(!on),set,lockSound,preview,get on(){return on}}})();
+  async function setFile(f){if(!f)return 'No file';if(f.size>400000)return 'Too large (max 400 KB). Trim it first.';
+    const d=await new Promise((ok,no)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=no;r.readAsDataURL(f)});
+    const a=audio();if(a){const old=fileBuf;fileBuf=null;try{localStorage.setItem(SND_KEY,d)}catch(e){return 'Could not save the file'}
+      try{await fileBuffer(a)}catch(e){fileBuf=old;try{localStorage.removeItem(SND_KEY)}catch(x){}return 'This file type does not play here (use .m4a, .mp3 or .wav)'}}
+    else{try{localStorage.setItem(SND_KEY,d)}catch(e){return 'Could not save the file'}}
+    try{localStorage.setItem(SND_KEY+'Name',f.name)}catch(e){}return ''}
+  function clearFile(){fileBuf=null;try{localStorage.removeItem(SND_KEY);localStorage.removeItem(SND_KEY+'Name')}catch(e){}}
+  function fileInfo(){const d=fileData();if(!d)return 'No file';let n='';try{n=localStorage.getItem(SND_KEY+'Name')||''}catch(e){}return (n||'Sound file')+' ('+Math.round(d.length*.75/1024)+' KB)'}
+  return{toggle:()=>set(!on),set,lockSound,preview,setFile,clearFile,fileInfo,get on(){return on}}})();
 </script>
 <script>
 /* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
@@ -1432,6 +1452,9 @@ FVTVol.setup({page:'notes',
   tabWords:['fake lock'],
   extraHTML:'<div class="lbl">Fake lock</div><div class="grp">'+
     '<div class="r">Lock sound<input type="checkbox" id="flSound"></div>'+
+    '<div class="r">Sound<select id="flSType"><option value="synth">Built-in clack</option><option value="file">My sound file</option></select></div>'+
+    '<div class="r" id="flFileRow"><span id="flFileInfo" style="color:#8d919c;font-size:14px">No file</span><span><button class="sbtn" id="flPick">Choose…</button> <button class="sbtn" id="flDel">Remove</button></span></div>'+
+    '<input type="file" id="flFile" accept="audio/*,.m4a,.mp3,.wav,.caf,.aac" style="display:none">'+
     '<div class="r">Sound level<select id="flSVol"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select></div>'+
     '<div class="r"><button class="sbtn" id="flTestS">Test the sound</button><button class="sbtn" id="flTry">Try the fake lock</button></div>'+
     '<div id="flPrev"></div>'+
@@ -1445,15 +1468,18 @@ FVTVol.setup({page:'notes',
     '<div class="r">Hold time<select id="flHold"><option value="300">0.3 s</option><option value="450">0.5 s</option><option value="700">0.7 s</option><option value="1000">1 s</option><option value="1500">1.5 s</option></select></div>'+
     '<div class="r">Buzz on peek<input type="checkbox" id="flBuzz"></div>'+
     '<div class="r">Triple tap = exit<input type="checkbox" id="flExit3"></div></div>'+
-    '<div class="snote">Fake lock: set a volume button to "Fake lock". Press it: the lock sound plays and the screen goes black. Hold the black screen: the peek shows while you hold. Press the button again (or triple tap, if on) to see the note again. The lock sound plays only after you touched the page one time, and not when the silent switch is on (the same as the real lock sound).</div>',
+    '<div class="snote">Fake lock: set a volume button to "Fake lock". Press it: the lock sound plays and the screen goes black. Hold the black screen: the peek shows while you hold. Press the button again (or triple tap, if on) to see the note again. The lock sound plays only after you touched the page one time, and not when the silent switch is on (the same as the real lock sound). My sound file: choose any short sound file on your phone (.m4a, .mp3 or .wav, max 400 KB). It is kept only on this phone, not on GitHub. The silence at the start is cut off.</div>',
   defaults:{up:'ps:lastWord',down:'lock'}});
 (function(){
   const $f=id=>document.getElementById(id),F=P.fl;
-  const sel={flSVol:'sVol',flWhat:'what',flLines:'lines',flSize:'size',flColor:'color',flPos:'pos',flAlign:'align',flFont:'font',flHold:'hold'};
+  const sel={flSType:'sType',flSVol:'sVol',flWhat:'what',flLines:'lines',flSize:'size',flColor:'color',flPos:'pos',flAlign:'align',flFont:'font',flHold:'hold'};
   const chk={flSound:'sound',flBuzz:'buzz',flExit3:'exit3'};
   const num=new Set(['lines','size','hold']);
   function sync(){for(const id in sel)$f(id).value=String(F[sel[id]]);for(const id in chk)$f(id).checked=!!F[chk[id]];
-    $f('flLinesRow').style.display=F.what==='lines'?'':'none';FakeLock.preview($f('flPrev'))}
+    $f('flLinesRow').style.display=F.what==='lines'?'':'none';$f('flFileRow').style.display=F.sType==='file'?'':'none';$f('flFileInfo').textContent=FakeLock.fileInfo();FakeLock.preview($f('flPrev'))}
+  $f('flPick').onclick=()=>$f('flFile').click();
+  $f('flDel').onclick=()=>{FakeLock.clearFile();sync()};
+  $f('flFile').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';const err=await FakeLock.setFile(f);sync();if(err)$f('flFileInfo').textContent=err;else{const s=F.sound;F.sound=true;FakeLock.lockSound();F.sound=s}};
   for(const id in sel)$f(id).onchange=e=>{const k=sel[id];F[k]=num.has(k)?+e.target.value:e.target.value;saveP();sync()};
   for(const id in chk)$f(id).onchange=e=>{F[chk[id]]=e.target.checked;saveP();sync()};
   $f('flTestS').onclick=()=>{const s=F.sound;F.sound=true;FakeLock.lockSound();F.sound=s};
