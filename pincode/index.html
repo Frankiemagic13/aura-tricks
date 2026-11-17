@@ -57,6 +57,9 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 .key b{font-size:calc(42 * var(--u));font-weight:700;line-height:1;margin-top:calc(-3 * var(--u))}
 .key small{font-size:calc(9.5 * var(--u));font-weight:800;letter-spacing:calc(2 * var(--u));margin:calc(1 * var(--u)) 0 0 calc(2 * var(--u));line-height:1}
 .key.zero b{margin-top:0}
+/* native Liquid Glass keys (experimental): Aura draws the glass, the page keeps the digits and letters */
+.ng-on .key,.ng-on .key.down{background:none!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+.key .gp{position:absolute;inset:0;border-radius:50%}
 .foot{position:absolute;top:calc(782 * var(--u));font-size:calc(19 * var(--u));font-weight:500;width:calc(140 * var(--u));text-align:center;line-height:calc(24 * var(--u))}
 #emergency{left:calc(29 * var(--u))}#cancel{left:calc(232 * var(--u))}
 
@@ -244,11 +247,14 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Look</div>
   <div class="grp">
     <div class="r">Style<select id="sStyle"><option value="classic">Classic (frosted keys)</option><option value="glass">iOS 26 (glass keys)</option></select></div>
+    <div class="r">Native glass keys (test)<select id="sNg"><option value="off">Off</option><option value="digits">Digits only</option><option value="letters">Digits + letters (test)</option></select></div>
+    <div class="r" id="rowNgStyle">Glass type<select id="sNgStyle"><option value="clear">Clear</option><option value="regular">Regular</option></select></div>
     <div class="r">Network<select id="sNet"><option value="none">Signal only</option><option value="lte">Signal + LTE</option><option value="5g">Signal + 5G</option><option value="wifi">Signal + Wi-Fi</option></select></div>
     <div class="r">Battery number<input type="checkbox" id="sBnum"></div>
     <div class="r">Charging<input type="checkbox" id="sChg"></div>
   </div>
   <div class="snote">Classic: the look of your screenshot (blurred wallpaper, frosted keys, lock icon). iOS 26: sharp wallpaper, glass keys, Face ID in the island.</div>
+  <div class="snote">Native glass keys (experimental, needs Aura 8): Aura draws real Liquid Glass keys (iOS 26) or a system blur (older iOS). "Digits only": Aura draws the digit on the glass, no letters. "Digits + letters": the page keeps its digits and letters under the glass; if the glass blurs them too much, use "Digits only". A key reacts when you lift the finger. The native keys go away for the black screen, these settings and the home photo, and come back on the passcode screen. <span id="sNgSt"></span></div>
 
   <div class="lbl">Wallpaper</div>
   <div class="grp">
@@ -288,7 +294,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. Hold the top of the screen 0.8 s = black screen. Tap the black screen = page again. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v28</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v29</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold the <b>time</b> for 1.5 seconds to open these settings. Double tap the time to show the live time again.</p>
@@ -300,11 +306,14 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p>Tilt the phone straight up (screen to you): the next code unlocks the phone, or it unlocks at once. To go back: hold the home photo with 2 fingers, or tap it 3 times.</p>
   <h4>Inject and Shortcut</h4>
   <p>The PIN can go to Inject (Inject tab) and to a Shortcut after the unlock (Unlock tab).</p>
+  <h4>Native glass keys (test)</h4>
+  <p>Look tab: "Native glass keys" uses Aura 8 to draw real Liquid Glass keys. It is experimental. A key reacts when you lift the finger, not on touch.</p>
   <h4>Black screen</h4>
   <p>Hold the top of the screen for 0.8 second (or hold the PeekSmith side button) to make the screen look off.</p>
 </div>
 </div>
 
+<script src="../aurakit/aurakit.js"></script>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../relay.js"></script>
 <script>
@@ -314,7 +323,7 @@ const $=id=>document.getElementById(id);
 const B=document.body;
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({year:'',h24:false,bday:'both',len:4,after:'shake',tilt:'arm',tiltMs:500,dim:.5,
-  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,badge2:true,bx2:38.8,by2:10.5,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto',back:'two',backMs:1500,side:'black'},store.get('pinset',{}));
+  batt:43,copy:false,inj:true,injWhen:'tilt',injWhich:'a',injId:'13297',sc:'',scIn:'pin',scMs:300,wifi:false,style:'classic',ng:'off',ngStyle:'clear',net:'lte',bnum:false,chg:false,auto:true,pkTime:true,pkLive:true,vib:true,online:true,pkTilt:true,badge:true,badge2:true,bx2:38.8,by2:10.5,bx:61.2,by:10.5,uAct:'none',uApp:'notes',uUrl:'',uAnim:'ios',uCol:'auto',back:'two',backMs:1500,side:'black'},store.get('pinset',{}));
 if(!['arm','now','off'].includes(P.tilt))P.tilt='arm';
 if(P.net==null)P.net=P.wifi?'wifi':'none';
 if(!P.injOnV){P.inj=true;P.injOnV=1} // Inject on by default (also for settings saved before)
@@ -551,11 +560,11 @@ $('cancel').onclick=()=>{if(view!=='pass'||locked)return;
 const pad=$('pad');
 const press=el=>{el.classList.add('down');digit(el.dataset.k)};
 const release=()=>document.querySelectorAll('.key.down').forEach(k=>k.classList.remove('down'));
-pad.addEventListener('touchstart',e=>{const el=e.target.closest('.key');if(!el)return;e.preventDefault();press(el)},{passive:false});
+pad.addEventListener('touchstart',e=>{const el=e.target.closest('.key');if(!el)return;e.preventDefault();if(NG.active)return;press(el)},{passive:false});
 addEventListener('touchend',()=>{release();flushCopy()});
 addEventListener('mouseup',flushCopy);addEventListener('touchcancel',release);
 let touchUsed=false;addEventListener('touchstart',()=>touchUsed=true,{passive:true,capture:true});
-pad.addEventListener('mousedown',e=>{if(touchUsed)return;const el=e.target.closest('.key');if(el)press(el)});
+pad.addEventListener('mousedown',e=>{if(touchUsed||NG.active)return;const el=e.target.closest('.key');if(el)press(el)});
 addEventListener('mouseup',()=>{if(!touchUsed)release()});
 
 /* ---------- swipes ---------- */
@@ -698,6 +707,7 @@ function syncSheet(){
   $('sLen').value=String(P.len);$('sAfter').value=P.after;$('sTilt').value=P.tilt;$('sTiltMs').value=String(P.tiltMs);$('sDim').value=String(P.dim);$('sCopy').checked=P.copy;$('sInj').checked=P.inj;$('sInjWhen').value=P.injWhen;$('sInjWhich').value=P.injWhich;$('sInjId').value=P.injId;$('sStyle').value=P.style;$('sNet').value=P.net;$('sBnum').checked=P.bnum;$('sChg').checked=P.chg;$('sSc').value=P.sc;$('sScIn').value=P.scIn;$('sScMs').value=String(P.scMs);$('sBatt').value=P.batt;
   $('sAuto').checked=P.auto;$('sPkTime').checked=P.pkTime;$('sPkLive').checked=P.pkLive;$('sBadge').checked=P.badge;$('sBadge2').checked=P.badge2;$('sPkTilt').checked=P.pkTilt;$('sVib').checked=P.vib;$('sSide').value=P.side;$('sOnline').checked=P.online;
   $('sUAct').value=P.uAct;$('sUAnim').value=P.uAnim;$('sBack').value=P.back;$('sBackMs').value=String(P.backMs);$('sUCol').value=P.uCol;$('sUApp').value=P.uApp;$('sUUrl').value=P.uUrl;$('rowUApp').style.display=P.uAct==='app'?'':'none';$('rowUUrl').style.display=P.uAct==='app'&&P.uApp==='custom'?'':'none';
+  $('sNg').value=P.ng;$('sNgStyle').value=P.ngStyle;$('rowNgStyle').style.display=P.ng==='off'?'none':'';ngStat();
   motionText();drawMath()}
 $('sYear').oninput=e=>{P.year=e.target.value.trim();saveP();drawMath()};
 $('sH24').onchange=e=>{P.h24=e.target.value==='1';saveP();if(frozen){const f=frozen;frozen=null;/* keep the same moment, new format */const h=Math.floor(f.num/100),m=f.num%100;frozen={str:(P.h24?pad2(h):h)+':'+pad2(m),num:f.num}}drawClock()};
@@ -770,6 +780,43 @@ function openSheet(){syncSheet();B.classList.add('open');haptic('medium')}
 const closeSheet=()=>B.classList.remove('open');
 $('sDone').onclick=closeSheet;$('sheetBg').onclick=closeSheet;
 document.addEventListener('gesturestart',e=>e.preventDefault());
+/* ---------- native Liquid Glass keys (experimental, Aura 8 / AuraKit) ----------
+   The native buttons are always on top of the page, so they are removed for the black screen,
+   the settings sheet, the badge edit and the home photo, and put back on the passcode screen. */
+const NG={active:false,want:'',q:Promise.resolve()};
+const ngG=()=>window.AuraKit&&AuraKit.experimental&&AuraKit.experimental.glass;
+function ngWanted(){
+  if(P.ng==='off'||!ngG())return '';
+  if(view!=='pass'||black||['open','placing','unlocked','black'].some(c=>B.classList.contains(c)))return '';
+  return P.ng+'|'+P.ngStyle+'|'+P.style}
+function ngSync(){const w=ngWanted();if(w===NG.want)return;NG.want=w;NG.q=NG.q.then(()=>ngApply(w)).catch(()=>{})}
+async function ngClear(){const g=ngG();NG.active=false;B.classList.remove('ng-on');
+  if(g)await g.clear().catch(()=>{});document.querySelectorAll('#pad .gp').forEach(x=>x.remove())}
+async function ngApply(w){
+  await ngClear();
+  if(!w||w!==NG.want)return;
+  const g=ngG();await AuraKit.ready().catch(()=>{});
+  if(!g.native||w!==NG.want){ngStat();return}
+  const keys=[...document.querySelectorAll('#pad .key')];
+  try{
+    if(P.ng==='letters'){B.classList.add('ng-on');
+      await Promise.all(keys.map(k=>{const p=document.createElement('i');p.className='gp';k.appendChild(p);return g.attach(p,{title:'',style:P.ngStyle})}))}
+    else await Promise.all(keys.map(k=>{const fs=parseFloat(getComputedStyle(k.querySelector('b')).fontSize)||40;
+      return g.attach(k,{title:k.dataset.k,style:P.ngStyle,color:'#ffffff',fontSize:Math.round(fs*.9)})}));
+    NG.active=true}
+  catch(e){await ngClear()}
+  ngStat()}
+function ngStat(){const el=$('sNgSt');if(!el)return;const g=ngG();
+  el.textContent=!g?'Status: AuraKit did not load.':!AuraKit.available?'Status: only in Aura.':!g.native?'Status: not available here (update Aura to version 8).':
+    'Status: '+(g.liquid?'real Liquid Glass (iOS 26).':'system blur (iOS older than 26).')}
+/* a tap on a native glass key arrives as a click on the key */
+pad.addEventListener('click',e=>{if(!NG.active)return;const el=e.target.closest('.key');if(!el)return;press(el);setTimeout(release,120);setTimeout(flushCopy,0)});
+$('sNg').onchange=e=>{P.ng=e.target.value;saveP();syncSheet()};
+$('sNgStyle').onchange=e=>{P.ngStyle=e.target.value;saveP()};
+new MutationObserver(ngSync).observe(B,{attributes:true,attributeFilter:['class']});
+setInterval(ngSync,300);
+if(window.AuraKit)AuraKit.ready().then(()=>{ngStat();ngSync()}).catch(()=>{});
+
 /* test hook */
 window.__pin={calcPin,setCode:c=>{code=c},setLen:l=>{len=l},setFrozen:n=>{frozen={str:'',num:n}},P};
 </script>
