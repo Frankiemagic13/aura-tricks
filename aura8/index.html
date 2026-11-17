@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0d">
+<title>Aura 8 test</title>
+<script src="../aurakit/aurakit-mock.js"></script>
+<script src="../aurakit/aurakit.js"></script>
+<style>
+  :root { color-scheme: dark; --bg:#0b0b0d; --card:#16161a; --line:#26262c; --txt:#f2f2f5; --mut:#8a8a93; --acc:#0a84ff; --ok:#30d158; --bad:#ff453a; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:16px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+         padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px); }
+  h1 { font-size:28px; margin:0 0 4px; } .mut { color:var(--mut); font-size:13px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:18px; padding:14px; margin:14px 0; }
+  .card h2 { font-size:17px; margin:0 0 10px; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  button.b { flex:1 1 auto; min-height:44px; padding:0 14px; border:0; border-radius:12px; background:#24242a; color:var(--txt); font:inherit; font-weight:600; }
+  button.b.acc { background:var(--acc); } button.b.red { background:var(--bad); }
+  .big { font-size:44px; font-weight:700; font-variant-numeric: tabular-nums; text-align:center; padding:6px 0; }
+  .kv { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font-size:14px; } .kv span:nth-child(odd){ color:var(--mut) }
+  .st { font-size:13px; color:var(--mut); margin-top:8px; min-height:18px; }
+  label { display:flex; gap:8px; align-items:center; font-size:14px; color:var(--mut); }
+  pre { margin:8px 0 0; max-height:120px; overflow:auto; font:12px ui-monospace, Menlo, monospace; color:var(--mut); white-space:pre-wrap; }
+</style>
+</head>
+<body>
+  <h1>Aura 8 test</h1>
+  <div class="mut">Tests the new Aura version 8 features on this phone. Uses <code>aurakit/</code>.</div>
+
+  <div class="card">
+    <h2>This phone</h2>
+    <div class="kv" id="env"><span>Status</span><span>…</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Volume buttons</h2>
+    <div class="big"><span id="vUp">0</span> + &nbsp;·&nbsp; <span id="vDn">0</span> −</div>
+    <label><input type="checkbox" id="keep" checked> Keep the volume (no iOS indicator)</label>
+    <div class="row" style="margin-top:10px">
+      <button class="b acc" id="vStart">Start</button>
+      <button class="b" id="vStop">Stop</button>
+    </div>
+    <div class="st" id="vSt">Not watching.</div>
+  </div>
+
+  <div class="card">
+    <h2>Status bar</h2>
+    <div class="row">
+      <button class="b" data-sb="hide">Hide</button>
+      <button class="b" data-sb="clear">Show (transparent)</button>
+      <button class="b" data-sb="solid">Show (solid)</button>
+    </div>
+    <div class="st" id="sbSt">Works in the App Clip and in Aura Browser full-screen mode.</div>
+  </div>
+
+  <div class="card">
+    <h2>Rotation</h2>
+    <div class="row">
+      <button class="b" data-or="portrait">Lock portrait</button>
+      <button class="b" data-or="current">Lock as now</button>
+      <button class="b" data-or="unlock">Unlock</button>
+    </div>
+    <div class="st" id="orSt">—</div>
+  </div>
+
+  <div class="card">
+    <h2>Liquid Glass button (experimental)</h2>
+    <div class="row">
+      <button class="b" id="glassBtn" data-aura-glass="prominent" data-aura-tint="#0a84ff" data-aura-symbol="sparkles">Glass</button>
+    </div>
+    <div class="st" id="glSt">Tap the button.</div>
+  </div>
+
+  <div class="card">
+    <h2>Close the App Clip</h2>
+    <div class="row"><button class="b red" id="quit">Quit App Clip</button></div>
+    <div class="st" id="qSt">Only in the App Clip. Bluetooth must be on and allowed.</div>
+  </div>
+
+  <div class="card">
+    <h2>Log</h2>
+    <pre id="log"></pre>
+  </div>
+
+<script>
+const $ = id => document.getElementById(id);
+const log = t => { const p = $('log'); p.textContent = new Date().toLocaleTimeString() + '  ' + t + '\n' + p.textContent; };
+const err = (el, e) => { el.textContent = 'Error: ' + (e && e.message || e); log(el.id + ': ' + (e && e.message || e)); };
+
+(async () => {
+  const env = await AuraKit.ready();
+  const c = env.caps || {};
+  const yes = v => v ? '✅' : '—';
+  $('env').innerHTML = [
+    ['Running in', env.mock ? 'Simulator' : env.appClip ? 'App Clip' : env.browser ? 'Aura Browser' : 'Not in Aura'],
+    ['Aura API', c.version != null ? 'v' + c.version : '—'],
+    ['Volume buttons', yes(c.volumeButtons)], ['Status bar', yes(c.statusBar)],
+    ['Rotation lock', yes(c.orientationLock)], ['Glass', c.glass ? (c.liquidGlass ? '✅ Liquid Glass' : '✅ blur') : '—'],
+    ['AuraKit', AuraKit.version]
+  ].map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join('') + (env.available ? '' : `<span>Why</span><span>${env.reason || ''}</span>`);
+  if (env.available && !c.volumeButtons) log('This Aura is older than version 8: update Aura in the App Store.');
+})();
+
+/* volume buttons */
+let watcher = null, up = 0, dn = 0;
+$('vStart').onclick = async () => {
+  try {
+    if (watcher) watcher.stop();
+    watcher = await AuraKit.volumeButtons.watch(({ button, volume }) => {
+      if (button === 'up') { $('vUp').textContent = ++up; AuraKit.haptics.success(); }
+      else { $('vDn').textContent = ++dn; AuraKit.haptics.tap(); }
+      log('volume ' + button + (volume != null ? ' (' + Math.round(volume * 100) + '%)' : ''));
+    }, { keepVolume: $('keep').checked });
+    $('vSt').textContent = 'Watching. Push Volume + or Volume −.' + (AuraKit.isAppClip ? ' (App Clip: the iOS indicator can show.)' : '');
+  } catch (e) { err($('vSt'), e); }
+};
+$('vStop').onclick = () => { if (watcher) { watcher.stop(); watcher = null; } $('vSt').textContent = 'Not watching.'; };
+
+/* status bar */
+document.querySelectorAll('[data-sb]').forEach(b => b.onclick = async () => {
+  try {
+    const m = b.dataset.sb;
+    const r = m === 'hide' ? await AuraKit.statusBar.hide()
+            : await AuraKit.statusBar.show({ transparent: m === 'clear' });
+    $('sbSt').textContent = `hidden: ${r.hidden} · transparent: ${r.transparent} · full screen: ${r.fullScreen}`;
+  } catch (e) { err($('sbSt'), e); }
+});
+
+/* rotation */
+document.querySelectorAll('[data-or]').forEach(b => b.onclick = async () => {
+  try {
+    const m = b.dataset.or;
+    const r = m === 'unlock' ? await AuraKit.orientation.unlock() : await AuraKit.orientation.lock(m);
+    const g = r || await AuraKit.orientation.get();
+    $('orSt').textContent = `orientation: ${g.orientation} · locked: ${g.locked || 'no'}`;
+  } catch (e) { err($('orSt'), e); }
+});
+
+/* glass */
+let taps = 0;
+$('glassBtn').addEventListener('click', () => { $('glSt').textContent = 'Tapped ' + (++taps) + '×'; AuraKit.haptics.light(); });
+
+/* quit */
+$('quit').onclick = () => {
+  $('qSt').textContent = 'Closing…';
+  AuraKit.quitAppClip().catch(e => err($('qSt'), e));
+};
+</script>
+</body>
+</html>

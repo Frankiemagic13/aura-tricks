@@ -23,7 +23,24 @@
 
   let n = null, killT = 0, gone = false;          // n = online show number (null = not known yet)
   const mine = () => { const v = ls.get('fvtShow'); return v === null || v === '' ? null : +v };
-  const go = () => { if (gone || isMe()) return; gone = true; try { location.replace(GO) } catch (e) { location.href = GO } };
+  const toApple = () => { try { location.replace(GO) } catch (e) { location.href = GO } };
+  /* Aura 8: close the App Clip (same method as AuraKit.quitAppClip: an oversized peer.join timeout
+     makes the App Clip quit). Only in the App Clip, and Bluetooth must be on and allowed.
+     If it does not close in QUIT_MS, the phone goes to apple.com as before. */
+  const QUIT_MS = 900;
+  async function quitClip() {
+    const A = window.Aura;
+    if (!A || !A.peer || typeof A.peer.join !== 'function' || typeof A.capabilities !== 'function') return;
+    const caps = await Promise.race([Promise.resolve().then(() => A.capabilities()), new Promise(r => setTimeout(() => r(null), 600))]).catch(() => null);
+    if (!caps || !caps.appClip) return;
+    try { const p = A.peer.join({ room: '~quit-' + Math.random().toString(36).slice(2, 10), timeout: 1e300 }); if (p && p.catch) p.catch(() => {}) } catch (e) { return }
+    await new Promise(r => setTimeout(r, QUIT_MS));
+  }
+  const go = () => {
+    if (gone || isMe()) return; gone = true;
+    if (window.__KS_NOQUIT) { toApple(); return }   // (test hook only)
+    quitClip().catch(() => {}).then(toApple);
+  };
   function take(d) {
     n = d && Number.isFinite(+d.n) ? +d.n : 0; killT = d && d.t ? +d.t : 0; ui();
     if (isMe()) return false;
@@ -45,7 +62,7 @@
   if (!isMe()) {
     hide();
     const t = setTimeout(show, WAIT_MS);
-    fetch(URL_, { cache: 'no-store' }).then(r => r.json()).then(d => { if (!take(d)) { clearTimeout(t); show() } })
+    fetch(URL_, { cache: 'no-store' }).then(r => r.json()).then(d => { clearTimeout(t); if (!take(d)) show() })   // a past show stays hidden while it closes
       .catch(() => { clearTimeout(t); show() });
   } else {
     fetch(URL_, { cache: 'no-store' }).then(r => r.json()).then(take).catch(() => {});
