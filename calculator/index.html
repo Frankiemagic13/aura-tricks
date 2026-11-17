@@ -274,10 +274,12 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Shake strength<select id="rdShake"><option value="light">Light</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
     <div class="r">Numbers come back<select id="rdBack"><option value="shake">Shake again</option><option value="tap">Tap the display</option><option value="timer">After 10 s</option></select></div>
     <div class="r">Bounce<select id="rdBounce"><option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option></select></div>
+    <div class="r">Come back as text<label><input type="checkbox" id="rdTxtOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r" id="rdTxtRow">Text<input id="rdTxt" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="40" placeholder="HELLO"></div>
     <div class="r">Their phone too (Aura peer)<label><input type="checkbox" id="rdPeer" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r"><button class="done" id="rdMotion" style="width:auto;text-align:left">Enable motion</button><button class="done" id="rdTry" style="width:auto">Try it</button></div>
   </div>
-  <div class="note">Shake the phone: the numbers on the display fall and tumble. Tilt the phone and they slide to the low side. Shake again (or tap the display) and they fly back into place. A key tap also puts the display back. Tap <b>Enable motion</b> one time if a shake does nothing (iOS asks for permission).</div>
+  <div class="note">Shake the phone: the numbers on the display fall and tumble. Tilt the phone and they slide to the low side. Shake again (or tap the display) and they fly back into place. A key tap also puts the display back. With <b>Come back as text</b> on, the numbers fly back as your text, and the text stays until the next key tap. Tap <b>Enable motion</b> one time if a shake does nothing (iOS asks for permission).</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -409,7 +411,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p><b>More than one number:</b> with "One number per swipe", each swipe takes one number (default: the last number first). The number comes into view on their phone and their display builds the equation up (12 + 34 + 56 comes back as 56, then 34 + 56, then 12 + 34 + 56). Swipe again before the last number comes into view: the numbers come in one after the other, in order.</p>
   <p>Your phone does not show the mirror again until you tap a key, so the number does not come back on your screen. Random delay: 3 to 10 s, and the PeekSmith shows the delay that the phone selected. Use the practice phones in the Vanish tab to see the animations.</p>
   <h4>Ragdoll</h4>
-  <p>Shake the phone: the numbers on the display fall and tumble with gravity. Tilt the phone to slide them. Shake again (or tap the display) to bring them back. With "Their phone too", the numbers on the spectator's phone fall at the same time. Settings are in the Vanish tab.</p>
+  <p>Shake the phone: the numbers on the display fall and tumble with gravity. Tilt the phone to slide them. Shake again (or tap the display) to bring them back. Turn on "Come back as text" and type a text: the numbers fly back and change into the letters of your text. The text stays on the display until a key tap (the key works as normal). With "Their phone too", the numbers on the spectator's phone fall at the same time. Settings are in the Vanish tab.</p>
   <h4>Peeks</h4>
   <p>Each number, total and result goes to your PeekSmith (Bluetooth in Aura), to PeekLink / Peek Island (online), and to your iPhone with Aura peer.</p>
   <h4>Aura peer mirror (top right button)</h4>
@@ -472,6 +474,10 @@ function unit(){return parseFloat(getComputedStyle(document.getElementById('keys
 const BACK='<svg class="bk" viewBox="0 0 34 27" fill="none" stroke="#fff" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"><path d="M11.5 2.5h17.5a3 3 0 0 1 3 3v16a3 3 0 0 1-3 3H11.5L2 13.5z"/><path d="m15.8 8.8 9.4 9.4M25.2 8.8l-9.4 9.4"/></svg>';
 function fit(el,max,min){let s=max;el.style.fontSize=s+'px';while(el.scrollWidth>el.clientWidth&&s>min){s-=1;el.style.fontSize=s+'px'}}
 function render(){
+  if(rdTxtShow!==null){const u=unit();$e.textContent='';$mt.textContent=rdTxtShow;   // ragdoll text: stays until a key tap
+    let fs=67*u;const min=24*u;$m.style.fontSize=fs+'px';
+    while($mt.offsetWidth>$m.clientWidth&&fs>min){fs-=1;$m.style.fontSize=fs+'px'}
+    $m.classList.toggle('fade',$mt.offsetWidth>$m.clientWidth);try{peerDisp()}catch(e){}return}
   if(S.peerRole==='mirror'&&mirrorD&&S.mirr!==false&&!vanHold)return renderMirror();
   let main;
   if(result!==null){main=fmtNum(result);$e.textContent=shownExpr}
@@ -487,7 +493,7 @@ function render(){
   document.querySelectorAll('.k.o').forEach(b=>b.classList.toggle('sel',result===null&&cur===''&&toks.length>0&&toks.at(-1)===b.dataset.k));
   try{peerDisp()}catch(e){}}
 /* mirror: show the spectator's display (the last state that came from their phone) */
-let mirrorD=null,vanHold=false,vanSer=false,vanCarry='';   // vanHold: after a vanish, the magician's phone shows 0, not the mirror, until a key is tapped
+let rdTxtShow=null,mirrorD=null,vanHold=false,vanSer=false,vanCarry='';   // vanHold: after a vanish, the magician's phone shows 0, not the mirror, until a key is tapped
 function renderMirror(){const d=mirrorD,u=unit();
   $e.textContent=d.e||'';$mt.textContent=d.m||'0';
   let fs=67*u;const min=(d.r?30:60)*u;$m.style.fontSize=fs+'px';
@@ -521,7 +527,7 @@ function livePeek(){
   if(S.method!=='flip'||!armed||S.mode==='off'||result!==null){if(armed)peek(0);return}
   const nums=toks.filter(t=>!isOp(t)).length;
   if(nums===S.n-1&&cur!==''&&cur!=='-'&&(!toks.length||isOp(toks.at(-1)))){const d=target()-evalToks(toks.concat([cur]));peek(d>0?1:d<0?-1:0)}else peek(0)}
-function press(k){if(rd)rdEnd();vanHold=false;vanSer=false;vanCarry='';if(S.peerRole==='mirror')mirrorD=null;press0(k);livePeek();try{psAfter(k)}catch(e){}}
+function press(k){if(rd)rdEnd();rdTxtShow=null;vanHold=false;vanSer=false;vanCarry='';if(S.peerRole==='mirror')mirrorD=null;press0(k);livePeek();try{psAfter(k)}catch(e){}}
 /* ---------- PeekSmith: send each number / total / result to Peek Island and PeekLink ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}   // this phone's own typing always goes to the PeekSmith, in any role, mirror on or off
@@ -1112,10 +1118,10 @@ function peerHook(){
     if(d&&typeof d==='object'&&d.cmd==='reveal'){vanIn(d);return}   // both roles can get a reveal
     if(d&&typeof d==='object'&&d.cmd==='ragdoll'){rdStart();return}
     if(d&&typeof d==='object'&&d.cmd==='pm'){pmRemote(d);return}   // PIN math on / off from the other phone
-    if(d&&typeof d==='object'&&d.cmd==='ragback'){rdBack(false);return}
+    if(d&&typeof d==='object'&&d.cmd==='ragback'){rdBack(false,d.txt);return}
     if(S.peerRole==='mirror'){if(!d||typeof d!=='object')return;
       if(d.cmd){peerRemote(d);return}
-      if(d.type==='disp'){mirrorD=d;render()}
+      if(d.type==='disp'){mirrorD=d;if(rdTxtShow!==null&&d.m!==rdTxtShow)rdTxtShow=null;render()}
       else if(d.type==='peek'&&d.m){try{bleSend(String(d.m))}catch(e){}}
       return}
     if(d&&(d.cmd==='mirr'||d.cmd==='swap')){peerRemote(d);return}
@@ -1410,6 +1416,7 @@ vanSync();
    Gravity follows the tilt of the phone; a shake throws them around. Shake again or tap the display = they come back. ---------- */
 if(S.rdOn===undefined)S.rdOn=true;S.rdShake=S.rdShake||'medium';S.rdBack=S.rdBack||'shake';S.rdBounce=S.rdBounce||'normal';if(S.rdPeer===undefined)S.rdPeer=false;
 const RD_THR={light:11,medium:16,hard:24},RD_BNC={low:.25,normal:.5,high:.72};
+if(S.rdTxtOn===undefined)S.rdTxtOn=false;if(S.rdTxt===undefined)S.rdTxt='HELLO';
 let rd=null,rdG={x:0,y:1},rdLastShake=0,rdPeaks=[],rdTimer=null;
 function rdBodies(el,color){if(!el.textContent)return[];const cs=getComputedStyle(el);
   return vanSplit(el).filter(s=>s.textContent.trim()).map(s=>{const r=s.getBoundingClientRect(),d=document.createElement('div');d.textContent=s.textContent;
@@ -1450,12 +1457,28 @@ function rdStep(dt){
     const vn=(q.vx-p.vx)*nx+(q.vy-p.vy)*ny;if(vn<0){const k=-(1+e)*vn/2;p.vx-=k*nx;p.vy-=k*ny;q.vx+=k*nx;q.vy+=k*ny;
       const vt=(q.vx-p.vx)*-ny+(q.vy-p.vy)*nx;p.va+=vt/p.r*.15;q.va-=vt/q.r*.15}}}
 /* back into place: each number flies home, then the display is normal again */
-function rdBack(fromHere){if(!rd||rd.back)return;rd.back=true;cancelAnimationFrame(rd.raf);clearTimeout(rdTimer);
-  if(fromHere&&S.rdPeer)try{peerOut({cmd:'ragback'})}catch(e){}
+function rdBack(fromHere,txIn){if(!rd||rd.back)return;rd.back=true;cancelAnimationFrame(rd.raf);clearTimeout(rdTimer);
+  const tx=fromHere?(S.rdTxtOn?String(S.rdTxt||'').trim():''):String(txIn||'').trim();
+  if(fromHere&&S.rdPeer)try{peerOut({cmd:'ragback',txt:tx})}catch(e){}
   const z=rd;let n=0;
+  if(tx){rdMorph(z,tx);return}
   z.B.forEach((b,i)=>{const a=b.el.animate([{transform:b.el.style.transform},{transform:'translate('+(b.ox-b.w/2)+'px,'+(b.oy-b.h/2)+'px) rotate(0rad)'}],
     {duration:650,delay:i*35,easing:'cubic-bezier(.3,1.3,.5,1)',fill:'forwards'});a.onfinish=()=>{if(++n===z.B.length)rdEnd()}});
   if(!z.B.length)rdEnd()}
+/* back as text: lay the text out in the display (hidden), then each fallen number flies to a letter and changes into it */
+function rdMorph(z,tx){
+  rdTxtShow=tx;render();                                  // $mt is still hidden: this only measures the letters
+  const T=rdBodies($mt,'#fff');$mt.textContent=tx;
+  if(!T.length||!z.B.length){rdEnd();return}
+  const home=t=>'translate('+(t.ox-t.w/2)+'px,'+(t.oy-t.h/2)+'px) rotate(0rad)',E='cubic-bezier(.3,1.3,.5,1)';
+  let n=0;const total=T.length,done=()=>{if(++n===total)rdEnd()};
+  T.forEach((t,i)=>{const b=z.B[i%z.B.length],from='translate('+(b.x-t.w/2)+'px,'+(b.y-t.h/2)+'px) rotate('+b.a+'rad)';
+    t.el.style.transform=from;t.el.style.opacity='0';z.lay.appendChild(t.el);
+    const a=t.el.animate([{transform:from,opacity:0},{opacity:1,offset:.35},{transform:home(t),opacity:1}],{duration:750,delay:i*35,easing:E,fill:'forwards'});
+    a.onfinish=done});
+  /* the numbers fly along and fade out (extra numbers go to a letter too) */
+  z.B.forEach((b,i)=>{const t=T[i%T.length];
+    b.el.animate([{transform:b.el.style.transform,opacity:1},{opacity:0,offset:.4},{transform:home(t),opacity:0}],{duration:750,delay:i*35,easing:E,fill:'forwards'})})}
 function rdEnd(){if(!rd)return;cancelAnimationFrame(rd.raf);clearTimeout(rdTimer);rd.lay.remove();rd=null;
   $mt.style.visibility='';$e.style.visibility='';render()}
 function rdShake(){if(rd){if(S.rdBack==='shake')rdBack(true)}else{rdStart();if(rd&&S.rdPeer)try{peerOut({cmd:'ragdoll'})}catch(e){}}}
@@ -1470,9 +1493,12 @@ addEventListener('devicemotion',e=>{
 /* tap the display = the numbers come back */
 document.querySelector('.disp').addEventListener('click',()=>{if(rd)rdBack(true)});
 /* settings */
-function rdSync(){$('rdOn').checked=!!S.rdOn;$('rdShake').value=S.rdShake;$('rdBack').value=S.rdBack;$('rdBounce').value=S.rdBounce;$('rdPeer').checked=!!S.rdPeer}
+function rdSync(){$('rdOn').checked=!!S.rdOn;$('rdShake').value=S.rdShake;$('rdBack').value=S.rdBack;$('rdBounce').value=S.rdBounce;$('rdPeer').checked=!!S.rdPeer;
+  $('rdTxtOn').checked=!!S.rdTxtOn;$('rdTxt').value=S.rdTxt||'';$('rdTxtRow').style.display=S.rdTxtOn?'':'none'}
 ['rdShake','rdBack','rdBounce'].forEach(id=>$(id).onchange=()=>{S[id]=$(id).value;saveS()});
 $('rdOn').onchange=()=>{S.rdOn=$('rdOn').checked;saveS()};$('rdPeer').onchange=()=>{S.rdPeer=$('rdPeer').checked;saveS()};
+$('rdTxtOn').onchange=()=>{S.rdTxtOn=$('rdTxtOn').checked;saveS();rdSync()};
+$('rdTxt').oninput=()=>{S.rdTxt=$('rdTxt').value;saveS()};
 $('rdMotion').onclick=async()=>{const b=$('rdMotion');try{let r='granted';
     if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==='function')r=await DeviceMotionEvent.requestPermission();
     if(r==='granted'&&window.DeviceOrientationEvent&&typeof DeviceOrientationEvent.requestPermission==='function')r=await DeviceOrientationEvent.requestPermission();
