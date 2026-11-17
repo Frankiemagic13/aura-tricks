@@ -151,13 +151,50 @@ the Queen of Hearts</textarea>
           <p><b>4.</b> Tap <b>Print</b>. "Printed ✓" means the Cosmos sent its done signal.</p>
           <p>Keep this page on screen while it prints. If the text comes out upside down, turn on <b>Upside down</b>.</p>
           <p>Works in <b>Aura Browser</b> (iPhone) and <b>Chrome</b> (Mac). Safari has no Bluetooth for web pages.</p>
+          <p><b>PeekSmith:</b> only in Aura Browser. Close the PeekSmith app first. The Cosmos and the PeekSmith can be connected at the same time. Set what each PeekSmith button does in the PeekSmith card.</p>
+          <p><b>Print last Inject:</b> the page gets the last word sent to Inject (your Inject ID) and prints it with the same handwriting. Use {word} in "Inject text" to add your own words around it.</p>
         </div>
       </details>
+    </div>
+
+    <div class="card">
+      <div class="top"><label style="margin:0">PeekSmith</label><div class="sp"></div>
+        <span id="psBatt" style="display:none;font-size:13px;color:var(--dim);margin-right:6px"></span><span class="dot" id="psDot"></span><span id="psSt" style="color:var(--dim);font-size:13px">Not connected</span></div>
+      <div class="row" style="margin-top:12px">
+        <button id="psBtn" style="flex:1">Connect PeekSmith</button>
+        <button id="psTest" class="sm">Test</button>
+      </div>
+      <div class="field grid2">
+        <label class="chk"><input type="checkbox" id="psAuto"> Search automatically</label>
+        <div><label>Search time</label><select id="psTime"></select></div>
+      </div>
+      <div class="field"><label class="chk"><input type="checkbox" id="psVib"> Vibrate on each message</label></div>
+      <div class="field"><label>Connected screen text</label><input type="text" id="psCon" autocapitalize="off" autocorrect="off" placeholder="COSMOS"></div>
+
+      <label style="margin-top:16px">Buttons</label>
+      <div class="grid2">
+        <div><label>Left – tap</label><select data-k="1.click"></select></div>
+        <div><label>Left – hold</label><select data-k="1.longpress"></select></div>
+        <div><label>Right – tap</label><select data-k="2.click"></select></div>
+        <div><label>Right – hold</label><select data-k="2.longpress"></select></div>
+        <div><label>Side – tap</label><select data-k="0.click"></select></div>
+        <div><label>Side – hold</label><select data-k="0.longpress"></select></div>
+      </div>
+      <div class="field"><label>Button feed</label><select id="psFeed"><option value="40">5 mm</option><option value="80">10 mm</option><option value="160">20 mm</option><option value="320">40 mm</option></select></div>
+
+      <label style="margin-top:16px">Inject</label>
+      <div class="grid2">
+        <div><label>Inject ID</label><input type="text" id="injId" inputmode="numeric" placeholder="13297"></div>
+        <div><label>Inject text</label><input type="text" id="injTpl" autocapitalize="off" autocorrect="off" placeholder="{word}"></div>
+      </div>
+      <div class="field"><button class="sm" id="bInj" style="width:100%">Print last Inject</button></div>
+      <div class="meta" id="injSt" style="text-align:left"></div>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -242,7 +279,7 @@ function wrapLines(ctx, text, maxW){
   return out;
 }
 
-async function draw(){
+async function draw(override){
   const fam = fontSel.value, size = +$('size').value, ink = +$('ink').value, mess = +$('mess').value, lh = +$('lh').value;
   const weight = S.bold ? '700' : '400';
   const fontStr = `${S.slant?'italic ':''}${weight} ${size}px "${fam}", "Bradley Hand", cursive`;
@@ -253,7 +290,7 @@ async function draw(){
 
   const m = document.createElement('canvas').getContext('2d');
   m.font = fontStr;
-  const lines = wrapLines(m, $('text').value, W - PAD*2);
+  const lines = wrapLines(m, override != null ? String(override) : $('text').value, W - PAD*2);
   const lineH = Math.round(size * lh);
   const top = Math.round(size * 0.25), bottom = Math.round(size * 0.35);
   const H = Math.max(8, top + lineH * lines.length + bottom);
@@ -344,7 +381,9 @@ let webDev = null, webWr = null;
 let doneWaiter = null;
 
 let battAsk = 0;
+let cosBatt = null, battWait = null;
 function showBatt(p){
+  cosBatt = p; if (battWait) { const w = battWait; battWait = null; w(p); }
   const el = $('batt'); el.style.display = '';
   el.textContent = '🔋 ' + p + '%';
   el.style.color = p <= 20 ? 'var(--bad)' : p <= 40 ? 'var(--warn)' : 'var(--dim)';
@@ -507,21 +546,24 @@ async function runJob(body){
     await waitCredit(); await write(CMD.enable()); enabled = true;
     await body();
   } catch (e) {
-    log('print error: ' + e.message); toast('Print error — see Log');
+    log('print error: ' + e.message); toast('Print error — see Log'); psShow('Print error');
   } finally {
     if (enabled) {
       const done = new Promise(r => { doneWaiter = r; setTimeout(() => { if (doneWaiter) { doneWaiter = null; r(false); } }, 10000); });
       try { await waitCredit(); await write(CMD.stop()); } catch(e){ log('stop failed: ' + e.message); }
       const ok = await done;
       setStatus(ok ? 'Printed ✓' : 'Sent (no done signal)', ok ? 'ok' : 'warn');
+      psShow(ok ? 'Printed' : 'Sent');
       if (ok) toast('Printed ✓');
     }
     busy = false; if (connected) { $('bPrint').disabled = false; $('bFeed').disabled = false; setTimeout(askBattery, 1500); }
   }
 }
 
-$('bPrint').onclick = async () => {
-  await draw();
+async function printNow(override){
+  if (!connected) { toast('Connect the Cosmos first'); psShow('Cosmos not connected'); return false; }
+  if (busy) { psShow('Busy'); return false; }
+  await draw(override);
   const chunks = rasterChunks(bitmap);
   log(`printing ${bitmap.h} rows in ${chunks.length} writes`);
   setStatus('Printing…', 'warn');
@@ -535,11 +577,165 @@ $('bPrint').onclick = async () => {
     const f = +$('feed').value; if (f) { await waitCredit(); await write(CMD.feed(f)); }
     log(`sent in ${Math.round(performance.now()-t0)} ms`);
   });
-};
-$('bFeed').onclick = () => runJob(async () => { await write(CMD.feed(80)); });
+  return true;
+}
+$('bPrint').onclick = () => printNow();
+function feedNow(n){
+  if (!connected) { psShow('Cosmos not connected'); return; }
+  if (busy) { psShow('Busy'); return; }
+  runJob(async () => { await write(CMD.feed(n)); });
+}
+$('bFeed').onclick = () => feedNow(80);
 $('bConnect').onclick = () => connected ? disconnect() : connect();
 
 document.addEventListener('visibilitychange', () => log(document.hidden ? 'page hidden (iPhone locked or app switched)' : 'page visible'));
+
+/* ---------- PeekSmith (Aura Browser only, AuraPeekSmith library by magicsplitter.fr) ---------- */
+const P = Object.assign({ auto:true, vib:false, con:'COSMOS', feed:'80', injId:'13297', injTpl:'{word}', btns:{} }, (() => { try { return JSON.parse(localStorage.getItem('cosmosPS') || '{}'); } catch(_) { return {}; } })());
+function saveP(){ try { localStorage.setItem('cosmosPS', JSON.stringify(P)); } catch(_){} }
+const PS_OK = !!(window.AuraPeekSmith && AuraPeekSmith.isAvailable && AuraPeekSmith.isAvailable());
+const BACT = {
+  none:'Nothing', feed:'Feed paper', print:'Print the prediction text', injPrint:'Print last Inject', injShow:'Show last Inject',
+  cosBatt:'Show Cosmos battery %', psBatt:'Show PeekSmith battery %', both:'Show both battery %', clear:'Clear PeekSmith'
+};
+const BDEF = { '1.click':'injPrint', '1.longpress':'injShow', '2.click':'feed', '2.longpress':'print', '0.click':'both', '0.longpress':'clear' };
+P.btns = Object.assign({}, BDEF, P.btns || {});
+
+/* search time: one setting for all trick pages (localStorage "fvtBleTime", seconds, 0 = until found) */
+const PS_TIMES = [[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[0,'Until found']];
+function psTime(){ let v = NaN; try { v = parseInt(localStorage.getItem('fvtBleTime'), 10); } catch(_){} return Number.isFinite(v) && v >= 0 ? v : 0; }
+let psEnd = 0; function psWinStart(){ const t = psTime(); psEnd = t ? Date.now() + t*1000 : 0; }
+const psWinOpen = () => !psEnd || Date.now() < psEnd;
+const psScanT = () => psEnd ? Math.max(3, Math.min(15, Math.ceil((psEnd - Date.now())/1000))) : 15;
+
+let aps = null, psBusy = false, psManualOff = false, psManual = false;
+const psOn = () => !!(aps && aps.connected);
+function psStatus(t, k){ $('psSt').textContent = t; $('psDot').className = 'dot ' + (k||''); }
+function psBtnText(){ $('psBtn').textContent = psOn() ? 'Disconnect' : 'Connect PeekSmith'; $('psBtn').classList.toggle('pri', !psOn()); if (!psOn()) $('psBatt').style.display = 'none'; }
+
+async function psConnect(){
+  if (!PS_OK) { psStatus('Only in Aura Browser', 'bad'); toast('PeekSmith works only in Aura Browser'); return; }
+  if (psOn()) { psManualOff = true; psManual = false; const a = aps; aps = null; await a.disconnect().catch(()=>{}); psStatus('Not connected'); psBtnText(); return; }
+  psManualOff = false; psManual = true; psWinStart(); return psSearch();
+}
+async function psSearch(){
+  if (psBusy || psOn()) return; psBusy = true;
+  aps = new AuraPeekSmith({ lang:'en', timeout: psScanT() });
+  aps.on('status', ({ state, name, attempt }) => {
+    if (state === 'scanning') psStatus('Searching…', 'warn');
+    if (state === 'connecting') psStatus('Connecting…', 'warn');
+    if (state === 'connected') psStatus(name || 'Connected', 'ok');
+    if (state === 'reconnecting') psStatus('Reconnecting (' + attempt + ')', 'warn');
+    if (state === 'disconnected') psStatus('Not connected');
+    psBtnText();
+  });
+  aps.on('connect', () => { log('PeekSmith connected'); aps.vibrate("''").catch(()=>{}); psBtnText(); setTimeout(() => { if (P.con) psShow(P.con, true); psReadBatt(); }, 300); });
+  aps.on('disconnect', () => { log('PeekSmith disconnected'); psBtnText(); });
+  aps.on('button', ({ button, event }) => psButton(button, event));
+  try { await aps.connect(); } catch(e) { log('PeekSmith: ' + e.message); psStatus(psWinOpen() ? 'Searching again…' : 'Not found – tap Connect', psWinOpen() ? 'warn' : 'bad'); aps = null; }
+  psBusy = false; psBtnText();
+}
+
+/* newest text wins: only one send at a time, a newer text replaces the waiting one */
+let psPend = null, psSending = false;
+function psShow(t, noVib){ if (!psOn()) return; psPend = { t: String(t), v: !noVib }; if (!psSending) psFlush(); }
+async function psFlush(){
+  psSending = true;
+  const lim = p => Promise.race([p, new Promise(r => setTimeout(r, 3000))]);
+  while (psPend && psOn()) {
+    const { t, v } = psPend; psPend = null;
+    try { await lim(aps.text(t, { raw:true })); if (P.vib && v && !psPend) await lim(aps.vibrate("''")); } catch(_){}
+  }
+  psPend = null; psSending = false;
+}
+
+async function psReadBatt(){
+  if (!psOn()) return null;
+  try {
+    const p = Math.round(await aps.battery());
+    if (!Number.isFinite(p)) return null;
+    const el = $('psBatt'); el.style.display = ''; el.textContent = '🔋 ' + p + '%';
+    el.style.color = p <= 20 ? 'var(--bad)' : p <= 40 ? 'var(--warn)' : 'var(--dim)';
+    return p;
+  } catch(e) { log('PeekSmith battery: ' + e.message); return null; }
+}
+async function cosmosBatt(){
+  if (!connected) return null;
+  if (busy) return cosBatt;
+  const got = new Promise(r => { battWait = r; setTimeout(() => { if (battWait) { battWait = null; r(cosBatt); } }, 2500); });
+  askBattery();
+  return got;
+}
+
+/* ---------- Inject: get the last word ---------- */
+async function injGet(){
+  const id = (P.injId || '13297').replace(/\D/g, '') || '13297';
+  $('injSt').textContent = 'Getting Inject…';
+  try {
+    const r = await fetch('https://11z.co/_w/' + id + '/selection?t=' + Date.now(), { cache:'no-store' });
+    if (!r.ok) throw new Error('error ' + r.status);
+    const j = await r.json(); const w = String(j.value ?? '').trim();
+    $('injSt').textContent = w ? 'Last Inject: ' + w : 'Inject has no word yet';
+    log('Inject: ' + (w || '(empty)'));
+    return w;
+  } catch(e) { $('injSt').textContent = 'Inject failed (no internet?)'; log('Inject failed: ' + e.message); psShow('Inject failed'); return null; }
+}
+async function injPrint(){
+  const w = await injGet();
+  if (w === null) return;
+  if (!w) { psShow('Inject: no word'); toast('Inject has no word yet'); return; }
+  const txt = (P.injTpl && P.injTpl.includes('{word}') ? P.injTpl : '{word}').split('{word}').join(w).replace(/\\n/g, '\n');
+  psShow('Print: ' + w);
+  setStatus('Printing…', 'warn');
+  await printNow(txt);
+}
+
+async function psButton(b, e){
+  if (e !== 'click' && e !== 'longpress') return;
+  const a = P.btns[b + '.' + e] || 'none';
+  if (a === 'none') return;
+  if (a === 'clear') { aps.clear().catch(()=>{}); return; }
+  if (a === 'feed') { feedNow(+P.feed || 80); psShow('Feed'); return; }
+  if (a === 'print') { psShow('Print'); printNow(); return; }
+  if (a === 'injPrint') { injPrint(); return; }
+  if (a === 'injShow') { const w = await injGet(); if (w !== null) psShow(w ? 'Inject: ' + w : 'Inject: no word'); return; }
+  if (a === 'psBatt') { const p = await psReadBatt(); psShow(p == null ? 'PS battery: ?' : 'PS ' + p + '%'); return; }
+  if (a === 'cosBatt') { if (!connected) { psShow('Cosmos not connected'); return; } const p = await cosmosBatt(); psShow(p == null ? 'Cosmos: ?' : 'Cosmos ' + p + '%'); return; }
+  if (a === 'both') {
+    const ps = await psReadBatt(); const cs = connected ? await cosmosBatt() : null;
+    psShow('PS ' + (ps == null ? '?' : ps + '%') + ' / C ' + (connected ? (cs == null ? '?' : cs + '%') : 'off'));
+  }
+}
+
+/* settings UI */
+document.querySelectorAll('select[data-k]').forEach(s => {
+  for (const [v, n] of Object.entries(BACT)) { const o = document.createElement('option'); o.value = v; o.textContent = n; s.appendChild(o); }
+  s.value = P.btns[s.dataset.k] || 'none';
+  s.onchange = () => { P.btns[s.dataset.k] = s.value; saveP(); };
+});
+(() => { const s = $('psTime'); for (const [v, n] of PS_TIMES) { const o = document.createElement('option'); o.value = v; o.textContent = n; s.appendChild(o); }
+  s.value = String(psTime()); if (!s.value) s.value = '0';
+  s.onchange = () => { try { localStorage.setItem('fvtBleTime', s.value); } catch(_){} psWinStart(); }; })();
+$('psAuto').checked = !!P.auto; $('psAuto').onchange = e => { P.auto = e.target.checked; saveP(); };
+$('psVib').checked = !!P.vib; $('psVib').onchange = e => { P.vib = e.target.checked; saveP(); };
+$('psCon').value = P.con || ''; $('psCon').onchange = e => { P.con = e.target.value; saveP(); if (P.con) psShow(P.con, true); };
+$('psFeed').value = P.feed; $('psFeed').onchange = e => { P.feed = e.target.value; saveP(); };
+$('injId').value = P.injId; $('injId').oninput = e => { P.injId = e.target.value.replace(/\D/g, ''); saveP(); };
+$('injTpl').value = P.injTpl; $('injTpl').oninput = e => { P.injTpl = e.target.value; saveP(); };
+$('psBtn').onclick = psConnect;
+$('psTest').onclick = () => { if (psOn()) aps.text('Test 123', { raw:true }).catch(()=>{}); else toast(PS_OK ? 'Connect the PeekSmith first' : 'Only in Aura Browser'); };
+$('bInj').onclick = injPrint;
+
+psWinStart();
+if (!PS_OK) { psStatus('Only in Aura Browser'); $('psBtn').disabled = true; }
+else {
+  /* automatic search (PeekSmith only — the Cosmos stays manual): when the page opens, then every 6 s until connected */
+  const auto = () => { if ((P.auto || psManual) && !psManualOff && !psOn() && !psBusy && document.visibilityState === 'visible') { if (psWinOpen()) psSearch(); else psStatus('Not found – tap Connect', 'bad'); } };
+  setTimeout(auto, 600); setInterval(auto, 6000);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { psWinStart(); setTimeout(auto, 300); } });
+  setInterval(() => { if (psOn() && !psSending) psReadBatt(); }, 60000);
+}
+addEventListener('pagehide', () => { try { if (aps) { const a = aps; aps = null; a.disconnect().catch(()=>{}); } } catch(_){} });
 
 /* ---------- Start ---------- */
 load();
