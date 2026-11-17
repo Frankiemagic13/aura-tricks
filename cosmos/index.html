@@ -4,710 +4,547 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1c1d22">
+<meta name="theme-color" content="#000000">
 <title>Cosmos Print</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Gochi+Hand&family=Shadows+Into+Light&family=Indie+Flower&family=Reenie+Beanie&family=Covered+By+Your+Grace&family=Just+Another+Hand&family=Nanum+Pen+Script&family=Annie+Use+Your+Telescope&family=Coming+Soon&family=The+Girl+Next+Door&family=Sue+Ellen+Francisco&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#1c1d22; --card:#22242a; --hi:#2b2d34; --lo:#15161a;
-  --tx:#e8e9ee; --dim:#8b8e99; --ac:#7aa8ff; --ok:#5fd38d; --warn:#f0b54a; --bad:#ff6b6b;
-  --r:18px;
-}
+:root{--bg:#000;--card:#0c0c0e;--line:#1f1f23;--line2:#26262b;--tx:#f2f2f5;--dim:#8a8d97;--mute:#6e717b;--ac:#0a84ff;--ac2:#7cc0ff;--ok:#30d158;--warn:#ff9f0a;--bad:#ff453a;--paper:#f7f6f1}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif}
-body{padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 24px)}
-.wrap{max-width:980px;margin:0 auto;display:grid;gap:16px}
-@media(min-width:820px){.wrap{grid-template-columns:1fr 360px;align-items:start}.side{position:sticky;top:12px}}
-h1{font-size:20px;margin:0;font-weight:700;letter-spacing:.2px}
-.card{background:var(--card);border-radius:var(--r);padding:14px;box-shadow:6px 6px 14px var(--lo),-4px -4px 12px var(--hi)}
-.row{display:flex;gap:10px;align-items:center}
-.sp{flex:1}
-.top{display:flex;align-items:center;gap:10px}
-.dot{width:10px;height:10px;border-radius:50%;background:#555;box-shadow:0 0 0 3px #0003}
-.dot.ok{background:var(--ok);box-shadow:0 0 10px var(--ok)}
-.dot.warn{background:var(--warn)}
-.dot.bad{background:var(--bad)}
-#status{color:var(--dim);font-size:13px}
-button{font:inherit;color:var(--tx);border:0;border-radius:14px;padding:12px 16px;background:var(--card);
-  box-shadow:4px 4px 10px var(--lo),-3px -3px 8px var(--hi);cursor:pointer;font-weight:600}
-button:active{box-shadow:inset 3px 3px 8px var(--lo),inset -2px -2px 6px var(--hi)}
-button:disabled{opacity:.45}
-button.pri{background:linear-gradient(180deg,#86b1ff,#5f8fe8);color:#0b1630}
-button.big{width:100%;padding:16px;font-size:17px}
-button.sm{padding:8px 12px;font-size:13px;border-radius:11px}
-button.on{color:var(--ac);box-shadow:inset 3px 3px 8px var(--lo),inset -2px -2px 6px var(--hi)}
-label{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.6px;display:block;margin:0 0 6px}
-textarea,select,input[type=text]{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:0;border-radius:12px;padding:12px;
-  box-shadow:inset 3px 3px 8px var(--lo),inset -2px -2px 6px var(--hi);outline:none}
-textarea{min-height:92px;resize:vertical;font-size:17px}
-select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--dim) 50%),linear-gradient(135deg,var(--dim) 50%,transparent 50%);
-  background-position:calc(100% - 18px) 52%,calc(100% - 13px) 52%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;-webkit-user-select:none;user-select:none}
+body{padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 22px)}
+.wrap{max-width:440px;margin:0 auto}
+button{font:inherit;color:var(--tx);border:.5px solid var(--line2);background:var(--card);border-radius:12px;padding:10px 6px;cursor:pointer}
+button:active{opacity:.6}
+button:disabled{opacity:.4}
+.k{font-size:12px;color:var(--mute)}
+.row{display:flex;align-items:center;gap:8px}
+.top{display:flex;align-items:center;justify-content:space-between;min-height:40px}
+.top h1{font-size:22px;margin:0;font-weight:700;letter-spacing:.2px}
+.ib{border:0;background:none;padding:6px;color:var(--dim)}
+.ib svg{width:24px;height:24px;display:block}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
+.pill{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:.5px solid #222;border-radius:20px;padding:6px 11px;font-size:12.5px;color:#a8abb5}
+.pill .d{width:8px;height:8px;border-radius:50%;background:#444}
+.pill.on .d{background:var(--ok)}
+.pill.warn .d{background:var(--warn)}
+.pill.inj.on{color:var(--ac2);border-color:#0a3a6a}
+.chips{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border-radius:18px;padding:7px 13px;font-size:13px;border:.5px solid var(--line2);background:var(--card);color:#c9ccd6;white-space:nowrap}
+.chip.on{background:#fff;color:#000;border-color:#fff}
+.chip.add{color:var(--ac2)}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--card);border:.5px solid var(--line2);border-radius:11px;padding:2px}
+.seg button{border:0;background:none;border-radius:9px;padding:6px 8px;font-size:13px;color:#a8abb5}
+.seg button.on{background:#2c2c30;color:#fff}
+.qls{display:flex;gap:6px;margin-top:8px}
+.qls button{flex:1;padding:7px 0;font-size:12.5px;color:#a8abb5;border-radius:10px}
+.qls button.on{background:#fff;color:#000;border-color:#fff}
 input[type=range]{width:100%;accent-color:var(--ac)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.field{margin-top:12px}
-.val{float:right;color:var(--tx);text-transform:none;letter-spacing:0}
-.seg{display:flex;gap:8px}
-.seg button{flex:1;padding:10px 0}
-/* Preview */
-.stage{display:flex;justify-content:center;padding:18px 0 8px;overflow:hidden}
-.paper{position:relative;width:min(100%,384px);background:#f7f6f1;border-radius:2px;
-  box-shadow:0 18px 30px #0007,0 2px 0 #fff inset;padding:14px 0 26px;
-  -webkit-mask:radial-gradient(7px at 7px 0,#0000 98%,#000) -7px 0/14px 100% repeat-x top,linear-gradient(#000,#000);
-}
-.paper::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:12px;
-  background:linear-gradient(135deg,#f7f6f1 33%,transparent 33%) 0 0/12px 12px,linear-gradient(225deg,#f7f6f1 33%,transparent 33%) 0 0/12px 12px;transform:translateY(100%)}
-.lines{position:absolute;inset:0;background:repeating-linear-gradient(to bottom,transparent 0 37px,transparent 37px),
-  radial-gradient(circle,#9a9a9a 1px,transparent 1.4px) 0 0/9px 38px;opacity:.55;pointer-events:none}
-#prev{display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges;position:relative;mix-blend-mode:multiply}
-.meta{color:var(--dim);font-size:12px;text-align:center;margin-top:6px}
-details{margin-top:12px}
-summary{cursor:pointer;color:var(--dim);font-size:13px;list-style:none}
-summary::-webkit-details-marker{display:none}
-summary::before{content:"▸ ";}
-details[open] summary::before{content:"▾ ";}
-#log{font:11px/1.4 ui-monospace,Menlo,monospace;color:#a9adb8;background:var(--bg);border-radius:12px;padding:10px;max-height:180px;overflow:auto;white-space:pre-wrap;margin-top:8px;
-  box-shadow:inset 3px 3px 8px var(--lo),inset -2px -2px 6px var(--hi)}
-.help{color:var(--dim);font-size:13px}
-.help b{color:var(--tx)}
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%) translateY(30px);opacity:0;
-  background:#2c2f37;color:var(--tx);padding:10px 16px;border-radius:14px;box-shadow:0 8px 24px #0008;transition:.25s;font-weight:600;z-index:9}
+#paperBox{display:flex;justify-content:center;margin-top:6px}
+#paper{position:relative;background:var(--paper);border-radius:2px;touch-action:none;cursor:grab;transition:height .15s}
+#paper .gd{position:absolute;top:0;bottom:0;border-left:1px dashed #c8c6bd;pointer-events:none}
+#prev{position:absolute;top:0;image-rendering:pixelated;pointer-events:none}
+#blk{position:absolute;outline:1px dashed rgba(10,132,255,.5);outline-offset:2px;pointer-events:none;border-radius:2px}
+#paper.drag #blk{outline-color:var(--ac)}
+#warn{color:var(--warn);font-size:12px;text-align:center;margin-top:4px}
+.nud{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:6px;margin-top:8px}
+.nud button{padding:8px 0;font-size:13px}
+.fonts{display:flex;gap:7px;overflow-x:auto;scrollbar-width:none;margin-top:12px;padding-bottom:2px}
+.fonts::-webkit-scrollbar{display:none}
+.fc{flex:none;width:74px;border:.5px solid var(--line2);background:var(--card);border-radius:12px;padding:6px 4px;text-align:center}
+.fc b{display:block;font-weight:400;font-size:22px;line-height:1.15;color:var(--tx);white-space:nowrap;overflow:hidden}
+.fc span{display:block;font-size:10px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc.on{border-color:var(--ac);background:#061a30}
+textarea,input[type=text],select{width:100%;font:inherit;color:var(--tx);background:var(--card);border:.5px solid var(--line2);border-radius:12px;padding:11px;outline:none;-webkit-user-select:text;user-select:text}
+textarea{min-height:76px;resize:none;font-size:16px;line-height:1.45}
+select{-webkit-appearance:none;appearance:none}
+.btns{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:7px;margin-top:10px}
+.btns .pred{color:var(--ac2);border-color:#0a3a6a}
+.print{width:100%;margin-top:8px;background:#fff;color:#000;border:0;border-radius:15px;padding:15px;font-size:16px;font-weight:600}
+.print:disabled{opacity:.6}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);transform:translateX(-50%) translateY(30px);opacity:0;background:#1c1c1f;color:var(--tx);padding:10px 16px;border-radius:14px;border:.5px solid #333;transition:.25s;font-weight:600;z-index:30;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-.chk{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--tx);text-transform:none;letter-spacing:0;margin:0}
-.chk input{width:18px;height:18px;accent-color:var(--ac)}
+.ov{position:fixed;inset:0;background:#000;z-index:20;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 30px);transform:translateX(105%);transition:transform .28s cubic-bezier(.3,.7,.2,1)}
+.ov.open{transform:none}
+.ovh{display:flex;align-items:center;justify-content:space-between;min-height:44px;max-width:440px;margin:0 auto}
+.ovh b{font-size:17px}
+.lk{border:0;background:none;color:var(--ac);padding:8px 2px;font-size:16px}
+.ovb{max-width:440px;margin:0 auto}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.rc{background:var(--card);border:.5px solid var(--line);border-radius:16px;padding:10px;text-align:center;position:relative}
+.rc.on{border-color:var(--ac);background:#061a30}
+.rc .mini{background:var(--paper);margin:0 auto 8px;display:block;border-radius:1px}
+.rc b{font-size:13px;display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc span{font-size:11px;color:var(--mute)}
+.rc .ed{display:none;gap:5px;margin-top:8px}
+.rg.edit .rc .ed{display:grid;grid-template-columns:1fr 1fr 1fr}
+.rc .ed button{padding:6px 0;font-size:11px}
+.rc .ed .del{color:var(--bad)}
+.newrow{display:flex;gap:8px;margin-top:12px}
+.newrow button{white-space:nowrap;padding:10px 14px;color:var(--ac2)}
+.empty{color:var(--mute);text-align:center;padding:30px 10px;font-size:14px}
+.sec{background:var(--card);border:.5px solid var(--line);border-radius:16px;margin-top:10px;overflow:hidden}
+.sh{display:flex;align-items:center;justify-content:space-between;width:100%;border:0;border-radius:0;background:none;padding:14px 16px;font-size:16px;text-align:left}
+.sh i{font-style:normal;color:var(--mute);transition:transform .2s}
+.sec.open .sh i{transform:rotate(180deg)}
+.sb{display:none;padding:0 16px 14px}
+.sec.open .sb{display:block}
+.fl{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;border-top:.5px solid var(--line)}
+.fl:first-child{border-top:0}
+.fl>span{flex:none}
+.fl select,.fl input[type=text]{width:auto;max-width:60%;text-align:right;border:0;background:none;color:var(--dim);padding:6px 0}
+.fl .v{color:var(--dim);font-size:13px;min-width:52px;text-align:right}
+.fl input[type=range]{flex:1}
+.sw{-webkit-appearance:none;appearance:none;width:48px;height:29px;border-radius:15px;background:#2a2a2e;position:relative;flex:none;cursor:pointer;margin:0;transition:background .2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:25px;height:25px;border-radius:50%;background:#fff;transition:left .2s}
+.sw:checked{background:var(--ok)}
+.sw:checked::after{left:21px}
+.sb .bt2{width:100%;margin-top:8px;color:var(--ac2)}
+.note{color:var(--mute);font-size:12.5px;margin-top:8px;line-height:1.45}
+.note b{color:var(--tx)}
+#log{font:11px/1.4 ui-monospace,Menlo,monospace;color:#a9adb8;background:#050506;border-radius:10px;padding:10px;max-height:240px;overflow:auto;white-space:pre-wrap;-webkit-user-select:text;user-select:text}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#444;margin-right:6px}
+.dot.ok{background:var(--ok)}.dot.warn{background:var(--warn)}.dot.bad{background:var(--bad)}
 </style>
 </head>
 <body>
 <div class="wrap">
-
-  <!-- LEFT: editor + preview -->
-  <div style="display:grid;gap:16px">
-    <div class="card">
-      <div class="top">
-        <h1>Cosmos Print</h1><div class="sp"></div>
-        <span id="batt" title="Cosmos battery" style="display:none;font-size:13px;color:var(--dim);margin-right:6px"></span><span class="dot" id="dot"></span><span id="status">Not connected</span>
-      </div>
-      <div class="row" style="margin-top:12px">
-        <button class="pri" id="bConnect" style="flex:1">Connect</button>
-        <button id="bFeed" class="sm" disabled>Feed</button>
-      </div>
-      <label class="chk" style="margin-top:10px"><input type="checkbox" id="showAll"> Show all Bluetooth devices (Chrome)</label>
-    </div>
-
-    <div class="card">
-      <label>Prediction text</label>
-      <textarea id="text" placeholder="Type what to print…">You will think of
-the Queen of Hearts</textarea>
-      <div class="stage"><div class="paper"><div class="lines"></div><canvas id="prev" width="384" height="200"></canvas></div></div>
-      <div class="meta" id="meta">384 × 0 dots</div>
+  <div class="top">
+    <h1>Cosmos</h1>
+    <div class="row" style="gap:2px">
+      <button class="ib" id="bRoutines" aria-label="Routines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/></svg></button>
+      <button class="ib" id="bSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     </div>
   </div>
 
-  <!-- RIGHT: controls -->
-  <div class="side" style="display:grid;gap:16px">
-    <div class="card">
-      <label>Handwriting</label>
-      <select id="font"></select>
-      <div class="row" style="margin-top:8px">
-        <button class="sm" id="bUpload" style="flex:1">Load my own font (.ttf / .otf)</button>
-        <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
-      </div>
+  <div class="pills">
+    <span class="pill" id="pCos"><span class="d"></span><span id="pCosT">Cosmos</span></span>
+    <span class="pill" id="pPs"><span class="d"></span><span id="pPsT">PeekSmith</span></span>
+    <span class="pill inj" id="pInj">⤓ <span id="pInjT">Inject</span></span>
+  </div>
 
-      <div class="field"><label>Size <span class="val" id="vSize"></span></label><input type="range" id="size" min="16" max="200" value="56"></div>
-      <div class="field"><label>Pen thickness <span class="val" id="vInk"></span></label><input type="range" id="ink" min="0" max="8" step="0.5" value="1.5"></div>
-      <div class="field"><label>Messiness <span class="val" id="vMess"></span></label><input type="range" id="mess" min="0" max="10" value="4"></div>
-      <div class="field"><label>Line spacing <span class="val" id="vLh"></span></label><input type="range" id="lh" min="0.8" max="2" step="0.05" value="1.1"></div>
+  <div class="chips" id="chips"></div>
 
-      <div class="field"><label>Align</label>
-        <div class="seg" id="align">
-          <button data-v="left">Left</button><button data-v="center" class="on">Center</button><button data-v="right">Right</button>
-        </div>
-      </div>
-      <div class="field grid2">
-        <button id="bBold">Bold</button>
-        <button id="bSlant">Slant</button>
-      </div>
-      <div class="field"><button class="sm" id="bReroll" style="width:100%">New messiness (re-draw)</button></div>
-    </div>
+  <div class="row" style="margin-top:12px;justify-content:space-between">
+    <span class="k">Paper length</span>
+    <div class="seg" id="mode" style="width:150px"><button data-v="auto">Auto</button><button data-v="fixed">Fixed</button></div>
+  </div>
+  <div id="fixRow">
+    <div class="qls" id="qls"><button data-v="40">40 mm</button><button data-v="61">61 mm</button><button data-v="80">80 mm</button></div>
+    <div class="row" style="margin-top:8px"><input type="range" id="len" min="30" max="120" step="1"><span class="k" id="lenV" style="min-width:46px;text-align:right;color:var(--tx)"></span></div>
+  </div>
 
-    <div class="card">
-      <label>Print</label>
-      <div class="field grid2" style="margin-top:0">
-        <div><label>Darkness</label><select id="dens"><option value="0">Light</option><option value="1">Normal</option><option value="2" selected>Dark</option></select></div>
-        <div><label>Feed after</label><select id="feed"><option value="0">None</option><option value="80">10 mm</option><option value="160" selected>20 mm</option><option value="320">40 mm</option><option value="480">60 mm</option></select></div>
-      </div>
-      <div class="field grid2">
-        <label class="chk"><input type="checkbox" id="flip"> Upside down</label>
-        <label class="chk"><input type="checkbox" id="mirror"> Mirror</label>
-      </div>
-      <div class="field"><button class="pri big" id="bPrint" disabled>Print</button></div>
-      <details><summary>Log</summary><div id="log"></div></details>
-      <details><summary>Help</summary>
-        <div class="help" style="margin-top:8px">
-          <p><b>1.</b> Close the Cosmos app and the PeekSmith app, and turn off Atom. The printer accepts one connection at a time.</p>
-          <p><b>2.</b> Tap <b>Connect</b>. In Aura it searches for the Cosmos (LuckP_L2…). In Chrome, choose it in the list.</p>
-          <p><b>3.</b> Type the text, choose a handwriting and size. The preview shows exactly what prints (black dots only).</p>
-          <p><b>4.</b> Tap <b>Print</b>. "Printed ✓" means the Cosmos sent its done signal.</p>
-          <p>Keep this page on screen while it prints. If the text comes out upside down, turn on <b>Upside down</b>.</p>
-          <p>Works in <b>Aura Browser</b> (iPhone) and <b>Chrome</b> (Mac). Safari has no Bluetooth for web pages.</p>
-          <p><b>PeekSmith:</b> only in Aura Browser. Close the PeekSmith app first. The Cosmos and the PeekSmith can be connected at the same time. Set what each PeekSmith button does in the PeekSmith card.</p>
-          <p><b>Print last Inject:</b> the page gets the last word sent to Inject (your Inject ID) and prints it with the same handwriting. Use {word} in "Inject text" to add your own words around it.</p>
-        </div>
-      </details>
-    </div>
+  <div class="row" style="margin-top:12px;justify-content:space-between"><span class="k">Live view · 59 mm paper · drag the text</span><span class="k" id="mmV"></span></div>
+  <div id="paperBox"><div id="paper"><div class="gd" id="gL"></div><div class="gd" id="gR"></div><canvas id="prev"></canvas><div id="blk"></div></div></div>
+  <div id="warn"></div>
+  <div class="nud">
+    <button id="nC">Center</button><button data-x="0" data-y="-1" class="nb">↑</button><button data-x="0" data-y="1" class="nb">↓</button><button data-x="-1" data-y="0" class="nb">←</button><button data-x="1" data-y="0" class="nb">→</button>
+  </div>
 
-    <div class="card">
-      <div class="top"><label style="margin:0">PeekSmith</label><div class="sp"></div>
-        <span id="psBatt" style="display:none;font-size:13px;color:var(--dim);margin-right:6px"></span><span class="dot" id="psDot"></span><span id="psSt" style="color:var(--dim);font-size:13px">Not connected</span></div>
-      <div class="row" style="margin-top:12px">
-        <button id="psBtn" style="flex:1">Connect PeekSmith</button>
-        <button id="psTest" class="sm">Test</button>
-      </div>
-      <div class="field grid2">
-        <label class="chk"><input type="checkbox" id="psAuto"> Search automatically</label>
-        <div><label>Search time</label><select id="psTime"></select></div>
-      </div>
-      <div class="field"><label class="chk"><input type="checkbox" id="psVib"> Vibrate on each message</label></div>
-      <div class="field"><label>Connected screen text</label><input type="text" id="psCon" autocapitalize="off" autocorrect="off" placeholder="COSMOS"></div>
+  <div class="fonts" id="fonts"></div>
 
-      <label style="margin-top:16px">Buttons</label>
-      <div class="grid2">
-        <div><label>Left – tap</label><select data-k="1.click"></select></div>
-        <div><label>Left – hold</label><select data-k="1.longpress"></select></div>
-        <div><label>Right – tap</label><select data-k="2.click"></select></div>
-        <div><label>Right – hold</label><select data-k="2.longpress"></select></div>
-        <div><label>Side – tap</label><select data-k="0.click"></select></div>
-        <div><label>Side – hold</label><select data-k="0.longpress"></select></div>
-      </div>
-      <div class="field"><label>Button feed</label><select id="psFeed"><option value="40">5 mm</option><option value="80">10 mm</option><option value="160">20 mm</option><option value="320">40 mm</option></select></div>
+  <textarea id="text" style="margin-top:12px" placeholder="Type what to print…"></textarea>
+  <div class="row" style="justify-content:space-between;margin-top:6px"><span class="k" id="sampleV"></span><span class="k" id="srcV"></span></div>
 
-      <label style="margin-top:16px">Inject</label>
-      <div class="grid2">
-        <div><label>Inject ID</label><input type="text" id="injId" inputmode="numeric" placeholder="13297"></div>
-        <div><label>Inject text</label><input type="text" id="injTpl" autocapitalize="off" autocorrect="off" placeholder="{word}"></div>
-      </div>
-      <div class="field"><button class="sm" id="bInj" style="width:100%">Print last Inject</button></div>
-      <div class="meta" id="injSt" style="text-align:left"></div>
-    </div>
+  <div class="btns"><button class="pred" id="bPred">{ } Prediction</button><button id="bFeed">Feed</button><button id="bTest">Test</button></div>
+  <button class="print" id="bPrint">Print</button>
+</div>
+
+<!-- Routines -->
+<div class="ov" id="ovR">
+  <div class="ovh"><button class="lk" id="rBack">‹ Back</button><b>Routines</b><button class="lk" id="rEdit">Edit</button></div>
+  <div class="ovb">
+    <div class="k">Saved paper setups: text, paper length, font and position. Tap one to load it. They also show on the Notes and Calculator pages.</div>
+    <div class="newrow"><input type="text" id="rName" placeholder="Name for the current setup" maxlength="40"><button id="rSave">+ Save</button></div>
+    <div class="rg" id="rg"></div>
   </div>
 </div>
+
+<!-- Settings -->
+<div class="ov" id="ovS">
+  <div class="ovh"><span></span><b>Settings</b><button class="lk" id="sDone">Done</button></div>
+  <div class="ovb" id="secs">
+
+    <div class="sec"><button class="sh">Cosmos printer <i>⌄</i></button><div class="sb">
+      <div class="fl"><span>Status</span><span class="v" style="min-width:0"><span class="dot" id="dot"></span><span id="status">Not connected</span></span></div>
+      <div class="fl"><span>Battery</span><span class="v" id="battV">—</span></div>
+      <div class="fl"><span>Show all Bluetooth devices (Chrome)</span><input type="checkbox" class="sw" id="showAll"></div>
+      <button class="bt2" id="bConnect">Connect</button>
+      <div class="note">The Cosmos connects only when you tap <b>Connect</b> (or the Cosmos pill on the main screen). Close the Cosmos app first: the printer accepts one connection at a time.</div>
+    </div></div>
+
+    <div class="sec"><button class="sh">Handwriting <i>⌄</i></button><div class="sb">
+      <div class="fl"><span>Size</span><input type="range" id="size" min="16" max="200" step="1"><span class="v" id="sizeV"></span></div>
+      <div class="fl"><span>Pen thickness</span><input type="range" id="ink" min="0" max="8" step="0.5"><span class="v" id="inkV"></span></div>
+      <div class="fl"><span>Messiness</span><input type="range" id="mess" min="0" max="10" step="1"><span class="v" id="messV"></span></div>
+      <div class="fl"><span>Line spacing</span><input type="range" id="lh" min="0.8" max="2" step="0.05"><span class="v" id="lhV"></span></div>
+      <div class="fl"><span>Align</span><div class="seg" id="align" style="width:170px"><button data-v="left">Left</button><button data-v="center">Center</button><button data-v="right">Right</button></div></div>
+      <div class="fl"><span>Bold</span><input type="checkbox" class="sw" id="bold"></div>
+      <div class="fl"><span>Slant</span><input type="checkbox" class="sw" id="slant"></div>
+      <button class="bt2" id="bReroll">New messiness (re-draw)</button>
+      <button class="bt2" id="bUpload">Load my own font (.ttf / .otf)</button>
+      <input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" hidden>
+      <div class="note">Your own font works on this page until you close it. Templates that use it fall back to Caveat on other pages.</div>
+    </div></div>
+
+    <div class="sec"><button class="sh">Paper and print <i>⌄</i></button><div class="sb">
+      <div class="fl"><span>Darkness</span><select id="dens"><option value="0">Light</option><option value="1">Normal</option><option value="2">Dark</option></select></div>
+      <div class="fl"><span>Feed after print</span><select id="feed"><option value="0">None</option><option value="80">10 mm</option><option value="160">20 mm</option><option value="320">40 mm</option><option value="480">60 mm</option></select></div>
+      <div class="fl"><span>Upside down</span><input type="checkbox" class="sw" id="flip"></div>
+      <div class="fl"><span>Mirror</span><input type="checkbox" class="sw" id="mirror"></div>
+      <div class="note">The live view always shows the text the right way up. Upside down and Mirror apply when it prints.</div>
+    </div></div>
+
+    <div class="sec"><button class="sh">Prediction <i>⌄</i></button><div class="sb">
+      <div class="fl"><span>Source</span><select id="source"></select></div>
+      <div class="fl"><span>Sample word</span><input type="text" id="sample" autocapitalize="off" autocorrect="off" placeholder="Cosmos System"></div>
+      <div class="fl"><span>Fallback word</span><input type="text" id="fallback" autocapitalize="off" autocorrect="off" placeholder="(none)"></div>
+      <div class="fl"><span>Letters</span><select id="caseT"><option value="asis">As sent</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="title">First Letters Up</option></select></div>
+      <div class="fl"><span>Inject ID</span><input type="text" id="injId" inputmode="numeric" placeholder="13297"></div>
+      <div class="fl"><span>Only a new Inject word</span><input type="checkbox" class="sw" id="injNew"></div>
+      <div class="note"><b>{prediction}</b> is a placeholder. When you tap Print, the page gets the word from the source and prints it in its place. <b>Test</b> prints the sample word. The fallback word prints when the source has no word. "Only a new Inject word" waits (up to 60 s) for a word sent after you tap Print.</div>
+    </div></div>
+
+    <div class="sec"><button class="sh">PeekSmith <i>⌄</i></button><div class="sb">
+      <div class="fl"><span>Status</span><span class="v" style="min-width:0" id="psSt">Not connected</span></div>
+      <div class="fl"><span>Battery</span><span class="v" id="psBattV">—</span></div>
+      <div class="fl"><span>Search automatically</span><input type="checkbox" class="sw" id="psAuto"></div>
+      <div class="fl"><span>Search time</span><select id="psTime"></select></div>
+      <div class="fl"><span>Vibrate on each message</span><input type="checkbox" class="sw" id="psVib"></div>
+      <div class="fl"><span>Connected screen text</span><input type="text" id="psCon" autocapitalize="off" autocorrect="off" placeholder="COSMOS"></div>
+      <div class="fl"><span>Left – tap</span><select data-k="1.click"></select></div>
+      <div class="fl"><span>Left – hold</span><select data-k="1.longpress"></select></div>
+      <div class="fl"><span>Right – tap</span><select data-k="2.click"></select></div>
+      <div class="fl"><span>Right – hold</span><select data-k="2.longpress"></select></div>
+      <div class="fl"><span>Side – tap</span><select data-k="0.click"></select></div>
+      <div class="fl"><span>Side – hold</span><select data-k="0.longpress"></select></div>
+      <div class="fl"><span>Button feed</span><select id="psFeed"><option value="40">5 mm</option><option value="80">10 mm</option><option value="160">20 mm</option><option value="320">40 mm</option></select></div>
+      <div class="row" style="margin-top:8px"><button class="bt2" id="psBtn" style="margin:0">Connect PeekSmith</button><button class="bt2" id="psTest" style="margin:0;width:90px">Test</button></div>
+      <div class="note">Only in Aura Browser. Close the PeekSmith app first. The Cosmos and the PeekSmith can be connected at the same time.</div>
+    </div></div>
+
+    <div class="sec"><button class="sh">Help <i>⌄</i></button><div class="sb"><div class="note">
+      <p><b>1.</b> Tap the <b>Cosmos</b> pill to connect the printer. The PeekSmith connects by itself (Settings → PeekSmith).</p>
+      <p><b>2.</b> Type the text. Tap <b>{ } Prediction</b> to put the placeholder at the cursor.</p>
+      <p><b>3.</b> Paper length: <b>Fixed</b> keeps the paper at one length (61 mm is the usual slip). <b>Auto</b> makes the paper as long as the text.</p>
+      <p><b>4.</b> Drag the text on the paper, or use the arrows (1 mm each). <b>Center</b> puts it back in the middle.</p>
+      <p><b>5.</b> Tap a font. More settings are in Settings → Handwriting.</p>
+      <p><b>6.</b> <b>Print</b> gets the prediction word and prints. <b>Test</b> prints the sample word.</p>
+      <p><b>Routines</b> (grid icon): save the current setup with a name, tap one to load it. Edit lets you rename, update (save the current setup into it) or delete. Routines also show on the Notes and Calculator pages.</p>
+      <p>Works in <b>Aura Browser</b> (iPhone) and <b>Chrome</b> (Mac). Safari has no Bluetooth for web pages.</p>
+    </div></div></div>
+
+    <div class="sec"><button class="sh">Log <i>⌄</i></button><div class="sb"><div id="log"></div></div></div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
+<script src="../cosmos.js"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
+const C = window.Cosmos;
+C.loadFonts();
 
-/* ---------- Fonts ---------- */
-const FONTS = [            // everyday pen and pencil handwriting only (nothing fancy)
-  ['Caveat','Caveat (quick pen)'],
-  ['Kalam','Kalam (neat pen)'],
-  ['Patrick Hand','Patrick Hand (print letters)'],
-  ['Nanum Pen Script','Nanum Pen (ballpoint)'],
-  ['Shadows Into Light','Shadows Into Light (thin pen)'],
-  ['Indie Flower','Indie Flower (round)'],
-  ['Reenie Beanie','Reenie Beanie (fast note)'],
-  ['Covered By Your Grace','Covered By Your Grace (marker pen)'],
-  ['Just Another Hand','Just Another Hand (tall)'],
-  ['Gochi Hand','Gochi Hand (felt pen)'],
-  ['Annie Use Your Telescope','Annie (light pencil)'],
-  ['Coming Soon','Coming Soon (school print)'],
-  ['The Girl Next Door','The Girl Next Door (loose)'],
-  ['Sue Ellen Francisco','Sue Ellen (narrow)'],
-  ['Gaegu','Gaegu (pencil)'],
-  ['Bradley Hand','Bradley Hand (Apple)'],
-  ['Noteworthy','Noteworthy (Apple)'],
-];
-const fontSel = $('font');
-function addFontOption(fam, label){ const o=document.createElement('option'); o.value=fam; o.textContent=label; fontSel.appendChild(o); return o; }
-FONTS.forEach(([f,l]) => addFontOption(f,l));
+function toast(t){ const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(el._t); el._t = setTimeout(() => el.classList.remove('show'), 1800); }
+function log(t){ const el = $('log'); const d = new Date(); el.textContent += `${d.toTimeString().slice(0,8)}  ${t}\n`; if (el.textContent.length > 60000) el.textContent = el.textContent.slice(-40000); el.scrollTop = el.scrollHeight; }
+C.on('log', log); C.on('toast', toast);
+C.on('status', (t, k) => { $('status').textContent = t; $('dot').className = 'dot ' + (k || ''); });
 
-$('bUpload').onclick = () => $('fontFile').click();
+/* ---------- state: current setup (template) + page settings ---------- */
+function loadJSON(k, d){ try { return JSON.parse(localStorage.getItem(k) || 'null') ?? d; } catch(e){ return d; } }
+function saveJSON(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
+let T = C.tpl(loadJSON('fvtCosmosCur', null));
+(() => { /* first run: take the handwriting settings from the old page */
+  if (localStorage.getItem('fvtCosmosCur')) return;
+  const o = loadJSON('cosmosPrint', null); if (!o) return;
+  ['font','size','ink','mess','lh','dens','feed','flip','mirror','align','bold','slant','seed'].forEach(k => { if (o[k] !== undefined) T[k] = o[k]; });
+  ['size','ink','mess','lh','dens','feed','seed'].forEach(k => T[k] = +T[k]);
+})();
+if (!C.FONTS.some(f => f[0] === T.font)) T.font = 'Caveat';
+let curId = loadJSON('fvtCosmosCurId', null);
+const P = Object.assign({ auto: true, vib: false, con: 'COSMOS', feed: '80', injNew: false, showAll: false, btns: {} }, loadJSON('cosmosPS', {}));
+if (P.injId && !localStorage.getItem('fvtInjId')) { try { localStorage.setItem('fvtInjId', P.injId); } catch(e){} }
+function saveT(){ saveJSON('fvtCosmosCur', T); saveJSON('fvtCosmosCurId', curId); }
+function saveP(){ saveJSON('cosmosPS', P); }
+C.showAll = !!P.showAll;
+
+/* ---------- live view ---------- */
+let lastR = null, k = 4;   // k = css px per mm
+function paperWidth(){ return Math.min(300, Math.max(220, ($('paperBox').clientWidth || 300) - 40)); }
+async function draw(){
+  await C.fontsReady(T);
+  const r = C.render(Object.assign({}, T, { flip: false, mirror: false }), T.sample || 'Cosmos System'); lastR = r;
+  const pw = paperWidth(); k = pw / C.PAPER_MM;
+  const side = (C.PAPER_MM - 48) / 2 * k, cw = 48 * k, ch = r.h / 8 * k;
+  const paper = $('paper'); paper.style.width = pw + 'px'; paper.style.height = ch + 'px';
+  $('gL').style.left = side + 'px'; $('gR').style.left = (side + cw) + 'px';
+  const cv = $('prev'); C.paint(cv, r); cv.style.left = side + 'px'; cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  const b = r.box, s = k / 8, blk = $('blk');
+  blk.style.left = (side + b.x * s) + 'px'; blk.style.top = (b.y * s) + 'px'; blk.style.width = (b.w * s) + 'px'; blk.style.height = (Math.min(b.h, r.h - b.y) * s) + 'px';
+  $('mmV').textContent = r.mm + ' mm long';
+  $('warn').textContent = r.over ? 'The text is longer than the paper. Make it smaller or the paper longer.' : '';
+}
+let drawQ = false;
+function redraw(save = true){ if (save) saveT(); if (drawQ) return; drawQ = true; requestAnimationFrame(() => { drawQ = false; draw(); }); }
+addEventListener('resize', () => redraw(false));
+
+/* drag the text block */
+let drag = null;
+$('paper').addEventListener('pointerdown', e => {
+  if (!lastR) return;
+  drag = { x: e.clientX, y: e.clientY, box: { ...lastR.box }, h: lastR.h };
+  $('paper').setPointerCapture(e.pointerId); $('paper').classList.add('drag');
+});
+$('paper').addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dd = 8 / k, dx = (e.clientX - drag.x) * dd, dy = (e.clientY - drag.y) * dd, b = drag.box;
+  const freeX = C.W - b.w;
+  let nx = b.x + dx; if (Math.abs(nx - freeX / 2) < 7) nx = freeX / 2;
+  T.px = freeX > 0 ? Math.max(0, Math.min(1, nx / freeX)) : 0.5;
+  if (T.mode === 'fixed') { const freeY = drag.h - b.h; T.py = freeY > 0 ? Math.max(0, Math.min(1, (b.y + dy) / freeY)) : 0.5; }
+  else T.yAuto = Math.max(0, Math.min(800, Math.round(b.y + dy)));
+  redraw(false);
+});
+const endDrag = () => { if (!drag) return; drag = null; $('paper').classList.remove('drag'); saveT(); };
+$('paper').addEventListener('pointerup', endDrag); $('paper').addEventListener('pointercancel', endDrag);
+document.querySelectorAll('.nb').forEach(b => b.onclick = () => {
+  if (!lastR) return;
+  const bx = lastR.box, freeX = C.W - bx.w, mx = +b.dataset.x * 8, my = +b.dataset.y * 8;
+  if (mx && freeX > 0) T.px = Math.max(0, Math.min(1, (bx.x + mx) / freeX));
+  if (my) { if (T.mode === 'fixed') { const freeY = lastR.h - bx.h; if (freeY > 0) T.py = Math.max(0, Math.min(1, (bx.y + my) / freeY)); } else T.yAuto = Math.max(0, T.yAuto + my); }
+  redraw();
+});
+$('nC').onclick = () => { T.px = 0.5; T.py = 0.5; if (T.mode !== 'fixed') T.yAuto = 24; redraw(); };
+
+/* ---------- main controls ---------- */
+function syncMain(){
+  [...$('mode').children].forEach(b => b.classList.toggle('on', b.dataset.v === T.mode));
+  $('fixRow').style.display = T.mode === 'fixed' ? '' : 'none';
+  [...$('qls').children].forEach(b => b.classList.toggle('on', +b.dataset.v === +T.len));
+  $('len').value = T.len; $('lenV').textContent = T.len + ' mm';
+  if (document.activeElement !== $('text')) $('text').value = T.text;
+  $('sampleV').textContent = 'Sample: ' + (T.sample || 'Cosmos System');
+  $('srcV').textContent = 'Source: ' + ((C.sources[T.source] || C.sources.inject).name);
+  buildFonts(); buildChips();
+}
+$('mode').onclick = e => { const b = e.target.closest('button'); if (!b) return; T.mode = b.dataset.v; syncMain(); redraw(); };
+$('qls').onclick = e => { const b = e.target.closest('button'); if (!b) return; T.len = +b.dataset.v; syncMain(); redraw(); };
+$('len').oninput = () => { T.len = +$('len').value; $('lenV').textContent = T.len + ' mm'; [...$('qls').children].forEach(b => b.classList.toggle('on', +b.dataset.v === T.len)); redraw(); };
+$('text').oninput = () => { T.text = $('text').value; redraw(); };
+$('bPred').onclick = () => {
+  const ta = $('text'), s = ta.selectionStart ?? ta.value.length, e = ta.selectionEnd ?? s;
+  ta.value = ta.value.slice(0, s) + '{prediction}' + ta.value.slice(e);
+  T.text = ta.value; ta.focus(); ta.setSelectionRange(s + 12, s + 12); redraw();
+};
+
+function buildFonts(){
+  const box = $('fonts'), sl = box.scrollLeft; box.innerHTML = '';
+  C.FONTS.forEach(([f, n]) => {
+    const d = document.createElement('button'); d.className = 'fc' + (f === T.font ? ' on' : '');
+    d.innerHTML = `<b style="font-family:'${f}',cursive">Aa</b><span>${n}</span>`;
+    d.onclick = () => { T.font = f; buildFonts(); redraw(); };
+    box.appendChild(d);
+  });
+  const add = document.createElement('button'); add.className = 'fc';
+  add.innerHTML = '<b style="color:var(--ac2)">+</b><span>My font</span>'; add.onclick = () => $('fontFile').click();
+  box.appendChild(add);
+  box.scrollLeft = sl;
+  const on = box.querySelector('.fc.on'); if (on && !box._scrolled) { box._scrolled = 1; box.scrollLeft = Math.max(0, on.offsetLeft - box.clientWidth / 2 + on.clientWidth / 2); }
+}
 $('fontFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
   try {
     const fam = 'My ' + f.name.replace(/\.[^.]+$/, '');
-    const ff = new FontFace(fam, await f.arrayBuffer());
-    await ff.load(); document.fonts.add(ff);
-    addFontOption(fam, fam + ' (loaded)').selected = true;
-    toast('Font loaded'); save(); draw();
+    const ff = new FontFace(fam, await f.arrayBuffer()); await ff.load(); document.fonts.add(ff);
+    if (!C.FONTS.some(x => x[0] === fam)) C.FONTS.push([fam, 'My font']);
+    T.font = fam; toast('Font loaded'); syncMain(); redraw();
   } catch (err) { toast('Could not load that font'); log('font: ' + err.message); }
 };
 
-/* ---------- Settings ---------- */
-const S = { align:'center', bold:false, slant:false, seed: 1 };
-const KEYS = ['text','font','size','ink','mess','lh','dens','feed','flip','mirror'];
-function save(){
-  try {
-    const o = { ...S };
-    KEYS.forEach(k => { const el=$(k); o[k] = el.type==='checkbox' ? el.checked : el.value; });
-    localStorage.setItem('cosmosPrint', JSON.stringify(o));
-  } catch(_){}
+/* ---------- routines (shared templates, scope "cosmos") ---------- */
+function routines(){ return C.templates.all().filter(x => x.scope === 'cosmos'); }
+function loadRoutine(id){ const r = C.templates.get(id); if (!r) return; T = C.tpl(r.tpl); curId = id; saveT(); syncAll(); redraw(false); psShow(r.name, true); toast(r.name); }
+function buildChips(){
+  const box = $('chips'); box.innerHTML = '';
+  routines().forEach(r => { const c = document.createElement('button'); c.className = 'chip' + (r.id === curId ? ' on' : ''); c.textContent = r.name; c.onclick = () => loadRoutine(r.id); box.appendChild(c); });
+  const a = document.createElement('button'); a.className = 'chip add'; a.textContent = '+ Save'; a.onclick = () => { openOv('ovR'); setTimeout(() => $('rName').focus(), 320); }; box.appendChild(a);
 }
-function load(){
-  try {
-    const o = JSON.parse(localStorage.getItem('cosmosPrint') || 'null'); if (!o) return;
-    KEYS.forEach(k => { if (o[k]===undefined) return; const el=$(k); if (el.type==='checkbox') el.checked=o[k]; else if (k!=='font' || [...fontSel.options].some(x=>x.value===o[k])) el.value=o[k]; });
-    ['align','bold','slant','seed'].forEach(k => { if (o[k]!==undefined) S[k]=o[k]; });
-  } catch(_){}
-}
-
-/* ---------- Rendering ---------- */
-const W = 384;               // printer dots per line
-const PAD = 10;              // side margin in dots
-let bitmap = null;           // { h, rows: Uint8Array(h*48) }
-
-function rng(seed){ let s = seed >>> 0 || 1; return () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
-
-function wrapLines(ctx, text, maxW){
-  const out = [];
-  text.replace(/\r/g,'').split('\n').forEach(par => {
-    if (par === '') { out.push(''); return; }
-    let line = '';
-    par.split(/(\s+)/).forEach(tok => {
-      const test = line + tok;
-      if (ctx.measureText(test.trimEnd()).width > maxW && line.trim() !== '') { out.push(line.trimEnd()); line = tok.trimStart(); }
-      else line = test;
-    });
-    out.push(line.trimEnd());
-  });
-  return out;
-}
-
-async function draw(override){
-  const fam = fontSel.value, size = +$('size').value, ink = +$('ink').value, mess = +$('mess').value, lh = +$('lh').value;
-  const weight = S.bold ? '700' : '400';
-  const fontStr = `${S.slant?'italic ':''}${weight} ${size}px "${fam}", "Bradley Hand", cursive`;
-  try { await document.fonts.load(`${weight} ${size}px "${fam}"`); } catch(_){}
-
-  $('vSize').textContent = size + ' px · ' + (size/8).toFixed(1) + ' mm';
-  $('vInk').textContent = ink; $('vMess').textContent = mess; $('vLh').textContent = lh.toFixed(2);
-
-  const m = document.createElement('canvas').getContext('2d');
-  m.font = fontStr;
-  const lines = wrapLines(m, override != null ? String(override) : $('text').value, W - PAD*2);
-  const lineH = Math.round(size * lh);
-  const top = Math.round(size * 0.25), bottom = Math.round(size * 0.35);
-  const H = Math.max(8, top + lineH * lines.length + bottom);
-
-  const c = document.createElement('canvas'); c.width = W; c.height = H;
-  const g = c.getContext('2d');
-  g.fillStyle = '#fff'; g.fillRect(0,0,W,H);
-  g.fillStyle = '#000'; g.strokeStyle = '#000'; g.lineJoin = 'round'; g.lineCap = 'round';
-  g.font = fontStr; g.textBaseline = 'alphabetic';
-  if (S.slant && !/italic/.test(g.font)) g.setTransform(1,0,-0.18,1,0,0);
-
-  const R = rng(S.seed);
-  const jit = mess / 10;   // 0..1
-  lines.forEach((ln, i) => {
-    const chars = [...ln];
-    // measure natural widths (with a little random size change)
-    const sz = chars.map(() => 1 + (R()-0.5) * 0.10 * jit);
-    let total = 0;
-    const adv = chars.map((ch, k) => { g.font = fontStr.replace(`${size}px`, `${(size*sz[k]).toFixed(1)}px`); const w = g.measureText(ch).width; total += w; return w; });
-    let x = S.align === 'left' ? PAD : S.align === 'right' ? W - PAD - total : (W - total) / 2;
-    const baseY = top + lineH * i + size * 0.82;
-    const lineTilt = (R()-0.5) * 0.04 * jit;
-    chars.forEach((ch, k) => {
-      g.save();
-      const y = baseY + (R()-0.5) * size * 0.08 * jit + (x - W/2) * lineTilt;
-      g.translate(x, y);
-      g.rotate((R()-0.5) * 0.12 * jit);
-      g.font = fontStr.replace(`${size}px`, `${(size*sz[k]).toFixed(1)}px`);
-      if (ink > 0) { g.lineWidth = ink; g.strokeText(ch, 0, 0); }
-      g.fillText(ch, 0, 0);
-      g.restore();
-      x += adv[k] + (R()-0.5) * size * 0.03 * jit;
-    });
-  });
-
-  // To 1-bit
-  const src = g.getImageData(0,0,W,H).data;
-  const rows = new Uint8Array(H * 48);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const sx = $('mirror').checked ? W-1-x : x;
-    const sy = y;
-    const p = (sy*W + sx) * 4;
-    if (src[p] < 140) rows[y*48 + (x>>3)] |= 0x80 >> (x & 7);
-  }
-  if ($('flip').checked) { // rotate 180
-    const r2 = new Uint8Array(rows.length);
-    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
-      if (rows[y*48+(x>>3)] & (0x80>>(x&7))) { const nx=W-1-x, ny=H-1-y; r2[ny*48+(nx>>3)] |= 0x80>>(nx&7); }
-    rows.set(r2);
-  }
-  bitmap = { h: H, rows };
-
-  // Preview = exactly what prints
-  const pv = $('prev'); pv.width = W; pv.height = H;
-  const pg = pv.getContext('2d'); const im = pg.createImageData(W, H);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const on = rows[y*48+(x>>3)] & (0x80>>(x&7)); const p=(y*W+x)*4;
-    const v = on ? 30 : 255; im.data[p]=v; im.data[p+1]=v; im.data[p+2]=on?34:255; im.data[p+3]=on?255:0;
-  }
-  pg.putImageData(im,0,0);
-  $('meta').textContent = `${W} × ${H} dots · ${(H/8).toFixed(0)} mm of paper`;
-}
-let drawT; function redraw(){ clearTimeout(drawT); drawT = setTimeout(() => { draw(); save(); }, 60); }
-
-/* ---------- UI wiring ---------- */
-['text','size','ink','mess','lh','font','flip','mirror','dens','feed'].forEach(id => $(id).addEventListener('input', redraw));
-$('align').onclick = e => { const b = e.target.closest('button'); if (!b) return; S.align = b.dataset.v; [...$('align').children].forEach(x => x.classList.toggle('on', x===b)); redraw(); };
-$('bBold').onclick = () => { S.bold = !S.bold; $('bBold').classList.toggle('on', S.bold); redraw(); };
-$('bSlant').onclick = () => { S.slant = !S.slant; $('bSlant').classList.toggle('on', S.slant); redraw(); };
-$('bReroll').onclick = () => { S.seed = (Math.random()*1e9)|0; redraw(); };
-
-function toast(t){ const el=$('toast'); el.textContent=t; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('show'),1800); }
-function log(t){ const el=$('log'); const d=new Date(); el.textContent += `${d.toTimeString().slice(0,8)}  ${t}\n`; el.scrollTop = el.scrollHeight; }
-function setStatus(t, k){ $('status').textContent = t; $('dot').className = 'dot ' + (k||''); }
-const hex = u8 => [...u8].map(b => b.toString(16).padStart(2,'0')).join(' ');
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-/* ---------- Bluetooth (Aura or Web Bluetooth) ---------- */
-const SVC = 'ff00', WR = 'ff02', ST = 'ff01', FC = 'ff03';
-const full = s => `0000${s}-0000-1000-8000-00805f9b34fb`;
-const short = u => { u = String(u||'').toLowerCase(); const m = u.match(/^0000([0-9a-f]{4})-0000-1000-8000-00805f9b34fb$/); return m ? m[1] : u.replace(/^0x/,''); };
-const hasAura = () => !!(window.Aura && window.Aura.bluetooth);
-const hasWeb = () => !!navigator.bluetooth;
-
-let mode = null, connected = false, busy = false;
-let auraId = null, auraSvc = null, auraWr = null, auraSt = null, auraFc = null, auraHooked = false;
-let webDev = null, webWr = null;
-let doneWaiter = null;
-
-let battAsk = 0;
-let cosBatt = null, battWait = null;
-function showBatt(p){
-  cosBatt = p; if (battWait) { const w = battWait; battWait = null; w(p); }
-  const el = $('batt'); el.style.display = '';
-  el.textContent = '🔋 ' + p + '%';
-  el.style.color = p <= 20 ? 'var(--bad)' : p <= 40 ? 'var(--warn)' : 'var(--dim)';
-}
-async function askBattery(){
-  if (!connected || busy) return;
-  battAsk = Date.now();
-  try { await waitCredit(); await write(Uint8Array.of(0x10,0xFF,0x50,0xF1)); } catch(e){ log('battery request failed: ' + e.message); }
-}
-function onStatus(u8){
-  if (battAsk && Date.now() - battAsk < 3000 && u8.length === 2 && u8[1] <= 100) {
-    battAsk = 0; showBatt(u8[1]); log('battery ' + u8[1] + '% (status ' + u8[0] + ')'); return;
-  }
-  if (!(u8.length === 1 && u8[0] === 0 && !busy)) log('FF01 ← ' + hex(u8));
-  if (doneWaiter && (u8.includes(0xAA) || String.fromCharCode(...u8).includes('OK'))) { const w = doneWaiter; doneWaiter = null; w(true); }
-}
-// FF03 flow control: "01 NN" = printer allows NN more packets, "02 LL HH" = packet size
-let credits = null, mtu = 200;
-function onFlow(u8){
-  if (u8[0] === 0x01 && u8.length >= 2) { credits = (credits || 0) + u8[1]; if (!busy) log('FF03 ← ' + hex(u8) + ' (credits ' + credits + ')'); }
-  else if (u8[0] === 0x02 && u8.length >= 3) { mtu = u8[1] | (u8[2] << 8); log('FF03 ← ' + hex(u8) + ' (packet size ' + mtu + ')'); }
-  else log('FF03 ← ' + hex(u8));
-}
-async function waitCredit(){
-  if (credits === null) { await sleep(25); return; }          // printer never reported credits: go slowly
-  const t0 = performance.now();
-  while (credits <= 0) {
-    if (performance.now() - t0 > 3000) { log('no credit after 3 s — sending anyway'); credits = 1; break; }
-    await sleep(5);
-  }
-  credits--;
-}
-function toU8(v){ if (v instanceof Uint8Array) return v; if (v instanceof DataView) return new Uint8Array(v.buffer, v.byteOffset, v.byteLength); if (v instanceof ArrayBuffer) return new Uint8Array(v);
-  if (Array.isArray(v)) return Uint8Array.from(v); if (typeof v === 'string') { const h=v.replace(/[^0-9a-f]/gi,''); return Uint8Array.from(h.match(/../g)||[], x=>parseInt(x,16)); } if (v && v.data) return toU8(v.data); return new Uint8Array(); }
-
-let kaTimer = null, connAt = 0;
-function startKeepAlive(){
-  stopKeepAlive(); connAt = Date.now();
-  let tick = 0;
-  setTimeout(askBattery, 800);
-  kaTimer = setInterval(async () => {
-    if (!connected || busy) return;
-    if (++tick % 4 === 0) return askBattery();
-    try { await waitCredit(); await write(Uint8Array.of(0x10,0xFF,0x40)); } catch(e){ log('keep-alive failed: ' + e.message); }
-  }, 15000);
-}
-function stopKeepAlive(){ if (kaTimer) clearInterval(kaTimer); kaTimer = null; }
-function setConnected(on){
-  if (!on && connected && connAt) log('connection lasted ' + Math.round((Date.now()-connAt)/1000) + ' s');
-  if (on) startKeepAlive(); else stopKeepAlive();
-  connected = on;
-  if (!on) $('batt').style.display = 'none';
-  $('bConnect').textContent = on ? 'Disconnect' : 'Connect';
-  $('bConnect').classList.toggle('pri', !on);
-  $('bPrint').disabled = !on; $('bFeed').disabled = !on;
-  setStatus(on ? 'Connected' : 'Not connected', on ? 'ok' : '');
-}
-
-async function connect(){
-  credits = null;
-  mode = hasAura() ? 'aura' : hasWeb() ? 'web' : null;
-  if (!mode) { setStatus('No Bluetooth here', 'bad'); toast('Open this page in Aura Browser or Chrome'); return; }
-  setStatus('Searching…', 'warn');
-  try {
-    if (mode === 'aura') await connectAura(); else await connectWeb();
-    setConnected(true); toast('Cosmos connected');
-  } catch (e) {
-    log('connect failed: ' + e.message); setStatus('Not connected', 'bad');
-    toast(/cancel/i.test(e.message) ? 'Cancelled' : 'Could not connect');
+async function buildRoutines(){
+  const g = $('rg'), list = routines(); g.innerHTML = '';
+  if (!list.length) { g.innerHTML = '<div class="empty" style="grid-column:1/-1">No routines yet. Type a name above and tap + Save.</div>'; return; }
+  for (const r of list) {
+    const t = C.tpl(r.tpl), d = document.createElement('div'); d.className = 'rc' + (r.id === curId ? ' on' : '');
+    const cv = document.createElement('canvas'); cv.className = 'mini'; d.appendChild(cv);
+    d.insertAdjacentHTML('beforeend', `<b></b><span>${t.mode === 'fixed' ? t.len + ' mm' : 'Auto length'} · ${(C.FONTS.find(f => f[0] === t.font) || [0, t.font])[1]}</span><div class="ed"><button data-a="ren">Rename</button><button data-a="upd">Update</button><button data-a="del" class="del">Delete</button></div>`);
+    d.querySelector('b').textContent = r.name;
+    d.onclick = e => {
+      const a = e.target.closest('[data-a]');
+      if (!a) { if (!$('rg').classList.contains('edit')) { loadRoutine(r.id); closeOv('ovR'); } return; }
+      e.stopPropagation();
+      if (a.dataset.a === 'ren') { const n = prompt('New name', r.name); if (n && n.trim()) { C.templates.update(r.id, { name: n.trim() }); buildRoutines(); buildChips(); } }
+      if (a.dataset.a === 'upd') { C.templates.update(r.id, { tpl: T }); curId = r.id; saveT(); toast('Updated ' + r.name); buildRoutines(); buildChips(); }
+      if (a.dataset.a === 'del') { if (confirm('Delete ' + r.name + '?')) { C.templates.remove(r.id); if (curId === r.id) { curId = null; saveT(); } buildRoutines(); buildChips(); } }
+    };
+    g.appendChild(d);
+    await C.fontsReady(t);
+    const rr = C.render(Object.assign({}, t, { flip: false, mirror: false }), t.sample);
+    C.paint(cv, rr);
+    const w = 110, s = w / C.W, h = rr.h * s;
+    cv.style.width = (h > 150 ? w * 150 / h : w) + 'px'; cv.style.height = Math.min(150, h) + 'px';
   }
 }
-
-async function connectAura(){
-  const A = Aura.bluetooth;
-  try { const st = await A.state(); log('Aura bluetooth: ' + st);
-    if (st === 'poweredOff') throw new Error('Bluetooth is off');
-    if (st === 'unauthorized') throw new Error('Aura has no Bluetooth permission'); } catch(e){ if (/off|permission/.test(e.message)) throw e; }
-  if (!auraHooked) {
-    auraHooked = true;
-    Aura.on('bluetooth.notification', ({ id, characteristic, value }) => {
-      if (id !== auraId) return; const c = short(characteristic), u = toU8(value);
-      if (c === ST) onStatus(u); else if (c === FC) onFlow(u);
-    });
-    Aura.on('bluetooth.disconnected', ({ id }) => { if (id === auraId) { log('disconnected'); setConnected(false); } });
-  }
-  const d = await A.requestDevice({ namePrefix: 'LuckP' });
-  auraId = d.id; log('found ' + d.name + (d.rssi ? ' (' + d.rssi + ' dBm)' : ''));
-  const info = await A.connect(auraId);
-  const svcs = info && info.services || [];
-  log('services: ' + svcs.map(s => short(s.uuid)).join(', '));
-  const s = svcs.find(s => short(s.uuid) === SVC);
-  auraSvc = s ? s.uuid : full(SVC);
-  const ch = (s && s.characteristics) || [];
-  const pick = id => { const c = ch.find(c => short(c.uuid || c) === id); return c ? (c.uuid || c) : full(id); };
-  auraWr = pick(WR); auraSt = pick(ST); auraFc = pick(FC);
-  try { await A.startNotifications(auraId, auraSvc, auraSt); } catch(e){ log('notify FF01: ' + e.message); }
-  try { await A.startNotifications(auraId, auraSvc, auraFc); } catch(e){ log('notify FF03: ' + e.message); }
-}
-
-async function connectWeb(){
-  if (!webDev) {
-    webDev = await navigator.bluetooth.requestDevice($('showAll').checked
-      ? { acceptAllDevices: true, optionalServices: [full(SVC)] }
-      : { filters: [{ namePrefix: 'LuckP' }, { services: [full(SVC)] }], optionalServices: [full(SVC)] });
-    webDev.addEventListener('gattserverdisconnected', () => { log('disconnected'); setConnected(false); });
-  }
-  log('connecting to ' + (webDev.name || 'device'));
-  const srv = await webDev.gatt.connect();
-  const s = await srv.getPrimaryService(full(SVC));
-  webWr = await s.getCharacteristic(full(WR));
-  for (const [id, fn] of [[ST, onStatus], [FC, onFlow]]) {
-    try { const c = await s.getCharacteristic(full(id)); c.addEventListener('characteristicvaluechanged', e => fn(toU8(e.target.value))); await c.startNotifications(); }
-    catch(e){ log('notify ' + id + ': ' + e.message); }
-  }
-}
-
-async function disconnect(){
-  log('disconnect (button)');
-  try {
-    if (mode === 'aura' && auraId) await Aura.bluetooth.disconnect(auraId);
-    if (mode === 'web' && webDev && webDev.gatt.connected) webDev.gatt.disconnect();
-  } catch(e){ log('disconnect: ' + e.message); }
-  setConnected(false);
-}
-
-async function write(u8){
-  if (mode === 'aura') await Aura.bluetooth.write(auraId, auraSvc, auraWr, u8);
-  else await webWr.writeValue(u8);
-}
-
-/* ---------- Printer protocol (LuckPrinter / Lujiang) ---------- */
-const CMD = {
-  wake:   () => new Uint8Array(12),
-  density:n => Uint8Array.of(0x10,0xFF,0x10,0x00,n),
-  enable: () => Uint8Array.of(0x10,0xFF,0xF1,0x03),
-  stop:   () => Uint8Array.of(0x10,0xFF,0xF1,0x45),
-  feed:   n => { const a=[]; while (n>0){ const k=Math.min(255,n); a.push(0x1B,0x4A,k); n-=k; } return Uint8Array.from(a); },
+$('rSave').onclick = () => {
+  const n = $('rName').value.trim() || ('Routine ' + (routines().length + 1));
+  const o = C.templates.add(n, 'cosmos', T); curId = o.id; saveT(); $('rName').value = ''; $('rName').blur();
+  toast('Saved ' + n); buildRoutines(); buildChips();
 };
-const ROWS_PER_WRITE = 3;   // 8 + 3*48 = 152 bytes, under the 200-byte packet size
+$('rEdit').onclick = () => { const on = $('rg').classList.toggle('edit'); $('rEdit').textContent = on ? 'Done' : 'Edit'; };
+C.on('templates', () => { buildChips(); if ($('ovR').classList.contains('open')) buildRoutines(); });
 
-function rasterChunks(bm){
-  const out = [];
-  for (let y = 0; y < bm.h; y += ROWS_PER_WRITE) {
-    const n = Math.min(ROWS_PER_WRITE, bm.h - y);
-    const b = new Uint8Array(8 + n*48);
-    b.set([0x1D,0x76,0x30,0x00,48,0x00,n & 0xFF,n >> 8]);
-    b.set(bm.rows.subarray(y*48, (y+n)*48), 8);
-    out.push(b);
-  }
-  return out;
-}
+/* ---------- overlays ---------- */
+function openOv(id){ $(id).classList.add('open'); if (id === 'ovR') buildRoutines(); }
+function closeOv(id){ $(id).classList.remove('open'); if (id === 'ovR') { $('rg').classList.remove('edit'); $('rEdit').textContent = 'Edit'; } }
+$('bRoutines').onclick = () => openOv('ovR'); $('rBack').onclick = () => closeOv('ovR');
+$('bSettings').onclick = () => openOv('ovS'); $('sDone').onclick = () => { closeOv('ovS'); syncMain(); redraw(false); };
+document.querySelectorAll('#secs .sh').forEach(h => h.onclick = () => {
+  const sec = h.parentElement, was = sec.classList.contains('open');
+  document.querySelectorAll('#secs .sec').forEach(s => s.classList.remove('open'));
+  if (!was) { sec.classList.add('open'); setTimeout(() => sec.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30); }
+});
 
-async function runJob(body){
-  if (busy || !connected) return;
-  busy = true; $('bPrint').disabled = true; $('bFeed').disabled = true;
-  let enabled = false;
-  try {
-    await waitCredit(); await write(CMD.wake());
-    await waitCredit(); await write(CMD.density(+$('dens').value));
-    await waitCredit(); await write(CMD.enable()); enabled = true;
-    await body();
-  } catch (e) {
-    log('print error: ' + e.message); toast('Print error — see Log'); psShow('Print error');
-  } finally {
-    if (enabled) {
-      const done = new Promise(r => { doneWaiter = r; setTimeout(() => { if (doneWaiter) { doneWaiter = null; r(false); } }, 10000); });
-      try { await waitCredit(); await write(CMD.stop()); } catch(e){ log('stop failed: ' + e.message); }
-      const ok = await done;
-      setStatus(ok ? 'Printed ✓' : 'Sent (no done signal)', ok ? 'ok' : 'warn');
-      psShow(ok ? 'Printed' : 'Sent');
-      if (ok) toast('Printed ✓');
-    }
-    busy = false; if (connected) { $('bPrint').disabled = false; $('bFeed').disabled = false; setTimeout(askBattery, 1500); }
-  }
+/* ---------- settings wiring ---------- */
+function syncSettings(){
+  $('size').value = T.size; $('sizeV').textContent = (T.size / 8).toFixed(1) + ' mm';
+  $('ink').value = T.ink; $('inkV').textContent = T.ink;
+  $('mess').value = T.mess; $('messV').textContent = T.mess;
+  $('lh').value = T.lh; $('lhV').textContent = (+T.lh).toFixed(2);
+  [...$('align').children].forEach(b => b.classList.toggle('on', b.dataset.v === T.align));
+  $('bold').checked = !!T.bold; $('slant').checked = !!T.slant;
+  $('dens').value = T.dens; $('feed').value = T.feed; $('flip').checked = !!T.flip; $('mirror').checked = !!T.mirror;
+  const src = $('source'); src.innerHTML = ''; Object.entries(C.sources).forEach(([id, s]) => { const o = document.createElement('option'); o.value = id; o.textContent = s.name; src.appendChild(o); });
+  src.value = C.sources[T.source] ? T.source : 'inject';
+  $('sample').value = T.sample || ''; $('fallback').value = T.fallback || ''; $('caseT').value = T.caseT || 'asis';
+  $('injId').value = C.injectId(); $('injNew').checked = !!P.injNew; $('showAll').checked = !!P.showAll;
 }
+[['size','sizeV',v => (v/8).toFixed(1) + ' mm'],['ink','inkV',v => v],['mess','messV',v => v],['lh','lhV',v => (+v).toFixed(2)]].forEach(([id, out, f]) =>
+  $(id).oninput = () => { T[id] = +$(id).value; $(out).textContent = f(T[id]); redraw(); });
+$('align').onclick = e => { const b = e.target.closest('button'); if (!b) return; T.align = b.dataset.v; syncSettings(); redraw(); };
+['bold','slant','flip','mirror'].forEach(id => $(id).onchange = () => { T[id] = $(id).checked; redraw(); });
+['dens','feed'].forEach(id => $(id).onchange = () => { T[id] = +$(id).value; saveT(); });
+$('bReroll').onclick = () => { T.seed = (Math.random() * 1e9) | 0; redraw(); toast('Re-drawn'); };
+$('bUpload').onclick = () => $('fontFile').click();
+$('source').onchange = () => { T.source = $('source').value; saveT(); syncMain(); };
+$('sample').oninput = () => { T.sample = $('sample').value; redraw(); $('sampleV').textContent = 'Sample: ' + (T.sample || 'Cosmos System'); };
+$('fallback').oninput = () => { T.fallback = $('fallback').value; saveT(); };
+$('caseT').onchange = () => { T.caseT = $('caseT').value; redraw(); };
+$('injId').oninput = () => { try { localStorage.setItem('fvtInjId', $('injId').value.replace(/\D/g, '')); } catch(e){} };
+$('injNew').onchange = () => { P.injNew = $('injNew').checked; saveP(); };
+$('showAll').onchange = () => { P.showAll = C.showAll = $('showAll').checked; saveP(); };
 
-async function printNow(override){
-  if (!connected) { toast('Connect the Cosmos first'); psShow('Cosmos not connected'); return false; }
-  if (busy) { psShow('Busy'); return false; }
-  await draw(override);
-  const chunks = rasterChunks(bitmap);
-  log(`printing ${bitmap.h} rows in ${chunks.length} writes`);
-  setStatus('Printing…', 'warn');
-  await runJob(async () => {
-    const t0 = performance.now();
-    for (let i = 0; i < chunks.length; i++) {
-      await waitCredit();
-      await write(chunks[i]);
-      if (i % 10 === 0) setStatus(`Printing… ${Math.round(i/chunks.length*100)}%`, 'warn');
-    }
-    const f = +$('feed').value; if (f) { await waitCredit(); await write(CMD.feed(f)); }
-    log(`sent in ${Math.round(performance.now()-t0)} ms`);
-  });
-  return true;
+/* ---------- Cosmos connection + pills ---------- */
+let psBattery = null;
+function pills(){
+  $('pCos').classList.toggle('on', C.connected);
+  $('pCosT').textContent = C.connected ? ('Cosmos' + (C.battery != null ? ' ' + C.battery + '%' : '')) : 'Cosmos';
+  $('battV').textContent = C.battery != null ? C.battery + '%' : '—';
+  $('bConnect').textContent = C.connected ? 'Disconnect' : 'Connect';
+  const pp = $('pPs'); pp.classList.toggle('on', psOn()); pp.classList.toggle('warn', !psOn() && psBusy);
+  $('pPsT').textContent = psOn() ? ('PeekSmith' + (psBattery != null ? ' ' + psBattery + '%' : '')) : 'PeekSmith';
+  $('psBattV').textContent = psBattery != null ? psBattery + '%' : '—';
+  $('psBtn').textContent = psOn() ? 'Disconnect' : 'Connect PeekSmith';
 }
-$('bPrint').onclick = () => printNow();
-function feedNow(n){
-  if (!connected) { psShow('Cosmos not connected'); return; }
-  if (busy) { psShow('Busy'); return; }
-  runJob(async () => { await write(CMD.feed(n)); });
-}
-$('bFeed').onclick = () => feedNow(80);
-$('bConnect').onclick = () => connected ? disconnect() : connect();
+C.on('change', pills);
+C.on('busy', on => { $('bPrint').disabled = on; $('bFeed').disabled = on; $('bTest').disabled = on; if (!on) $('bPrint').textContent = 'Print'; });
+C.on('status', t => { if (/Printing|Waiting/.test(t)) $('bPrint').textContent = t; else if (!C.busy) $('bPrint').textContent = 'Print'; });
+C.on('printed', ok => { psShow(ok ? 'Printed' : 'Sent'); if (ok) toast('Printed ✓'); });
+const cosToggle = () => C.connected ? C.disconnect() : C.connect();
+$('pCos').onclick = cosToggle; $('bConnect').onclick = cosToggle;
 
-document.addEventListener('visibilitychange', () => log(document.hidden ? 'page hidden (iPhone locked or app switched)' : 'page visible'));
+/* ---------- printing ---------- */
+async function printMain(){
+  if (!C.connected) { toast('Connect the Cosmos first'); psShow('Cosmos not connected'); return; }
+  if (C.busy) { psShow('Busy'); return; }
+  if (T.text.includes('{prediction}')) psShow(P.injNew && T.source === 'inject' ? 'Waiting for Inject' : 'Getting ' + (C.sources[T.source] || C.sources.inject).name);
+  const r = await C.printPrediction(T, { waitNew: !!P.injNew });
+  if (r.word === null) psShow('No word');
+  else if (r.word) { psShow('Print: ' + r.word); $('pInjT').textContent = r.word; }
+}
+async function testPrint(){ if (!C.connected) { toast('Connect the Cosmos first'); return; } psShow('Test print'); await C.print(T, T.sample || 'Cosmos System'); }
+function feedNow(n){ if (!C.connected) { toast('Connect the Cosmos first'); psShow('Cosmos not connected'); return; } C.feed(n); }
+$('bPrint').onclick = printMain; $('bTest').onclick = testPrint; $('bFeed').onclick = () => feedNow(80);
+$('pInj').onclick = async () => {
+  try { const w = (await C.injectRead()).value; $('pInjT').textContent = w || 'Inject: no word'; $('pInj').classList.add('on'); toast(w ? 'Last Inject: ' + w : 'Inject has no word yet'); }
+  catch(e) { toast('Inject failed (no internet?)'); }
+};
 
 /* ---------- PeekSmith (Aura Browser only, AuraPeekSmith library by magicsplitter.fr) ---------- */
-const P = Object.assign({ auto:true, vib:false, con:'COSMOS', feed:'80', injId:'13297', injTpl:'{word}', btns:{} }, (() => { try { return JSON.parse(localStorage.getItem('cosmosPS') || '{}'); } catch(_) { return {}; } })());
-function saveP(){ try { localStorage.setItem('cosmosPS', JSON.stringify(P)); } catch(_){} }
 const PS_OK = !!(window.AuraPeekSmith && AuraPeekSmith.isAvailable && AuraPeekSmith.isAvailable());
-const BACT = {
-  none:'Nothing', feed:'Feed paper', print:'Print the prediction text', injPrint:'Print last Inject', injShow:'Show last Inject',
-  cosBatt:'Show Cosmos battery %', psBatt:'Show PeekSmith battery %', both:'Show both battery %', clear:'Clear PeekSmith'
-};
-const BDEF = { '1.click':'injPrint', '1.longpress':'injShow', '2.click':'feed', '2.longpress':'print', '0.click':'both', '0.longpress':'clear' };
+const BACT = { none:'Nothing', print:'Print (with prediction)', test:'Test print (sample word)', feed:'Feed paper', injShow:'Show last Inject',
+  nextR:'Next routine', prevR:'Previous routine', cosBatt:'Show Cosmos battery %', psBatt:'Show PeekSmith battery %', both:'Show both battery %', clear:'Clear PeekSmith' };
+const BDEF = { '1.click':'print', '1.longpress':'injShow', '2.click':'nextR', '2.longpress':'feed', '0.click':'both', '0.longpress':'clear' };
+Object.keys(P.btns || {}).forEach(k => { if (P.btns[k] === 'injPrint') P.btns[k] = 'print'; if (!BACT[P.btns[k]]) delete P.btns[k]; });
 P.btns = Object.assign({}, BDEF, P.btns || {});
-
-/* search time: one setting for all trick pages (localStorage "fvtBleTime", seconds, 0 = until found) */
 const PS_TIMES = [[10,'10 s'],[15,'15 s'],[30,'30 s'],[60,'1 min'],[120,'2 min'],[300,'5 min'],[0,'Until found']];
 function psTime(){ let v = NaN; try { v = parseInt(localStorage.getItem('fvtBleTime'), 10); } catch(_){} return Number.isFinite(v) && v >= 0 ? v : 0; }
 let psEnd = 0; function psWinStart(){ const t = psTime(); psEnd = t ? Date.now() + t*1000 : 0; }
 const psWinOpen = () => !psEnd || Date.now() < psEnd;
 const psScanT = () => psEnd ? Math.max(3, Math.min(15, Math.ceil((psEnd - Date.now())/1000))) : 15;
-
 let aps = null, psBusy = false, psManualOff = false, psManual = false;
-const psOn = () => !!(aps && aps.connected);
-function psStatus(t, k){ $('psSt').textContent = t; $('psDot').className = 'dot ' + (k||''); }
-function psBtnText(){ $('psBtn').textContent = psOn() ? 'Disconnect' : 'Connect PeekSmith'; $('psBtn').classList.toggle('pri', !psOn()); if (!psOn()) $('psBatt').style.display = 'none'; }
-
+function psOn(){ return !!(aps && aps.connected); }
+function psStatus(t){ $('psSt').textContent = t; pills(); }
 async function psConnect(){
-  if (!PS_OK) { psStatus('Only in Aura Browser', 'bad'); toast('PeekSmith works only in Aura Browser'); return; }
-  if (psOn()) { psManualOff = true; psManual = false; const a = aps; aps = null; await a.disconnect().catch(()=>{}); psStatus('Not connected'); psBtnText(); return; }
+  if (!PS_OK) { psStatus('Only in Aura Browser'); toast('PeekSmith works only in Aura Browser'); return; }
+  if (psOn()) { psManualOff = true; psManual = false; const a = aps; aps = null; await a.disconnect().catch(()=>{}); psBattery = null; psStatus('Not connected'); return; }
   psManualOff = false; psManual = true; psWinStart(); return psSearch();
 }
 async function psSearch(){
-  if (psBusy || psOn()) return; psBusy = true;
+  if (psBusy || psOn()) return; psBusy = true; pills();
   aps = new AuraPeekSmith({ lang:'en', timeout: psScanT() });
   aps.on('status', ({ state, name, attempt }) => {
-    if (state === 'scanning') psStatus('Searching…', 'warn');
-    if (state === 'connecting') psStatus('Connecting…', 'warn');
-    if (state === 'connected') psStatus(name || 'Connected', 'ok');
-    if (state === 'reconnecting') psStatus('Reconnecting (' + attempt + ')', 'warn');
+    if (state === 'scanning') psStatus('Searching…'); if (state === 'connecting') psStatus('Connecting…');
+    if (state === 'connected') psStatus(name || 'Connected'); if (state === 'reconnecting') psStatus('Reconnecting (' + attempt + ')');
     if (state === 'disconnected') psStatus('Not connected');
-    psBtnText();
   });
-  aps.on('connect', () => { log('PeekSmith connected'); aps.vibrate("''").catch(()=>{}); psBtnText(); setTimeout(() => { if (P.con) psShow(P.con, true); psReadBatt(); }, 300); });
-  aps.on('disconnect', () => { log('PeekSmith disconnected'); psBtnText(); });
+  aps.on('connect', () => { log('PeekSmith connected'); aps.vibrate("''").catch(()=>{}); setTimeout(() => { if (P.con) psShow(P.con, true); psReadBatt(); }, 300); pills(); });
+  aps.on('disconnect', () => { log('PeekSmith disconnected'); psBattery = null; pills(); });
   aps.on('button', ({ button, event }) => psButton(button, event));
-  try { await aps.connect(); } catch(e) { log('PeekSmith: ' + e.message); psStatus(psWinOpen() ? 'Searching again…' : 'Not found – tap Connect', psWinOpen() ? 'warn' : 'bad'); aps = null; }
-  psBusy = false; psBtnText();
+  try { await aps.connect(); } catch(e) { log('PeekSmith: ' + e.message); psStatus(psWinOpen() ? 'Searching again…' : 'Not found – tap Connect'); aps = null; }
+  psBusy = false; pills();
 }
-
-/* newest text wins: only one send at a time, a newer text replaces the waiting one */
 let psPend = null, psSending = false;
 function psShow(t, noVib){ if (!psOn()) return; psPend = { t: String(t), v: !noVib }; if (!psSending) psFlush(); }
 async function psFlush(){
   psSending = true;
   const lim = p => Promise.race([p, new Promise(r => setTimeout(r, 3000))]);
-  while (psPend && psOn()) {
-    const { t, v } = psPend; psPend = null;
-    try { await lim(aps.text(t, { raw:true })); if (P.vib && v && !psPend) await lim(aps.vibrate("''")); } catch(_){}
-  }
+  while (psPend && psOn()) { const { t, v } = psPend; psPend = null; try { await lim(aps.text(t, { raw:true })); if (P.vib && v && !psPend) await lim(aps.vibrate("''")); } catch(_){} }
   psPend = null; psSending = false;
 }
-
-async function psReadBatt(){
-  if (!psOn()) return null;
-  try {
-    const p = Math.round(await aps.battery());
-    if (!Number.isFinite(p)) return null;
-    const el = $('psBatt'); el.style.display = ''; el.textContent = '🔋 ' + p + '%';
-    el.style.color = p <= 20 ? 'var(--bad)' : p <= 40 ? 'var(--warn)' : 'var(--dim)';
-    return p;
-  } catch(e) { log('PeekSmith battery: ' + e.message); return null; }
+async function psReadBatt(){ if (!psOn()) return null; try { const p = Math.round(await aps.battery()); if (!Number.isFinite(p)) return null; psBattery = p; pills(); return p; } catch(e) { log('PeekSmith battery: ' + e.message); return null; } }
+function stepRoutine(d){
+  const list = routines(); if (!list.length) { psShow('No routines'); return; }
+  let i = list.findIndex(r => r.id === curId); i = (i + d + list.length) % list.length; loadRoutine(list[i].id);
 }
-async function cosmosBatt(){
-  if (!connected) return null;
-  if (busy) return cosBatt;
-  const got = new Promise(r => { battWait = r; setTimeout(() => { if (battWait) { battWait = null; r(cosBatt); } }, 2500); });
-  askBattery();
-  return got;
-}
-
-/* ---------- Inject: get the last word ---------- */
-async function injGet(){
-  const id = (P.injId || '13297').replace(/\D/g, '') || '13297';
-  $('injSt').textContent = 'Getting Inject…';
-  try {
-    const r = await fetch('https://11z.co/_w/' + id + '/selection?t=' + Date.now(), { cache:'no-store' });
-    if (!r.ok) throw new Error('error ' + r.status);
-    const j = await r.json(); const w = String(j.value ?? '').trim();
-    $('injSt').textContent = w ? 'Last Inject: ' + w : 'Inject has no word yet';
-    log('Inject: ' + (w || '(empty)'));
-    return w;
-  } catch(e) { $('injSt').textContent = 'Inject failed (no internet?)'; log('Inject failed: ' + e.message); psShow('Inject failed'); return null; }
-}
-async function injPrint(){
-  const w = await injGet();
-  if (w === null) return;
-  if (!w) { psShow('Inject: no word'); toast('Inject has no word yet'); return; }
-  const txt = (P.injTpl && P.injTpl.includes('{word}') ? P.injTpl : '{word}').split('{word}').join(w).replace(/\\n/g, '\n');
-  psShow('Print: ' + w);
-  setStatus('Printing…', 'warn');
-  await printNow(txt);
-}
-
 async function psButton(b, e){
   if (e !== 'click' && e !== 'longpress') return;
   const a = P.btns[b + '.' + e] || 'none';
   if (a === 'none') return;
   if (a === 'clear') { aps.clear().catch(()=>{}); return; }
   if (a === 'feed') { feedNow(+P.feed || 80); psShow('Feed'); return; }
-  if (a === 'print') { psShow('Print'); printNow(); return; }
-  if (a === 'injPrint') { injPrint(); return; }
-  if (a === 'injShow') { const w = await injGet(); if (w !== null) psShow(w ? 'Inject: ' + w : 'Inject: no word'); return; }
+  if (a === 'print') { printMain(); return; }
+  if (a === 'test') { testPrint(); return; }
+  if (a === 'nextR') { stepRoutine(1); return; }
+  if (a === 'prevR') { stepRoutine(-1); return; }
+  if (a === 'injShow') { try { const w = (await C.injectRead()).value; psShow(w ? 'Inject: ' + w : 'Inject: no word'); } catch(_) { psShow('Inject failed'); } return; }
   if (a === 'psBatt') { const p = await psReadBatt(); psShow(p == null ? 'PS battery: ?' : 'PS ' + p + '%'); return; }
-  if (a === 'cosBatt') { if (!connected) { psShow('Cosmos not connected'); return; } const p = await cosmosBatt(); psShow(p == null ? 'Cosmos: ?' : 'Cosmos ' + p + '%'); return; }
-  if (a === 'both') {
-    const ps = await psReadBatt(); const cs = connected ? await cosmosBatt() : null;
-    psShow('PS ' + (ps == null ? '?' : ps + '%') + ' / C ' + (connected ? (cs == null ? '?' : cs + '%') : 'off'));
-  }
+  if (a === 'cosBatt') { if (!C.connected) { psShow('Cosmos not connected'); return; } const p = await C.readBattery(); psShow(p == null ? 'Cosmos: ?' : 'Cosmos ' + p + '%'); return; }
+  if (a === 'both') { const ps = await psReadBatt(); const cs = C.connected ? await C.readBattery() : null;
+    psShow('PS ' + (ps == null ? '?' : ps + '%') + ' / C ' + (C.connected ? (cs == null ? '?' : cs + '%') : 'off')); }
 }
-
-/* settings UI */
 document.querySelectorAll('select[data-k]').forEach(s => {
   for (const [v, n] of Object.entries(BACT)) { const o = document.createElement('option'); o.value = v; o.textContent = n; s.appendChild(o); }
-  s.value = P.btns[s.dataset.k] || 'none';
-  s.onchange = () => { P.btns[s.dataset.k] = s.value; saveP(); };
+  s.value = P.btns[s.dataset.k] || 'none'; s.onchange = () => { P.btns[s.dataset.k] = s.value; saveP(); };
 });
 (() => { const s = $('psTime'); for (const [v, n] of PS_TIMES) { const o = document.createElement('option'); o.value = v; o.textContent = n; s.appendChild(o); }
   s.value = String(psTime()); if (!s.value) s.value = '0';
@@ -716,29 +553,25 @@ $('psAuto').checked = !!P.auto; $('psAuto').onchange = e => { P.auto = e.target.
 $('psVib').checked = !!P.vib; $('psVib').onchange = e => { P.vib = e.target.checked; saveP(); };
 $('psCon').value = P.con || ''; $('psCon').onchange = e => { P.con = e.target.value; saveP(); if (P.con) psShow(P.con, true); };
 $('psFeed').value = P.feed; $('psFeed').onchange = e => { P.feed = e.target.value; saveP(); };
-$('injId').value = P.injId; $('injId').oninput = e => { P.injId = e.target.value.replace(/\D/g, ''); saveP(); };
-$('injTpl').value = P.injTpl; $('injTpl').oninput = e => { P.injTpl = e.target.value; saveP(); };
-$('psBtn').onclick = psConnect;
+$('psBtn').onclick = psConnect; $('pPs').onclick = psConnect;
 $('psTest').onclick = () => { if (psOn()) aps.text('Test 123', { raw:true }).catch(()=>{}); else toast(PS_OK ? 'Connect the PeekSmith first' : 'Only in Aura Browser'); };
-$('bInj').onclick = injPrint;
-
 psWinStart();
-if (!PS_OK) { psStatus('Only in Aura Browser'); $('psBtn').disabled = true; }
+if (!PS_OK) psStatus('Only in Aura Browser');
 else {
-  /* automatic search (PeekSmith only — the Cosmos stays manual): when the page opens, then every 6 s until connected */
-  const auto = () => { if ((P.auto || psManual) && !psManualOff && !psOn() && !psBusy && document.visibilityState === 'visible') { if (psWinOpen()) psSearch(); else psStatus('Not found – tap Connect', 'bad'); } };
+  /* automatic search (PeekSmith only — the Cosmos stays manual) */
+  const auto = () => { if ((P.auto || psManual) && !psManualOff && !psOn() && !psBusy && document.visibilityState === 'visible') { if (psWinOpen()) psSearch(); else psStatus('Not found – tap Connect'); } };
   setTimeout(auto, 600); setInterval(auto, 6000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { psWinStart(); setTimeout(auto, 300); } });
   setInterval(() => { if (psOn() && !psSending) psReadBatt(); }, 60000);
 }
 addEventListener('pagehide', () => { try { if (aps) { const a = aps; aps = null; a.disconnect().catch(()=>{}); } } catch(_){} });
 
-/* ---------- Start ---------- */
-load();
-$('bBold').classList.toggle('on', S.bold); $('bSlant').classList.toggle('on', S.slant);
-[...$('align').children].forEach(x => x.classList.toggle('on', x.dataset.v === S.align));
-if (hasAura()) log('Aura Browser Bluetooth ready'); else if (hasWeb()) log('Web Bluetooth ready'); else log('No Bluetooth in this browser (use Aura or Chrome)');
-document.fonts.ready.then(draw); draw();
+/* ---------- start ---------- */
+function syncAll(){ syncMain(); syncSettings(); pills(); }
+syncAll();
+if (C.hasAura()) log('Aura Browser Bluetooth ready'); else if (C.hasWeb()) log('Web Bluetooth ready'); else log('No Bluetooth in this browser (use Aura or Chrome)');
+draw(); document.fonts.ready.then(() => draw());
+setTimeout(() => draw(), 1200);
 </script>
 </body>
 </html>
