@@ -369,14 +369,16 @@ C.panel = function(opts){
   const $ = id => document.getElementById(id), page = opts.page, KEY = 'fvtCosmosPanel_' + page;
   const psShow = t => { try { opts.psShow && opts.psShow(t); } catch(e){} };
   let S = {}; try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){}
-  S = Object.assign({ tpl: '', src: opts.defaultSource || 'inject', waitNew: false, eq: false,
+  S = Object.assign({ tpl: '', src: '', waitNew: false, eq: false, acro: false,
     ed: { name: '', text: 'You will think of\nthe {prediction}', font: 'Caveat', size: 52, len: 61, pos: 'c' } }, S);
+  if (!S.srcV) { if (S.src === 'inject') S.src = ''; S.srcV = 1; }   /* '' = use the template's own source */
+  const presets = opts.presets || [];
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
   C.loadFonts();
   if (!$('czTpl')) return null;
   const cur = () => { try { return C.tpl(JSON.parse(localStorage.getItem('fvtCosmosCur') || 'null')); } catch(e){ return C.tpl(); } };
-  const chosen = () => { if (!S.tpl) return cur(); const o = C.templates.get(S.tpl); return o ? C.tpl(o.tpl) : cur(); };
-  const withSrc = t => Object.assign({}, t, { source: C.sources[S.src] ? S.src : 'inject' });
+  const chosen = () => { if (!S.tpl) return cur(); const pr = presets.find(x => x.id === S.tpl); if (pr) return C.tpl(pr.tpl); const o = C.templates.get(S.tpl); return o ? C.tpl(o.tpl) : cur(); };
+  const withSrc = t => Object.assign({}, t, { source: C.sources[S.src] ? S.src : (C.sources[t.source] ? t.source : 'inject') });
   function status(){ $('czSt').textContent = C.connected ? ('Connected' + (C.battery != null ? ' · ' + C.battery + '%' : '')) : 'Not connected'; $('czCon').textContent = C.connected ? 'Disconnect' : 'Connect Cosmos'; }
   C.on('change', status); C.on('status', t => { if (!C.connected) return; if (/Print|Wait|Sent/.test(t)) $('czSt').textContent = t; });
   $('czCon').onclick = () => C.connected ? C.disconnect() : C.connect();
@@ -387,18 +389,20 @@ C.panel = function(opts){
     const sel = $('czTpl'); sel.innerHTML = '';
     const add = (v, n) => { const o = document.createElement('option'); o.value = v; o.textContent = n; sel.appendChild(o); };
     add('', '★ Cosmos page (current setup)');
+    presets.forEach(x => add(x.id, x.name));
     C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name));
-    if (S.tpl && !C.templates.get(S.tpl)) S.tpl = '';
+    if (S.tpl && !C.templates.get(S.tpl) && !presets.some(x => x.id === S.tpl)) S.tpl = '';
     sel.value = S.tpl;
     const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o && o.scope === page ? '' : 'none';
     preview($('czPrev'), chosen(), chosen().sample);
   }
   $('czTpl').onchange = () => { S.tpl = $('czTpl').value; save(); fillTpl(); };
   C.on('templates', fillTpl); addEventListener('storage', e => { if (e.key === 'fvtCosmosCur' && !S.tpl) fillTpl(); });
-  function fillSrc(){ const sel = $('czSrc'); sel.innerHTML = ''; Object.entries(C.sources).forEach(([id, s]) => { const o = document.createElement('option'); o.value = id; o.textContent = s.name; sel.appendChild(o); }); sel.value = C.sources[S.src] ? S.src : 'inject'; }
+  function fillSrc(){ const sel = $('czSrc'); sel.innerHTML = ''; { const o = document.createElement('option'); o.value = ''; o.textContent = 'Template setting'; sel.appendChild(o); } Object.entries(C.sources).forEach(([id, s]) => { const o = document.createElement('option'); o.value = id; o.textContent = s.name; sel.appendChild(o); }); sel.value = C.sources[S.src] ? S.src : ''; }
   $('czSrc').onchange = () => { S.src = $('czSrc').value; save(); };
   $('czNew').checked = !!S.waitNew; $('czNew').onchange = () => { S.waitNew = $('czNew').checked; save(); };
   if ($('czEq')) { $('czEq').checked = !!S.eq; $('czEq').onchange = () => { S.eq = $('czEq').checked; save(); }; }
+  if ($('czAcro')) { $('czAcro').checked = !!S.acro; $('czAcro').onchange = () => { S.acro = $('czAcro').checked; save(); }; }
   $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o || o.scope !== page) return; if (!confirm('Delete ' + o.name + '?')) return; C.templates.remove(o.id); S.tpl = ''; save(); fillTpl(); };
   /* new template (this page only) */
   const fs = $('czFont'); C.FONTS.forEach(([f, n]) => { const o = document.createElement('option'); o.value = f; o.textContent = f + ' (' + n + ')'; fs.appendChild(o); });
@@ -423,7 +427,9 @@ C.panel = function(opts){
   $('czPrint').onclick = printNow;
   $('czTest').onclick = () => { if (!C.connected) { C.connect(); return; } const t = chosen(); C.print(t, t.sample); };
   fillSrc(); fillTpl(); fillEd(); status();
-  return { print: printNow, autoEq: () => !!S.eq, settings: S };
+  return { print: printNow, autoEq: () => !!S.eq, autoAcro: () => !!S.acro, settings: S,
+    /* print a preset or template by id, whatever is selected (used by the page's own buttons) */
+    printId: async id => { const keep = S.tpl; S.tpl = id; try { return await printNow(); } finally { S.tpl = keep; } } };
 };
 
 addEventListener('pagehide', () => { try { if (C.connected) C.disconnect(); } catch(e){} });

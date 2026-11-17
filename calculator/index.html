@@ -298,7 +298,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="note">★ = from the Cosmos page (edit those there). "Cosmos page (current setup)" is what is on the Cosmos page now. The others were made on this page and stay on this page. A PeekSmith button can print too: choose "Cosmos print" in PeekSmith buttons.</div>
   <div class="lbl">Cosmos auto print</div>
   <div class="grp"><div class="r">Print when = is tapped<label><input type="checkbox" id="czEq" style="width:auto;transform:scale(1.3)"></label></div></div>
-  <div class="note">After the spectator taps =, the template prints. Use "{prediction} from: Calculator result" to print the total.</div>
+  <div class="note">After the spectator taps =, the template prints. <b>Days since birth</b>: choose the template "Days since birth", then the spectator types month + day + year (the order in PeekSmith → Birthday peek) and taps =. Example: 3 + 14 + 1990 = prints the days since March 14, 1990. "Calculator result" prints the total.</div>
   <div class="lbl">Cosmos new template</div>
   <div class="grp">
     <div class="r">Name<input id="czName" autocapitalize="off" autocorrect="off" placeholder="My template"></div>
@@ -421,7 +421,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v52</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v53</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -875,7 +875,7 @@ async function bleFlush(){bleSending=true;
   blePend=null;bleSending=false}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
-const BACT={none:'Nothing',inject:'Send to Inject',birthday:'Show birthday peek',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith',cosmos:'Cosmos print'};
+const BACT={none:'Nothing',inject:'Send to Inject',birthday:'Show birthday peek',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith',cosmos:'Cosmos print',cosDays:'Cosmos print days since birth'};
 const BDEF={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'inject','0.longpress':'none'};
 S.btns=Object.assign({},BDEF,S.btns||{});
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
@@ -897,6 +897,7 @@ function bleButton(b,e){
   const last=psHist[psHist.length-1];if(a!=='previousPeek')psBack=0;
   if(a==='clear'){aps.clear().catch(()=>{});return}
   if(a==='cosmos'){if(window.czPanel)czPanel.print();return}
+  if(a==='cosDays'){if(window.czPanel)czPanel.printId('_days');return}
   if(a==='inject'){injSend(true);return}   // sends the number chosen in Send to Inject
   if(a==='birthday'){const nn=result!==null?eqNums:toks.filter(x=>!isOp(x)).concat(cur!==''?[cur]:[]);bleShow(birthPeek(nn.slice(0,3))||lastBirth||'No birthday yet');return}
   if(!last){bleShow('No peek yet');return}
@@ -1027,7 +1028,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v52. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v53. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -1617,7 +1618,24 @@ addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.det
   Cosmos.addSource('calcResult','Calculator: result',()=>result!==null&&isFinite(result)?String(+result.toPrecision(12)):'');
   Cosmos.addSource('calcLast','Calculator: last number',()=>{const n=injNums();return n.length?num(n.at(-1)):''});
   Cosmos.addSource('calcForce','Calculator: force number',()=>{const t=forceTarget!==null?forceTarget:target();return Number.isFinite(t)?String(t):''});
-  window.czPanel=Cosmos.panel({page:'calculator',psShow:t=>{try{bleShow(t)}catch(e){}}});
+  /* days since birth: the first 3 numbers typed (month + day + year, or day + month + year — see Birthday peek) */
+  function birthOf(){
+    const nums=(result!==null?eqNums:toks.filter(x=>!isOp(x)).concat(cur!==''&&cur!=='-'?[cur]:[])).slice(0,3).map(String);
+    if(nums.length!==3||nums.some(x=>!/^\d+$/.test(x)))return null;
+    let [a,b,y]=nums.map(Number);const [m,d]=S.bdMode==='dmy'?[b,a]:[a,b];
+    const now=new Date(),cy=now.getFullYear();
+    if(nums[2].length===2)y=y<=cy%100?2000+y:1900+y;else if(nums[2].length!==4)return null;
+    if(y<1900||y>cy||m<1||m>12||d<1||d>new Date(y,m,0).getDate())return null;
+    const days=Math.floor((Date.UTC(cy,now.getMonth(),now.getDate())-Date.UTC(y,m-1,d))/864e5);
+    return days<0?null:{days,m,d}}
+  Cosmos.addSource('calcDays','Calculator: days since birth',()=>{const b=birthOf();if(b)return b.days.toLocaleString('en-US');const m=String(lastBirth||'').match(/^[\d,]+/);return m?m[0]:''});
+  Cosmos.addSource('calcSign','Calculator: star sign',()=>{const b=birthOf();return b?starSign(b.m,b.d):''});
+  const presets=[
+    {id:'_days',name:'Days since birth',tpl:{text:'You have been alive\nfor {prediction} days',source:'calcDays',mode:'fixed',len:61,size:48}},
+    {id:'_daysShort',name:'Days old (short)',tpl:{text:'{prediction} days\nold',source:'calcDays',mode:'fixed',len:61,size:56}},
+    {id:'_sign',name:'Star sign',tpl:{text:'You are\na {prediction}',source:'calcSign',mode:'fixed',len:61,size:56}},
+    {id:'_total',name:'Calculator result',tpl:{text:'The total\nwill be\n{prediction}',source:'calcResult',mode:'fixed',len:61,size:52}}];
+  window.czPanel=Cosmos.panel({page:'calculator',presets,psShow:t=>{try{bleShow(t)}catch(e){}}});
   const oe=injOnEq;
   injOnEq=function(){oe.apply(this,arguments);if(czPanel&&czPanel.autoEq()&&Cosmos.connected)setTimeout(()=>czPanel.print(),350)};
 })();

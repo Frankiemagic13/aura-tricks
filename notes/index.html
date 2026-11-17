@@ -216,6 +216,9 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" id="czDelRow"><button class="done" id="czDel" style="width:auto;text-align:left;color:#ff453a">Delete this template</button></div>
   </div>
   <div class="note">★ = from the Cosmos page (edit those there). "Cosmos page (current setup)" is what is on the Cosmos page now. The others were made on this page and stay on this page. A PeekSmith button can print too: choose "Cosmos print" in PeekSmith buttons.</div>
+  <div class="lbl">Cosmos auto print</div>
+  <div class="grp"><div class="r">Print the acrostic when it is done<label><input type="checkbox" id="czAcro" style="width:auto;transform:scale(1.3)"></label></div></div>
+  <div class="note">When the acrostic is complete, the Cosmos prints it (template "Acrostic"). You can also choose the template "Acrostic" above and tap Print now, or use the PeekSmith action "Cosmos print acrostic". If no acrostic is on screen, it prints an acrostic of the last word.</div>
   <div class="lbl">Cosmos new template</div>
   <div class="grp">
     <div class="r">Name<input id="czName" autocapitalize="off" autocorrect="off" placeholder="My template"></div>
@@ -469,7 +472,7 @@ bleWinStart();
 const BLE_NF='Not found – tap Connect';
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const P=Object.assign({auto:Q.get('ble')!=='0',vib:false,online:SEND,live:true,words:4,drawPS:true,drawSize:0.55,btns:{}},store.get('tset',{}));
-const BACT={none:'Nothing',inject:'Send to Inject',lastWord:'Show last word',lastLine:'Show last line',full:'Show full note',previous:'Show previous peek',clear:'Clear PeekSmith',cosmos:'Cosmos print'};
+const BACT={none:'Nothing',inject:'Send to Inject',lastWord:'Show last word',lastLine:'Show last line',full:'Show full note',previous:'Show previous peek',clear:'Clear PeekSmith',cosmos:'Cosmos print',cosAcro:'Cosmos print acrostic'};
 P.btns=Object.assign({'1.click':'lastWord','1.longpress':'previous','2.click':'full','2.longpress':'clear','0.click':'inject','0.longpress':'none'},P.btns);
 const saveP=()=>store.set('tset',P);
 let aps=null,bleBusy=false,bleOff=false;const hist=[];let back=0;
@@ -514,6 +517,7 @@ function bleButton(b,e){
   const last=hist[hist.length-1];if(a!=='previous')back=0;
   if(a==='clear'){aps.clear().catch(()=>{});bleOnScreen='';return}
   if(a==='cosmos'){if(window.czPanel)czPanel.print();return}
+  if(a==='cosAcro'){if(window.czPanel)czPanel.printId('_acro');return}
   if(a==='inject'){iSend(true);return}   // sends the text chosen in Send to Inject
   if(!last){bleShow('No peek yet');return}
   const lines=last.split(' | ');
@@ -1333,7 +1337,17 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
   Cosmos.addSource('noteWord','Notes: last word',()=>{const l=lines();return l.length?l[l.length-1].split(/\s+/).pop():''});
   Cosmos.addSource('noteLine','Notes: last line',()=>{const l=lines();return l.length?l[l.length-1]:''});
   Cosmos.addSource('noteFull','Notes: full note',()=>lines().join(' '));
-  window.czPanel=Cosmos.panel({page:'notes',psShow:t=>{try{bleShow(t)}catch(e){}}});
+  /* acrostic: the acrostic on screen; if none yet, an acrostic of the last word */
+  Cosmos.addSource('noteAcro','Notes: acrostic',()=>{
+    try{if(acroRaw){const a=acroText(acroRaw,true);if(a)return a}}catch(e){}
+    if(P.predType==='acro'&&note.classList.contains('plain')){const t=note.innerText.trim();if(t)return t}
+    const l=lines(),w=l.length?l[l.length-1].split(/\s+/).pop():'';try{return w?acroText(w,true):''}catch(e){return ''}});
+  const presets=[{id:'_acro',name:'Acrostic (paper as long as the list)',tpl:{text:'{prediction}',source:'noteAcro',mode:'auto',align:'left',size:40,lh:1.05,px:0,yAuto:24}}];
+  window.czPanel=Cosmos.panel({page:'notes',presets,psShow:t=>{try{bleShow(t)}catch(e){}}});
+  /* print when the acrostic is done (Notes stops the acrostic) */
+  const at=acroToggle;
+  acroToggle=function(){const was=acroMode;at.apply(this,arguments);
+    if(was&&!acroMode&&P.predType==='acro'&&czPanel&&czPanel.autoAcro()&&Cosmos.connected)setTimeout(()=>czPanel.printId('_acro'),400)};
 })();
 </script>
 <script src="../hui.js"></script>
