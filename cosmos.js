@@ -27,7 +27,64 @@ C.loadFonts = () => {
   const l = document.createElement('link'); l.id = 'cosmosFonts'; l.rel = 'stylesheet';
   l.href = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Gochi+Hand&family=Shadows+Into+Light&family=Indie+Flower&family=Reenie+Beanie&family=Covered+By+Your+Grace&family=Just+Another+Hand&family=Nanum+Pen+Script&family=Annie+Use+Your+Telescope&family=Coming+Soon&family=The+Girl+Next+Door&family=Sue+Ellen+Francisco&family=Gaegu:wght@400;700&display=swap';
   document.head.appendChild(l);
+  C.myFonts.load();
 };
+
+/* ---------- My fonts: your own handwriting fonts (.ttf / .otf / .woff) ----------
+   Kept for good on this phone and shared by every page on this site (Cosmos, Notes, Calculator).
+   Names list in localStorage ("fvtCosmosMyFonts"), font files in IndexedDB ("fvtCosmosFonts").
+   The names go into C.FONTS at once, so templates that use them stay valid; the files load in the background. */
+const MFK = 'fvtCosmosMyFonts';
+const idb = (mode, fn) => new Promise((res, rej) => {
+  let rq; try { rq = indexedDB.open('fvtCosmosFonts', 1); } catch(e){ rej(e); return; }
+  rq.onupgradeneeded = () => rq.result.createObjectStore('f');
+  rq.onerror = () => rej(rq.error);
+  rq.onsuccess = () => { const db = rq.result, tx = db.transaction('f', mode), st = tx.objectStore('f'); let out;
+    const r = fn(st); if (r) r.onsuccess = () => { out = r.result; };
+    tx.oncomplete = () => { db.close(); res(out); }; tx.onerror = tx.onabort = () => { db.close(); rej(tx.error); }; };
+});
+const mfList = () => { try { return JSON.parse(localStorage.getItem(MFK) || '[]'); } catch(e){ return []; } };
+const mfSave = a => { try { localStorage.setItem(MFK, JSON.stringify(a)); } catch(e){} };
+const mfLoaded = {};
+function mfSync(){ /* keep C.FONTS = built-in fonts + my fonts (in my order) */
+  for (let i = C.FONTS.length - 1; i >= 0; i--) if (C.FONTS[i][2]) C.FONTS.splice(i, 1);
+  mfList().forEach(f => C.FONTS.push([f.fam, f.name, 1]));
+}
+async function mfRegister(fam, buf){
+  if (mfLoaded[fam]) return;
+  const ff = new FontFace(fam, buf); await ff.load(); document.fonts.add(ff); mfLoaded[fam] = 1;
+}
+C.myFonts = {
+  list: () => mfList(),
+  isMine: fam => mfList().some(f => f.fam === fam),
+  /* add a font file (File or Blob). Returns { fam, name }. Throws if the file is not a font. */
+  async add(file, name){
+    const buf = await file.arrayBuffer();
+    const fam = 'FVT Hand ' + Date.now().toString(36);
+    await mfRegister(fam, buf.slice(0));           /* check first: a bad file stops here */
+    await idb('readwrite', st => st.put(buf, fam));
+    const o = { fam, name: (name || file.name || 'My font').replace(/\.(ttf|otf|woff2?)$/i, '').trim().slice(0, 30) || 'My font' };
+    const a = mfList(); a.push(o); mfSave(a); mfSync(); emit('fonts'); log('my font added: ' + o.name);
+    return o;
+  },
+  rename(fam, name){ const a = mfList(), o = a.find(f => f.fam === fam); if (!o) return; o.name = String(name).trim().slice(0, 30) || o.name; mfSave(a); mfSync(); emit('fonts'); },
+  async remove(fam){
+    mfSave(mfList().filter(f => f.fam !== fam)); mfSync();
+    try { await idb('readwrite', st => st.delete(fam)); } catch(e){}
+    emit('fonts');
+  },
+  ready: null,
+};
+C.myFonts.load = () => C.myFonts.ready || (C.myFonts.ready = (async () => {
+  mfSync();
+  for (const f of mfList()) {
+    try { const buf = await idb('readonly', st => st.get(f.fam)); if (buf) await mfRegister(f.fam, buf); else log('my font missing: ' + f.name); }
+    catch(e){ log('my font: ' + f.name + ': ' + e.message); }
+  }
+  emit('fonts');
+})());
+mfSync();
+addEventListener('storage', e => { if (e.key === MFK) { mfSync(); C.myFonts.ready = null; C.myFonts.load(); } });
 
 /* ---------- Template defaults ---------- */
 C.W = 384;                      // printer dots per line (48 mm print area, 8 dots/mm)
@@ -126,7 +183,7 @@ C.paint = (cv, r) => {
   }
   g.putImageData(im, 0, 0);
 };
-C.fontsReady = async t => { try { await document.fonts.load(`${t && t.bold ? 700 : 400} 40px "${(t && t.font) || 'Caveat'}"`); } catch(e){} };
+C.fontsReady = async t => { try { await C.myFonts.load(); } catch(e){} try { await document.fonts.load(`${t && t.bold ? 700 : 400} 40px "${(t && t.font) || 'Caveat'}"`); } catch(e){} };
 
 /* ---------- Templates (shared localStorage) ---------- */
 const TK = 'fvtCosmosTpl';
@@ -405,7 +462,12 @@ C.panel = function(opts){
   if ($('czAcro')) { $('czAcro').checked = !!S.acro; $('czAcro').onchange = () => { S.acro = $('czAcro').checked; save(); }; }
   $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o || o.scope !== page) return; if (!confirm('Delete ' + o.name + '?')) return; C.templates.remove(o.id); S.tpl = ''; save(); fillTpl(); };
   /* new template (this page only) */
-  const fs = $('czFont'); C.FONTS.forEach(([f, n]) => { const o = document.createElement('option'); o.value = f; o.textContent = f + ' (' + n + ')'; fs.appendChild(o); });
+  const fs = $('czFont');
+  function fillFonts(){ const v = fs.value || S.ed.font; fs.innerHTML = '';
+    C.FONTS.forEach(([f, n, mine]) => { const o = document.createElement('option'); o.value = f; o.textContent = mine ? '✍️ ' + n + ' (my font)' : f + ' (' + n + ')'; fs.appendChild(o); });
+    fs.value = C.FONTS.some(x => x[0] === v) ? v : 'Caveat'; }
+  fillFonts();
+  C.on('fonts', () => { fillFonts(); if (S.ed.font !== fs.value) { S.ed.font = fs.value; save(); } fillTpl(); preview($('czEdPrev'), edTpl(), 'Cosmos System'); });
   const edTpl = () => { const e = S.ed, posY = e.pos === 't' ? 0.08 : e.pos === 'b' ? 0.92 : 0.5;
     return C.tpl({ text: e.text, font: e.font, size: +e.size, mode: e.len === 'auto' ? 'auto' : 'fixed', len: e.len === 'auto' ? 61 : +e.len, px: 0.5, py: posY, yAuto: 24 }); };
   function fillEd(){ const e = S.ed; $('czName').value = e.name || ''; $('czText').value = e.text; fs.value = e.font; $('czSize').value = String(e.size); $('czLen').value = String(e.len); $('czPos').value = e.pos; preview($('czEdPrev'), edTpl(), 'Cosmos System'); }
