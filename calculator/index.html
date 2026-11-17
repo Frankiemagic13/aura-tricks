@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <script src="../kill.js"></script>
+<script src="../aurakit/aurakit.js"></script>
+<script src="../vol.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -421,7 +423,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v53</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v54</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -1639,6 +1641,20 @@ addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.det
   const oe=injOnEq;
   injOnEq=function(){oe.apply(this,arguments);if(czPanel&&czPanel.autoEq()&&Cosmos.connected)setTimeout(()=>czPanel.print(),350)};
 })();
+</script>
+<script>
+/* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
+FVTVol.setup({page:'calc',
+  actions:[
+    {id:'ac',label:'Clear (AC)',run:()=>press('clr')},
+    {id:'cb',label:'Codebreaker on/off',run:()=>cbSet(!cbOn)},
+    {id:'pm',label:'PIN math on/off',run:()=>pmSet(!S.pmOn)},
+    {id:'van',label:'Vanish one digit',run:()=>vanSwipe(['l','r','u','d'].includes(S.vanDir)?S.vanDir:'l')},
+    {id:'rd',label:'Ragdoll',run:()=>rdShake()},
+    {id:'mirr',label:'Mirror on/off',run:()=>setMirr(!S.mirr)}],
+  psOptions:()=>document.querySelector('#sheet select[data-k]'),
+  psRun:a=>{const k='vol.click',o=S.btns[k];S.btns[k]=a;try{bleButton('vol','click')}finally{if(o===undefined)delete S.btns[k];else S.btns[k]=o}},
+  defaults:{up:'ps:lastInput',down:'van'}});
 </script>
 <script src="../hui.js"></script>
 </body>

@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <script src="../kill.js"></script>
+<script src="../aurakit/aurakit.js"></script>
+<script src="../vol.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1206,6 +1208,16 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
 <script>window.fvtPerms=['motion','camera'].concat(isMag()?['mic']:[]);   // mic (Beat, finger snap) only on your phone</script>
 <script src="../perms.js"></script>
 <script>addEventListener('fvtperm',e=>{if(e.detail.name==='motion'&&e.detail.state==='granted')motionOk=true});</script>
+<script>
+/* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
+FVTVol.setup({page:'flashlight',
+  actions:[
+    {id:'light',label:'My light on/off',run:()=>toggleLight()},
+    {id:'stop',label:'Stop the routine',run:()=>runStop(true)}],
+  psOptions:()=>document.querySelector('#sheet select[data-k]'),
+  psRun:a=>{const k='vol.click',o=P.btns[k];P.btns[k]=a;try{bleButton('vol','click')}finally{if(o===undefined)delete P.btns[k];else P.btns[k]=o}},
+  defaults:{up:'light',down:'stop'}});
+</script>
 <script src="../hui.js"></script>
 </body>
 </html>

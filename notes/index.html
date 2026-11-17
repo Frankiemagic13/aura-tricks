@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <script src="../kill.js"></script>
+<script src="../aurakit/aurakit.js"></script>
+<script src="../vol.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover,interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -1349,6 +1351,20 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
   acroToggle=function(){const was=acroMode;at.apply(this,arguments);
     if(was&&!acroMode&&P.predType==='acro'&&czPanel&&czPanel.autoAcro()&&Cosmos.connected)setTimeout(()=>czPanel.printId('_acro'),400)};
 })();
+</script>
+<script>
+/* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
+FVTVol.setup({page:'notes',
+  actions:[
+    {id:'pred',label:'Prediction on/off',run:()=>predToggle()},
+    {id:'type',label:'Prediction type (text / acrostic)',run:()=>typeSwap()},
+    {id:'inj',label:'Inject prediction',run:()=>injStart()},
+    {id:'mirr',label:'Mirror on/off',run:()=>mirrorToggle()},
+    {id:'swap',label:'Swap roles (both phones)',run:()=>swapBoth()},
+    {id:'cleardraw',label:'Clear the drawing',run:()=>clearDrawing()}],
+  psOptions:()=>document.querySelector('#sheet select[data-k]'),
+  psRun:a=>{const k='vol.click',o=P.btns[k];P.btns[k]=a;try{bleButton('vol','click')}finally{if(o===undefined)delete P.btns[k];else P.btns[k]=o}},
+  defaults:{up:'ps:lastWord',down:'pred'}});
 </script>
 <script src="../hui.js"></script>
 </body>

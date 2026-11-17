@@ -294,7 +294,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Online peeks</div>
   <div class="grp"><div class="r">Send to Peek Island / PeekLink<input type="checkbox" id="sOnline"></div></div>
   <div class="snote">Gestures: swipe down = freeze the status bar time. Swipe left or right = 4 or 6 digits. Double-tap the time = live time again. Hold the time 1.5 s (or "Emergency" 1 s) = this menu. Hold the top of the screen 0.8 s = black screen. Tap the black screen = page again. If you forget to freeze, the time freezes at the first digit.</div>
-  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v29</div>
+  <div class="snote" style="text-align:center;margin-top:14px">PIN lock v30</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold the <b>time</b> for 1.5 seconds to open these settings. Double tap the time to show the live time again.</p>
@@ -314,6 +314,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 </div>
 
 <script src="../aurakit/aurakit.js"></script>
+<script src="../vol.js"></script>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../relay.js"></script>
 <script>
@@ -829,6 +830,20 @@ addEventListener('pageshow',e=>{if(e.persisted)setTimeout(()=>document.dispatchE
 </script>
 <script src="../perms.js" data-perms="motion"></script>
 <script>addEventListener('fvtperm',e=>{if(e.detail.name==='motion'){motion=e.detail.state==='granted'?'granted':'denied';motionText()}});</script>
+<script>
+/* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
+FVTVol.setup({page:'pincode',black:false,
+  actions:[
+    {id:'peek',label:'PeekSmith: show the PIN',run:()=>{onScreen='';psWrite(lastPin||'No PIN yet')}},
+    {id:'black',label:'Black screen on/off',run:()=>toggleBlack()},
+    {id:'freeze',label:'Freeze / live time',run:()=>{frozen?unfreeze():freeze()}},
+    {id:'len',label:'4 / 6 digits',run:()=>toggleLen()},
+    {id:'unlock',label:'Unlock now',run:()=>{if(view==='pass')unlock()}},
+    {id:'lock',label:'Back to the PIN screen',run:()=>toLock(true)},
+    {id:'inj',label:'Send to Inject',run:()=>injSend(true)},
+    {id:'psclear',label:'PeekSmith: clear',run:()=>{try{aps&&aps.clear().catch(()=>{});onScreen=''}catch(e){}}}],
+  defaults:{up:'peek',down:'black'}});
+</script>
 <script src="../hui.js"></script>
 </body>
 </html>
