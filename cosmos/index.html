@@ -167,7 +167,6 @@ select{-webkit-appearance:none;appearance:none}
     <div class="sec"><button class="sh">Cosmos printer <i>⌄</i></button><div class="sb">
       <div class="fl"><span>Status</span><span class="v" style="min-width:0"><span class="dot" id="dot"></span><span id="status">Not connected</span></span></div>
       <div class="fl"><span>Battery</span><span class="v" id="battV">—</span></div>
-      <div class="fl"><span>Show all Bluetooth devices (Chrome)</span><input type="checkbox" class="sw" id="showAll"></div>
       <button class="bt2" id="bConnect">Connect</button>
       <div class="note">The Cosmos connects only when you tap <b>Connect</b> (or the Cosmos pill on the main screen). Close the Cosmos app first: the printer accepts one connection at a time.</div>
     </div></div>
@@ -230,7 +229,7 @@ select{-webkit-appearance:none;appearance:none}
       <p><b>5.</b> Tap a font. More settings are in Settings → Handwriting.</p>
       <p><b>6.</b> <b>Print</b> gets the prediction word and prints. <b>Test</b> prints the sample word.</p>
       <p><b>Routines</b> (grid icon): save the current setup with a name, tap one to load it. Edit lets you rename, update (save the current setup into it) or delete. Routines also show on the Notes and Calculator pages.</p>
-      <p>Works in <b>Aura Browser</b> (iPhone) and <b>Chrome</b> (Mac). Safari has no Bluetooth for web pages.</p>
+      <p>Open this page in <b>Aura Browser</b>. Safari has no Bluetooth for web pages.</p>
     </div></div></div>
 
     <div class="sec"><button class="sh">Log <i>⌄</i></button><div class="sb"><div id="log"></div></div></div>
@@ -268,7 +267,6 @@ const P = Object.assign({ auto: true, vib: false, con: 'COSMOS', feed: '80', inj
 if (P.injId && !localStorage.getItem('fvtInjId')) { try { localStorage.setItem('fvtInjId', P.injId); } catch(e){} }
 function saveT(){ saveJSON('fvtCosmosCur', T); saveJSON('fvtCosmosCurId', curId); }
 function saveP(){ saveJSON('cosmosPS', P); }
-C.showAll = !!P.showAll;
 
 /* ---------- live view ---------- */
 let lastR = null, k = 4;   // k = css px per mm
@@ -426,7 +424,7 @@ function syncSettings(){
   const src = $('source'); src.innerHTML = ''; Object.entries(C.sources).forEach(([id, s]) => { const o = document.createElement('option'); o.value = id; o.textContent = s.name; src.appendChild(o); });
   src.value = C.sources[T.source] ? T.source : 'inject';
   $('sample').value = T.sample || ''; $('fallback').value = T.fallback || ''; $('caseT').value = T.caseT || 'asis';
-  $('injId').value = C.injectId(); $('injNew').checked = !!P.injNew; $('showAll').checked = !!P.showAll;
+  $('injId').value = C.injectId(); $('injNew').checked = !!P.injNew;
 }
 [['size','sizeV',v => (v/8).toFixed(1) + ' mm'],['ink','inkV',v => v],['mess','messV',v => v],['lh','lhV',v => (+v).toFixed(2)]].forEach(([id, out, f]) =>
   $(id).oninput = () => { T[id] = +$(id).value; $(out).textContent = f(T[id]); redraw(); });
@@ -441,7 +439,6 @@ $('fallback').oninput = () => { T.fallback = $('fallback').value; saveT(); };
 $('caseT').onchange = () => { T.caseT = $('caseT').value; redraw(); };
 $('injId').oninput = () => { try { localStorage.setItem('fvtInjId', $('injId').value.replace(/\D/g, '')); } catch(e){} };
 $('injNew').onchange = () => { P.injNew = $('injNew').checked; saveP(); };
-$('showAll').onchange = () => { P.showAll = C.showAll = $('showAll').checked; saveP(); };
 
 /* ---------- Cosmos connection + pills ---------- */
 let psBattery = null;
