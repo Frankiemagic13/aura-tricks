@@ -8,7 +8,7 @@
 <title>Cosmos Print</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Gochi+Hand&family=Shadows+Into+Light&family=Indie+Flower&family=Permanent+Marker&family=Rock+Salt&family=Homemade+Apple&family=Reenie+Beanie&family=Nothing+You+Could+Do&family=Covered+By+Your+Grace&family=Gloria+Hallelujah&family=Architects+Daughter&family=Just+Another+Hand&family=Sedgwick+Ave&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Gochi+Hand&family=Shadows+Into+Light&family=Indie+Flower&family=Reenie+Beanie&family=Covered+By+Your+Grace&family=Just+Another+Hand&family=Nanum+Pen+Script&family=Annie+Use+Your+Telescope&family=Coming+Soon&family=The+Girl+Next+Door&family=Sue+Ellen+Francisco&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#1c1d22; --card:#22242a; --hi:#2b2d34; --lo:#15161a;
@@ -200,28 +200,24 @@ the Queen of Hearts</textarea>
 const $ = id => document.getElementById(id);
 
 /* ---------- Fonts ---------- */
-const FONTS = [
-  ['Caveat','Caveat (casual pen)'],
+const FONTS = [            // everyday pen and pencil handwriting only (nothing fancy)
+  ['Caveat','Caveat (quick pen)'],
   ['Kalam','Kalam (neat pen)'],
   ['Patrick Hand','Patrick Hand (print letters)'],
-  ['Gochi Hand','Gochi Hand (marker)'],
-  ['Shadows Into Light','Shadows Into Light (thin)'],
+  ['Nanum Pen Script','Nanum Pen (ballpoint)'],
+  ['Shadows Into Light','Shadows Into Light (thin pen)'],
   ['Indie Flower','Indie Flower (round)'],
-  ['Permanent Marker','Permanent Marker (Sharpie)'],
-  ['Rock Salt','Rock Salt (rough)'],
-  ['Homemade Apple','Homemade Apple (cursive)'],
-  ['Reenie Beanie','Reenie Beanie (fast scribble)'],
-  ['Nothing You Could Do','Nothing You Could Do (cursive)'],
-  ['Covered By Your Grace','Covered By Your Grace'],
-  ['Gloria Hallelujah','Gloria Hallelujah (comic)'],
-  ['Architects Daughter','Architects Daughter (block)'],
+  ['Reenie Beanie','Reenie Beanie (fast note)'],
+  ['Covered By Your Grace','Covered By Your Grace (marker pen)'],
   ['Just Another Hand','Just Another Hand (tall)'],
-  ['Sedgwick Ave','Sedgwick Ave (graffiti)'],
-  ['Nanum Pen Script','Nanum Pen Script (ballpoint)'],
+  ['Gochi Hand','Gochi Hand (felt pen)'],
+  ['Annie Use Your Telescope','Annie (light pencil)'],
+  ['Coming Soon','Coming Soon (school print)'],
+  ['The Girl Next Door','The Girl Next Door (loose)'],
+  ['Sue Ellen Francisco','Sue Ellen (narrow)'],
+  ['Gaegu','Gaegu (pencil)'],
   ['Bradley Hand','Bradley Hand (Apple)'],
   ['Noteworthy','Noteworthy (Apple)'],
-  ['Marker Felt','Marker Felt (Apple)'],
-  ['Chalkboard SE','Chalkboard (Apple)'],
 ];
 const fontSel = $('font');
 function addFontOption(fam, label){ const o=document.createElement('option'); o.value=fam; o.textContent=label; fontSel.appendChild(o); return o; }
