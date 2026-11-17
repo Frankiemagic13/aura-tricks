@@ -338,7 +338,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
-  <p>Volume tab: set a volume button to "Fake lock". One press: the screen goes black, like a locked phone. Hold the black screen (about half a second): what the spectator wrote shows in dim gray while you hold. Lift your finger: black again. Press the volume button again: the note comes back.</p>
+  <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
   <h4>Open and close</h4>
   <p>Hold the <b>share</b> button for 1 second to open these settings. Hold <b>•••</b> (or the date) for 1 second to clear the note.</p>
   <h4>Peeks</h4>
@@ -1355,32 +1355,65 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
 })();
 </script>
 <script>
-/* ---------- fake lock: the screen goes black (looks locked); hold the screen = peek of the note ---------- */
+/* ---------- fake lock: the screen goes black (looks locked); hold the screen = peek of the note ----------
+   Settings in P.fl (Volume tab, "Fake lock" card). The lock sound is made with Web Audio (no sound file). */
+P.fl=Object.assign({sound:true,sVol:'med',what:'lines',lines:5,size:18,color:'gray',pos:'mid',align:'center',font:'sys',hold:450,buzz:true,exit3:true},P.fl||{});
 const FakeLock=(function(){
-  let el=null,pk=null,on=false,t=null,sb=null;
+  let el=null,pk=null,on=false,t=null,sb=null,ac=null,taps=[];
+  const COLORS={dim:'#2c2c2e',gray:'#6b6b70',light:'#aeaeb2',white:'#ffffff',red:'#7a2020',green:'#1f5f2e',blue:'#1f3f7a'};
+  const FONTS={sys:'-apple-system,system-ui,sans-serif',mono:'ui-monospace,Menlo,monospace',round:'ui-rounded,-apple-system,sans-serif',serif:'ui-serif,Georgia,serif'};
+  /* iOS starts Web Audio only after a touch: get it ready at the first touch on the page */
+  function audio(){if(ac)return ac;try{const A=window.AudioContext||window.webkitAudioContext;if(!A)return null;ac=new A();
+      const b=ac.createBuffer(1,1,22050),s=ac.createBufferSource();s.buffer=b;s.connect(ac.destination);s.start(0)}catch(e){ac=null}return ac}
+  ['touchend','mousedown'].forEach(n=>addEventListener(n,()=>{const a=audio();if(a&&a.state==='suspended')a.resume().catch(()=>{})},{passive:true,capture:true}));
+  /* a short "clack" like the iPhone lock: filtered noise + a fast high tone + a low thump */
+  function lockSound(){
+    if(!P.fl.sound)return;const a=audio();if(!a)return;if(a.state==='suspended')a.resume().catch(()=>{});
+    const g0={low:.25,med:.55,high:1}[P.fl.sVol]||.55,t0=a.currentTime+.01,out=a.createGain();out.gain.value=g0;out.connect(a.destination);
+    const n=a.createBuffer(1,Math.round(a.sampleRate*.05),a.sampleRate),d=n.getChannelData(0);
+    for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);
+    const ns=a.createBufferSource();ns.buffer=n;const bp=a.createBiquadFilter();bp.type='bandpass';bp.frequency.value=3200;bp.Q.value=1.2;
+    const ng=a.createGain();ng.gain.setValueAtTime(.9,t0);ng.gain.exponentialRampToValueAtTime(.001,t0+.045);ns.connect(bp);bp.connect(ng);ng.connect(out);ns.start(t0);
+    const o=a.createOscillator();o.type='triangle';o.frequency.setValueAtTime(1900,t0);o.frequency.exponentialRampToValueAtTime(900,t0+.03);
+    const og=a.createGain();og.gain.setValueAtTime(.35,t0);og.gain.exponentialRampToValueAtTime(.001,t0+.035);o.connect(og);og.connect(out);o.start(t0);o.stop(t0+.05);
+    const l=a.createOscillator();l.type='sine';l.frequency.setValueAtTime(170,t0);l.frequency.exponentialRampToValueAtTime(70,t0+.06);
+    const lg=a.createGain();lg.gain.setValueAtTime(.6,t0);lg.gain.exponentialRampToValueAtTime(.001,t0+.07);l.connect(lg);lg.connect(out);l.start(t0);l.stop(t0+.08)}
   function make(){
     el=document.createElement('div');
     el.style.cssText='position:fixed;inset:0;background:#000;z-index:2147483001;display:none;touch-action:none;-webkit-user-select:none;user-select:none';
-    pk=document.createElement('div');
-    pk.style.cssText='position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);color:#6b6b70;font:500 18px/1.4 -apple-system,system-ui,sans-serif;text-align:center;white-space:pre-wrap;word-break:break-word;opacity:0;transition:opacity .12s';
-    el.appendChild(pk);document.body.appendChild(el);
+    pk=document.createElement('div');el.appendChild(pk);document.body.appendChild(el);
     const stop=e=>{if(e.cancelable)e.preventDefault();e.stopPropagation()};
-    const down=e=>{stop(e);clearTimeout(t);t=setTimeout(peek,450)};
-    const up=e=>{stop(e);clearTimeout(t);t=null;pk.style.opacity='0'};
+    const down=e=>{stop(e);clearTimeout(t);t=setTimeout(peek,+P.fl.hold||450)};
+    const up=e=>{stop(e);clearTimeout(t);t=null;pk.style.opacity='0';
+      if(P.fl.exit3){const now=Date.now();taps=taps.filter(x=>now-x<600);taps.push(now);if(taps.length>=3){taps=[];set(false)}}};
     el.addEventListener('touchstart',down,{passive:false});el.addEventListener('touchend',up,{passive:false});
-    el.addEventListener('touchcancel',up,{passive:false});el.addEventListener('touchmove',stop,{passive:false});
-    el.addEventListener('mousedown',down);el.addEventListener('mouseup',up);el.addEventListener('mouseleave',up);
+    el.addEventListener('touchcancel',e=>{stop(e);clearTimeout(t);pk.style.opacity='0'},{passive:false});el.addEventListener('touchmove',stop,{passive:false});
+    el.addEventListener('mousedown',down);el.addEventListener('mouseup',up);
     ['click','dblclick','contextmenu'].forEach(n=>el.addEventListener(n,stop))}
-  function peek(){
-    const l=noteLines(),txt=l.length?l.slice(-8).join('\n'):'(empty note)';
-    pk.textContent=txt;pk.style.opacity='1';try{AuraKit.haptics.light()}catch(e){}}
+  function textOf(){
+    const l=noteLines();if(!l.length)return '(empty note)';
+    if(P.fl.what==='word')return noteWords().pop()||'';
+    if(P.fl.what==='line')return l[l.length-1];
+    if(P.fl.what==='all')return l.join('\n');
+    return l.slice(-(+P.fl.lines||5)).join('\n')}
+  function style(){const f=P.fl,pos=f.pos==='top'?'top:12%;':f.pos==='bot'?'bottom:12%;':'top:50%;transform:translateY(-50%);';
+    pk.style.cssText='position:absolute;left:24px;right:24px;'+pos+'color:'+(COLORS[f.color]||COLORS.gray)+';font:500 '+(+f.size||18)+'px/1.35 '+(FONTS[f.font]||FONTS.sys)+
+      ';text-align:'+(f.align==='left'?'left':'center')+';white-space:pre-wrap;word-break:break-word;opacity:0;transition:opacity .12s'}
+  function peek(sample){style();pk.textContent=sample||textOf();pk.style.opacity='1';if(P.fl.buzz)try{AuraKit.haptics.light()}catch(e){}}
   async function set(v){
-    if(!el)make();on=!!v;clearTimeout(t);pk.style.opacity='0';
-    if(on){try{note.blur()}catch(e){}el.style.display='block';
+    if(!el)make();on=!!v;clearTimeout(t);pk.style.opacity='0';taps=[];
+    if(on){try{note.blur()}catch(e){}el.style.display='block';lockSound();
       try{sb=await AuraKit.statusBar.get();await AuraKit.statusBar.hide()}catch(e){sb=null}}
     else{el.style.display='none';
       if(sb){try{await AuraKit.statusBar.set({hidden:sb.hidden,transparent:sb.transparent})}catch(e){}sb=null}}}
-  return{toggle:()=>set(!on),set,get on(){return on}}})();
+  /* preview in the settings: black box with a sample peek */
+  function preview(box){const f=P.fl;box.innerHTML='';const d=document.createElement('div');
+    d.style.cssText='position:relative;height:150px;margin:6px 18px 12px;border-radius:16px;background:#000;overflow:hidden;box-shadow:inset 0 0 0 1px #2a2d35';
+    const k=document.createElement('div');const sc=.55,pos=f.pos==='top'?'top:10%;':f.pos==='bot'?'bottom:10%;':'top:50%;transform:translateY(-50%);';
+    k.style.cssText='position:absolute;left:14px;right:14px;'+pos+'color:'+(COLORS[f.color]||COLORS.gray)+';font:500 '+Math.max(9,Math.round((+f.size||18)*sc))+'px/1.35 '+(FONTS[f.font]||FONTS.sys)+';text-align:'+(f.align==='left'?'left':'center')+';white-space:pre-wrap';
+    const l=noteLines();k.textContent=l.length?textOf():(f.what==='word'?'ELEPHANT':f.what==='line'?'My word is ELEPHANT':'Line one\nLine two\nMy word is ELEPHANT');
+    d.appendChild(k);box.appendChild(d)}
+  return{toggle:()=>set(!on),set,lockSound,preview,get on(){return on}}})();
 </script>
 <script>
 /* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
@@ -1395,7 +1428,39 @@ FVTVol.setup({page:'notes',
     {id:'cleardraw',label:'Clear the drawing',run:()=>clearDrawing()}],
   psOptions:()=>document.querySelector('#sheet select[data-k]'),
   psRun:a=>{const k='vol.click',o=P.btns[k];P.btns[k]=a;try{bleButton('vol','click')}finally{if(o===undefined)delete P.btns[k];else P.btns[k]=o}},
+  tabWords:['fake lock'],
+  extraHTML:'<div class="lbl">Fake lock</div><div class="grp">'+
+    '<div class="r">Lock sound<input type="checkbox" id="flSound"></div>'+
+    '<div class="r">Sound level<select id="flSVol"><option value="low">Low</option><option value="med">Medium</option><option value="high">High</option></select></div>'+
+    '<div class="r"><button class="sbtn" id="flTestS">Test the sound</button><button class="sbtn" id="flTry">Try the fake lock</button></div>'+
+    '<div id="flPrev"></div>'+
+    '<div class="r">Peek shows<select id="flWhat"><option value="lines">Last lines</option><option value="line">Last line</option><option value="word">Last word</option><option value="all">All the note</option></select></div>'+
+    '<div class="r" id="flLinesRow">Number of lines<select id="flLines"><option>2</option><option>3</option><option>5</option><option>8</option><option>12</option></select></div>'+
+    '<div class="r">Text size<select id="flSize"><option value="12">Very small</option><option value="15">Small</option><option value="18">Medium</option><option value="24">Large</option><option value="34">Very large</option><option value="48">Huge</option></select></div>'+
+    '<div class="r">Color<select id="flColor"><option value="dim">Very dim gray</option><option value="gray">Dim gray</option><option value="light">Light gray</option><option value="white">White</option><option value="red">Dark red</option><option value="green">Dark green</option><option value="blue">Dark blue</option></select></div>'+
+    '<div class="r">Position<select id="flPos"><option value="top">Top</option><option value="mid">Middle</option><option value="bot">Bottom</option></select></div>'+
+    '<div class="r">Align<select id="flAlign"><option value="center">Center</option><option value="left">Left</option></select></div>'+
+    '<div class="r">Font<select id="flFont"><option value="sys">System</option><option value="round">Rounded</option><option value="mono">Monospace</option><option value="serif">Serif</option></select></div>'+
+    '<div class="r">Hold time<select id="flHold"><option value="300">0.3 s</option><option value="450">0.5 s</option><option value="700">0.7 s</option><option value="1000">1 s</option><option value="1500">1.5 s</option></select></div>'+
+    '<div class="r">Buzz on peek<input type="checkbox" id="flBuzz"></div>'+
+    '<div class="r">Triple tap = exit<input type="checkbox" id="flExit3"></div></div>'+
+    '<div class="snote">Fake lock: set a volume button to "Fake lock". Press it: the lock sound plays and the screen goes black. Hold the black screen: the peek shows while you hold. Press the button again (or triple tap, if on) to see the note again. The lock sound plays only after you touched the page one time, and not when the silent switch is on (the same as the real lock sound).</div>',
   defaults:{up:'ps:lastWord',down:'lock'}});
+(function(){
+  const $f=id=>document.getElementById(id),F=P.fl;
+  const sel={flSVol:'sVol',flWhat:'what',flLines:'lines',flSize:'size',flColor:'color',flPos:'pos',flAlign:'align',flFont:'font',flHold:'hold'};
+  const chk={flSound:'sound',flBuzz:'buzz',flExit3:'exit3'};
+  const num=new Set(['lines','size','hold']);
+  function sync(){for(const id in sel)$f(id).value=String(F[sel[id]]);for(const id in chk)$f(id).checked=!!F[chk[id]];
+    $f('flLinesRow').style.display=F.what==='lines'?'':'none';FakeLock.preview($f('flPrev'))}
+  for(const id in sel)$f(id).onchange=e=>{const k=sel[id];F[k]=num.has(k)?+e.target.value:e.target.value;saveP();sync()};
+  for(const id in chk)$f(id).onchange=e=>{F[chk[id]]=e.target.checked;saveP();sync()};
+  $f('flTestS').onclick=()=>{const s=F.sound;F.sound=true;FakeLock.lockSound();F.sound=s};
+  $f('flTry').onclick=()=>{closeSheet();setTimeout(()=>FakeLock.set(true),250)};
+  sync();
+  let was=document.body.classList.contains('open');
+  new MutationObserver(()=>{const n=document.body.classList.contains('open');if(n&&!was)sync();was=n}).observe(document.body,{attributes:true,attributeFilter:['class']});
+})();
 </script>
 <script src="../hui.js"></script>
 </body>

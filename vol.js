@@ -2,7 +2,8 @@
    Needs ../aurakit/aurakit.js before this file.
    Use (in the page script, before hui.js builds the settings):
      FVTVol.setup({
-       page: 'calc',                                  // settings are saved per page
+       page: 'calc',
+       // optional: extraHTML (more settings cards for the Volume tab) + tabWords (their .lbl titles, lower case)                                  // settings are saved per page
        actions: [{ id: 'reset', label: 'Clear (AC)', run: () => reset() }, ...],
        psOptions: () => document.querySelector('#sheet select[data-k]'),   // optional: copy the PeekSmith button choices
        psRun: a => ...,                               // optional: run one PeekSmith button choice
@@ -122,7 +123,7 @@
     try {
       const c = JSON.parse(sheet.getAttribute('data-hui') || '{}'); c.tabs = c.tabs || [];
       if (!c.tabs.some(t => (t.s || []).includes('volume buttons'))) {
-        const t = { n: 'Volume', i: 'volume', s: ['volume buttons'] };
+        const t = { n: 'Volume', i: 'volume', s: ['volume buttons'].concat(cfg.tabWords || []) };
         const i = c.tabs.findIndex(x => /^(help|kill)$/i.test(x.n));
         if (i < 0) c.tabs.push(t); else c.tabs.splice(i, 0, t);
         sheet.setAttribute('data-hui', JSON.stringify(c));
@@ -140,7 +141,7 @@
       '<div class="snote">Needs Aura 8. The volume buttons do the action you choose. "Twice" = two quick presses; ' +
       'when a "twice" action is set, one press waits ' + DOUBLE_MS / 1000 + ' s. Keep the volume: the volume does not change and iOS shows no volume bar. ' +
       'Presses do nothing while these settings are open, and only while the page is on screen (not when the phone is locked). ' +
-      'In the App Clip (spectator phones) Apple does not let Aura hide the volume bar, so it is off by default.</div>';
+      'In the App Clip (spectator phones) Apple does not let Aura hide the volume bar, so it is off by default.</div>' + (cfg.extraHTML || '');
     /* put it before the Kill switch section if there is one, else at the end */
     const kill = [...sheet.querySelectorAll('.lbl')].find(l => /^kill/i.test(l.textContent.trim()));
     const before = kill || sheet.querySelector('[data-tab="Help"]');
