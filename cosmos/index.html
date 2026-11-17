@@ -54,6 +54,9 @@ input[type=range]{width:100%;accent-color:var(--ac)}
 .fc b{display:block;font-weight:400;font-size:22px;line-height:1.15;color:var(--tx);white-space:nowrap;overflow:hidden}
 .fc span{display:block;font-size:10px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fc.on{border-color:var(--ac);background:#061a30}
+.szr{display:grid;grid-template-columns:44px 1fr 44px 54px;align-items:center;gap:8px;margin-top:10px}
+.szr button{padding:7px 0;font-size:13px;font-weight:600}
+.szr .k{text-align:right;color:var(--tx)}
 textarea,input[type=text],select{width:100%;font:inherit;color:var(--tx);background:var(--card);border:.5px solid var(--line2);border-radius:12px;padding:11px;outline:none;-webkit-user-select:text;user-select:text}
 textarea{min-height:76px;resize:none;font-size:16px;line-height:1.45}
 select{-webkit-appearance:none;appearance:none}
@@ -141,6 +144,7 @@ select{-webkit-appearance:none;appearance:none}
   </div>
 
   <div class="fonts" id="fonts"></div>
+  <div class="szr"><button id="mDn" aria-label="Smaller">A−</button><input type="range" id="mSize" min="16" max="200" step="1"><button id="mUp" aria-label="Bigger" style="font-size:17px">A+</button><span class="k" id="mSizeV"></span></div>
 
   <textarea id="text" style="margin-top:12px" placeholder="Type what to print…"></textarea>
   <div class="row" style="justify-content:space-between;margin-top:6px"><span class="k" id="sampleV"></span><span class="k" id="srcV"></span></div>
@@ -226,7 +230,7 @@ select{-webkit-appearance:none;appearance:none}
       <p><b>2.</b> Type the text. Tap <b>{ } Prediction</b> to put the placeholder at the cursor.</p>
       <p><b>3.</b> Paper length: <b>Fixed</b> keeps the paper at one length (61 mm is the usual slip). <b>Auto</b> makes the paper as long as the text.</p>
       <p><b>4.</b> Drag the text on the paper, or use the arrows (1 mm each). <b>Center</b> puts it back in the middle.</p>
-      <p><b>5.</b> Tap a font. More settings are in Settings → Handwriting.</p>
+      <p><b>5.</b> Tap a font. Use <b>A−</b>, <b>A+</b> or the slider under the fonts to change the text size (each tap = 0.5 mm). More settings are in Settings → Handwriting.</p>
       <p><b>6.</b> <b>Print</b> gets the prediction word and prints. <b>Test</b> prints the sample word.</p>
       <p><b>Routines</b> (grid icon): save the current setup with a name, tap one to load it. Edit lets you rename, update (save the current setup into it) or delete. Routines also show on the Notes and Calculator pages.</p>
       <p>Open this page in <b>Aura Browser</b>. Safari has no Bluetooth for web pages.</p>
@@ -325,7 +329,7 @@ function syncMain(){
   if (document.activeElement !== $('text')) $('text').value = T.text;
   $('sampleV').textContent = 'Sample: ' + (T.sample || 'Cosmos System');
   $('srcV').textContent = 'Source: ' + ((C.sources[T.source] || C.sources.inject).name);
-  buildFonts(); buildChips();
+  buildFonts(); buildChips(); syncSize();
 }
 $('mode').onclick = e => { const b = e.target.closest('button'); if (!b) return; T.mode = b.dataset.v; syncMain(); redraw(); };
 $('qls').onclick = e => { const b = e.target.closest('button'); if (!b) return; T.len = +b.dataset.v; syncMain(); redraw(); };
@@ -414,7 +418,7 @@ document.querySelectorAll('#secs .sh').forEach(h => h.onclick = () => {
 
 /* ---------- settings wiring ---------- */
 function syncSettings(){
-  $('size').value = T.size; $('sizeV').textContent = (T.size / 8).toFixed(1) + ' mm';
+  syncSize();
   $('ink').value = T.ink; $('inkV').textContent = T.ink;
   $('mess').value = T.mess; $('messV').textContent = T.mess;
   $('lh').value = T.lh; $('lhV').textContent = (+T.lh).toFixed(2);
@@ -426,8 +430,15 @@ function syncSettings(){
   $('sample').value = T.sample || ''; $('fallback').value = T.fallback || ''; $('caseT').value = T.caseT || 'asis';
   $('injId').value = C.injectId(); $('injNew').checked = !!P.injNew;
 }
-[['size','sizeV',v => (v/8).toFixed(1) + ' mm'],['ink','inkV',v => v],['mess','messV',v => v],['lh','lhV',v => (+v).toFixed(2)]].forEach(([id, out, f]) =>
+[['ink','inkV',v => v],['mess','messV',v => v],['lh','lhV',v => (+v).toFixed(2)]].forEach(([id, out, f]) =>
   $(id).oninput = () => { T[id] = +$(id).value; $(out).textContent = f(T[id]); redraw(); });
+/* font size: main screen (A− / slider / A+) and Settings → Handwriting stay the same */
+function syncSize(){ const v = T.size, t = (v / 8).toFixed(1) + ' mm'; $('size').value = v; $('sizeV').textContent = t; $('mSize').value = v; $('mSizeV').textContent = t; }
+function setSize(v){ T.size = Math.max(16, Math.min(200, Math.round(v))); syncSize(); redraw(); }
+$('size').oninput = () => setSize(+$('size').value);
+$('mSize').oninput = () => setSize(+$('mSize').value);
+$('mDn').onclick = () => setSize(T.size - 4);
+$('mUp').onclick = () => setSize(T.size + 4);
 $('align').onclick = e => { const b = e.target.closest('button'); if (!b) return; T.align = b.dataset.v; syncSettings(); redraw(); };
 ['bold','slant','flip','mirror'].forEach(id => $(id).onchange = () => { T[id] = $(id).checked; redraw(); });
 ['dens','feed'].forEach(id => $(id).onchange = () => { T[id] = +$(id).value; saveT(); });
