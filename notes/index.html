@@ -337,6 +337,8 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
 <div data-tab="Help" class="hui-help">
+  <h4>Fake lock</h4>
+  <p>Volume tab: set a volume button to "Fake lock". One press: the screen goes black, like a locked phone. Hold the black screen (about half a second): what the spectator wrote shows in dim gray while you hold. Lift your finger: black again. Press the volume button again: the note comes back.</p>
   <h4>Open and close</h4>
   <p>Hold the <b>share</b> button for 1 second to open these settings. Hold <b>•••</b> (or the date) for 1 second to clear the note.</p>
   <h4>Peeks</h4>
@@ -1353,9 +1355,38 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
 })();
 </script>
 <script>
+/* ---------- fake lock: the screen goes black (looks locked); hold the screen = peek of the note ---------- */
+const FakeLock=(function(){
+  let el=null,pk=null,on=false,t=null,sb=null;
+  function make(){
+    el=document.createElement('div');
+    el.style.cssText='position:fixed;inset:0;background:#000;z-index:2147483001;display:none;touch-action:none;-webkit-user-select:none;user-select:none';
+    pk=document.createElement('div');
+    pk.style.cssText='position:absolute;left:24px;right:24px;top:50%;transform:translateY(-50%);color:#6b6b70;font:500 18px/1.4 -apple-system,system-ui,sans-serif;text-align:center;white-space:pre-wrap;word-break:break-word;opacity:0;transition:opacity .12s';
+    el.appendChild(pk);document.body.appendChild(el);
+    const stop=e=>{if(e.cancelable)e.preventDefault();e.stopPropagation()};
+    const down=e=>{stop(e);clearTimeout(t);t=setTimeout(peek,450)};
+    const up=e=>{stop(e);clearTimeout(t);t=null;pk.style.opacity='0'};
+    el.addEventListener('touchstart',down,{passive:false});el.addEventListener('touchend',up,{passive:false});
+    el.addEventListener('touchcancel',up,{passive:false});el.addEventListener('touchmove',stop,{passive:false});
+    el.addEventListener('mousedown',down);el.addEventListener('mouseup',up);el.addEventListener('mouseleave',up);
+    ['click','dblclick','contextmenu'].forEach(n=>el.addEventListener(n,stop))}
+  function peek(){
+    const l=noteLines(),txt=l.length?l.slice(-8).join('\n'):'(empty note)';
+    pk.textContent=txt;pk.style.opacity='1';try{AuraKit.haptics.light()}catch(e){}}
+  async function set(v){
+    if(!el)make();on=!!v;clearTimeout(t);pk.style.opacity='0';
+    if(on){try{note.blur()}catch(e){}el.style.display='block';
+      try{sb=await AuraKit.statusBar.get();await AuraKit.statusBar.hide()}catch(e){sb=null}}
+    else{el.style.display='none';
+      if(sb){try{await AuraKit.statusBar.set({hidden:sb.hidden,transparent:sb.transparent})}catch(e){}sb=null}}}
+  return{toggle:()=>set(!on),set,get on(){return on}}})();
+</script>
+<script>
 /* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
 FVTVol.setup({page:'notes',
   actions:[
+    {id:'lock',label:'Fake lock (black, hold the screen to peek)',run:()=>FakeLock.toggle()},
     {id:'pred',label:'Prediction on/off',run:()=>predToggle()},
     {id:'type',label:'Prediction type (text / acrostic)',run:()=>typeSwap()},
     {id:'inj',label:'Inject prediction',run:()=>injStart()},
@@ -1364,7 +1395,7 @@ FVTVol.setup({page:'notes',
     {id:'cleardraw',label:'Clear the drawing',run:()=>clearDrawing()}],
   psOptions:()=>document.querySelector('#sheet select[data-k]'),
   psRun:a=>{const k='vol.click',o=P.btns[k];P.btns[k]=a;try{bleButton('vol','click')}finally{if(o===undefined)delete P.btns[k];else P.btns[k]=o}},
-  defaults:{up:'ps:lastWord',down:'pred'}});
+  defaults:{up:'ps:lastWord',down:'lock'}});
 </script>
 <script src="../hui.js"></script>
 </body>
