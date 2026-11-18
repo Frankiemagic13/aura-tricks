@@ -113,7 +113,7 @@ select{-webkit-appearance:none;appearance:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v5</small></h1>
+    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v6</small></h1>
     <div class="row" style="gap:2px">
       <button class="ib" id="bRoutines" aria-label="Routines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/></svg></button>
       <button class="ib" id="bSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -215,7 +215,9 @@ select{-webkit-appearance:none;appearance:none}
       <div class="fl"><span>Letters</span><select id="caseT"><option value="asis">As sent</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="title">First Letters Up</option></select></div>
       <div class="fl"><span>Inject ID</span><input type="text" id="injId" inputmode="numeric" placeholder="13297"></div>
       <div class="fl"><span>Only a new Inject word</span><input type="checkbox" class="sw" id="injNew"></div>
-      <div class="note"><b>{prediction}</b> is a placeholder. When you tap Print, the page gets the word from the source and prints it in its place. <b>Test</b> prints the sample word. The fallback word prints when the source has no word. "Only a new Inject word" waits (up to 60 s) for a word sent after you tap Print.</div>
+      <div class="fl"><span>Auto print new Inject word</span><input type="checkbox" class="sw" id="autoP"></div>
+      <div class="fl"><span>Auto print status</span><span class="v" id="autoSt" style="min-width:0">Off</span></div>
+      <div class="note">Auto print: while the page is on screen, it checks Inject every 1.5 s. When a new word arrives, it prints the current setup with that word at once and sends "Printed: word" to the PeekSmith. Words that were already in Inject before you turned it on do not print. If the Cosmos is not connected, the page connects first. <b>{prediction}</b> is a placeholder. When you tap Print, the page gets the word from the source and prints it in its place. <b>Test</b> prints the sample word. The fallback word prints when the source has no word. "Only a new Inject word" waits (up to 60 s) for a word sent after you tap Print.</div>
     </div></div>
 
     <div class="sec"><button class="sh">PeekSmith <i>⌄</i></button><div class="sb">
@@ -279,7 +281,7 @@ if (!localStorage.getItem('fvtCosmosFeedMig')) { if (+T.feed === 160) T.feed = -
 })();
 if (!C.FONTS.some(f => f[0] === T.font)) T.font = 'Caveat';
 let curId = loadJSON('fvtCosmosCurId', null);
-const P = Object.assign({ cosAuto: true, auto: true, vib: false, con: 'COSMOS', feed: '80', injNew: false, showAll: false, btns: {} }, loadJSON('cosmosPS', {}));
+const P = Object.assign({ autoP: false, cosAuto: true, auto: true, vib: false, con: 'COSMOS', feed: '80', injNew: false, showAll: false, btns: {} }, loadJSON('cosmosPS', {}));
 if (P.injId && !localStorage.getItem('fvtInjId')) { try { localStorage.setItem('fvtInjId', P.injId); } catch(e){} }
 function saveT(){ saveJSON('fvtCosmosCur', T); saveJSON('fvtCosmosCurId', curId); }
 function saveP(){ saveJSON('cosmosPS', P); }
@@ -476,6 +478,9 @@ $('fallback').oninput = () => { T.fallback = $('fallback').value; saveT(); };
 $('caseT').onchange = () => { T.caseT = $('caseT').value; redraw(); };
 $('injId').oninput = () => { try { localStorage.setItem('fvtInjId', $('injId').value.replace(/\D/g, '')); } catch(e){} };
 $('injNew').onchange = () => { P.injNew = $('injNew').checked; saveP(); };
+$('autoP').checked = !!P.autoP; $('autoP').onchange = e => apSet(e.target.checked);
+if (P.autoP) setTimeout(() => apSet(true), 300);
+document.addEventListener('visibilitychange', () => { if (P.autoP && document.visibilityState === 'visible') apBase = null; });
 
 /* ---------- Cosmos connection + pills ---------- */
 let psBattery = null;
@@ -514,6 +519,35 @@ async function printMain(){
   if (r.word === null) psShow('No word');
   else if (r.word) { psShow('Print: ' + r.word); $('pInjT').textContent = r.word; }
 }
+/* ---------- auto print: a new Inject word prints at once ---------- */
+let apBase = null, apBusy = false, apQueue = null, apTimer = null;
+function apStatus(t){ $('autoSt').textContent = t; const pt = $('pInjT'); if (P.autoP && /^Waiting|^Auto/.test(t)) pt.textContent = 'Auto · waiting'; }
+async function apPrint(word){
+  if (apBusy || C.busy) { apQueue = word; return; }
+  apBusy = true;
+  try {
+    if (!C.connected) { apStatus('Connecting for "' + word + '"…'); psShow('Connecting…', true); await C.connect({ quiet: true }); }
+    if (!C.connected) { apStatus('Not connected: "' + word + '" did not print'); psShow('Not printed: ' + word); return; }
+    apStatus('Printing "' + word + '"…');
+    const ok = await C.print(T, word);
+    $('pInjT').textContent = word; psShow((ok ? 'Printed: ' : 'Sent: ') + word);
+    apStatus((ok ? 'Printed' : 'Sent') + ' "' + word + '" · waiting');
+  } catch(e) { log('auto print: ' + e.message); apStatus('Error · waiting'); }
+  finally { apBusy = false; if (apQueue) { const w = apQueue; apQueue = null; apPrint(w); } }
+}
+async function apPoll(){
+  if (!P.autoP || document.visibilityState !== 'visible') return;
+  try {
+    const r = await C.injectRead();
+    if (apBase === null) { apBase = r.count; apStatus('Waiting for a new word'); return; }
+    if (r.count !== apBase) { apBase = r.count; if (r.value) { log('auto print: new Inject word ' + r.value); apPrint(r.value); } }
+  } catch(e) { apStatus('Inject error · trying again'); }
+}
+function apSet(on){
+  P.autoP = !!on; saveP(); clearInterval(apTimer); apTimer = null; apBase = null;
+  if (P.autoP) { apStatus('Starting…'); apPoll(); apTimer = setInterval(apPoll, 1500); $('pInj').classList.add('on'); }
+  else { apStatus('Off'); $('pInjT').textContent = 'Inject'; }
+}
 async function testPrint(){ if (!C.connected) { toast('Connect the Cosmos first'); return; } psShow('Test print'); await C.print(T, T.sample || 'Cosmos System'); }
 function feedNow(n){ if (!C.connected) { toast('Connect the Cosmos first'); psShow('Cosmos not connected'); return; } C.feed(n); }
 $('edge').value = String(C.edge()); $('edge').onchange = e => { C.setEdge(e.target.value); redraw(false); };
@@ -527,7 +561,7 @@ $('pInj').onclick = async () => {
 
 /* ---------- PeekSmith (Aura Browser only, AuraPeekSmith library by magicsplitter.fr) ---------- */
 const PS_OK = !!(window.AuraPeekSmith && AuraPeekSmith.isAvailable && AuraPeekSmith.isAvailable());
-const BACT = { none:'Nothing', print:'Print (with prediction)', test:'Test print (sample word)', feed:'Feed paper', injShow:'Show last Inject',
+const BACT = { none:'Nothing', autoP:'Auto print on/off', print:'Print (with prediction)', test:'Test print (sample word)', feed:'Feed paper', injShow:'Show last Inject',
   nextR:'Next routine', prevR:'Previous routine', cosBatt:'Show Cosmos battery %', psBatt:'Show PeekSmith battery %', both:'Show both battery %', clear:'Clear PeekSmith' };
 const BDEF = { '1.click':'print', '1.longpress':'injShow', '2.click':'nextR', '2.longpress':'feed', '0.click':'both', '0.longpress':'clear' };
 Object.keys(P.btns || {}).forEach(k => { if (P.btns[k] === 'injPrint') P.btns[k] = 'print'; if (!BACT[P.btns[k]]) delete P.btns[k]; });
@@ -577,6 +611,7 @@ async function psButton(b, e){
   const a = P.btns[b + '.' + e] || 'none';
   if (a === 'none') return;
   if (a === 'clear') { aps.clear().catch(()=>{}); return; }
+  if (a === 'autoP') { apSet(!P.autoP); $('autoP').checked = P.autoP; psShow('Auto print ' + (P.autoP ? 'on' : 'off')); return; }
   if (a === 'feed') { feedNow(+P.feed || 80); psShow('Feed'); return; }
   if (a === 'print') { printMain(); return; }
   if (a === 'test') { testPrint(); return; }
