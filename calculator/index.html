@@ -301,6 +301,18 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Cosmos auto print</div>
   <div class="grp"><div class="r">Print when = is tapped<label><input type="checkbox" id="czEq" style="width:auto;transform:scale(1.3)"></label></div></div>
   <div class="note">After the spectator taps =, the template prints. <b>Days since birth</b>: choose the template "Days since birth", then the spectator types month + day + year (the order in PeekSmith → Birthday peek) and taps =. Example: 3 + 14 + 1990 = prints the days since March 14, 1990. "Calculator result" prints the total.</div>
+  <div class="lbl">Cosmos magic square</div>
+  <div class="grp">
+    <div class="r">Magic square on<label><input type="checkbox" id="msOn" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Messiness<select id="msMess"><option value="3">3 · a little</option><option value="5">5</option><option value="7">7 · napkin</option><option value="8">8</option><option value="10">10 · very sloppy</option></select></div>
+    <div class="r">Font<select id="msFont"></select></div>
+    <div class="r">Write the total under it<label><input type="checkbox" id="msCap" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Stay on after =<label><input type="checkbox" id="msKeep" style="width:auto;transform:scale(1.3)"></label></div>
+    <div class="r">Practice number<input id="msTry" inputmode="numeric" pattern="[0-9]*" placeholder="47"></div>
+    <div class="r" style="display:block;padding:4px 18px"><canvas id="msPrev"></canvas></div>
+    <div class="r"><button class="done" id="msNew" style="width:auto;text-align:left">New look</button><button class="done" id="msTest" style="width:auto">Test print</button></div>
+  </div>
+  <div class="note">Hold <b>%</b> for 1 second to turn the magic square on or off ("Square on" / "Square off" shows at the top and on the PeekSmith). The spectator types or adds numbers and taps <b>=</b>. The total shows as normal, the Cosmos prints a hand-drawn 4 × 4 square for that total, and the PeekSmith shows "Square 47". Every row, column and diagonal, the 4 corners, the center 4 and each 2 × 2 corner block give the total. The total must be a whole number, 34 or more (34 is the lowest total with 16 different numbers). If it is not, nothing prints, the PeekSmith shows "Square: too low" and the square stays on. The square turns off after one print (or turn on "Stay on after ="). Each print has a new random look and a new order of numbers. When the square is on, "Print when =" does not print its template too.</div>
   <div class="lbl">Cosmos new template</div>
   <div class="grp">
     <div class="r">Name<input id="czName" autocapitalize="off" autocorrect="off" placeholder="My template"></div>
@@ -423,7 +435,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v54</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v55</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -436,6 +448,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <p>Hold <b>=</b> to turn it on or off. After an equation, tap C / AC, then each <b>=</b> shows the numbers of that equation one by one (default: last number first). Settings and steps are in the Codebreaker tab.</p>
   <h4>PIN math</h4>
   <p>Hold <b>+/−</b> (bottom left) to turn it on or off ("PIN on" / "PIN off" shows at the top), or use <b>PIN peek on =</b> in the Code tab. It turns off by itself after one <b>=</b>. The spectator adds birth year + age + the time + their PIN and taps <b>=</b>. The PeekSmith shows "PIN 4820/4821": the first PIN is correct when the birthday has passed, the second when it has not.</p>
+  <h4>Magic square (Cosmos)</h4>
+  <p>Connect the Cosmos (Print tab). Hold <b>%</b> for 1 second: "Square on". The spectator types or adds numbers and taps <b>=</b>. The Cosmos prints a hand-drawn 4 × 4 square for the total, and the PeekSmith shows "Square 47". Every row, column and diagonal, the 4 corners, the center 4 and each 2 × 2 corner block give the total. The total must be a whole number, 34 or more. It turns off after one print. For a prediction: set the force number, print the square before the show (Print tab → Practice number → Test print), then let the spectator get the force total. A PeekSmith button or a volume button can also print the square for the number on the display ("Cosmos print magic square").</p>
   <h4>Vanish &amp; reveal</h4>
   <ol><li>Connect the two phones with Aura peer (Peeks tab). Your phone is <b>My phone (mirror)</b>. "Status" in the Vanish tab shows Linked.</li>
   <li>Type a number on your phone (or show a result).</li>
@@ -692,7 +706,7 @@ function blindTap(e){if(!faceDown||document.body.classList.contains('open'))retu
 const keys=document.getElementById('keys');let holdT=null,held=false,zeroDown=false;
 /* secret: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
    The held digit is taken back, the display goes back to 0, and the PeekSmith shows "Force: …". */
-let digT=null,eqT=null,eqDown=false,eqHeld=false,negT=null,negDown=false,negHeld=false;
+let digT=null,eqT=null,eqDown=false,eqHeld=false,negT=null,negDown=false,negHeld=false,pctT=null,pctDown=false,pctHeld=false;
 function snap(){return{toks:toks.slice(),cur,result,shownExpr,armed,force,fi,before,fOp,forceTarget,eqNums:eqNums.slice()}}
 function unsnap(z){toks=z.toks;cur=z.cur;result=z.result;shownExpr=z.shownExpr;armed=z.armed;force=z.force;fi=z.fi;before=z.before;fOp=z.fOp;forceTarget=z.forceTarget;eqNums=z.eqNums}
 /* quick force: type a number, then hold 1 for 0.7 s = that number becomes the force (Custom).
@@ -726,6 +740,7 @@ function down(b){
   if(zeroDown&&!held){zeroDown=false;clearTimeout(holdT);press('0')}
   if(eqDown&&!eqHeld){eqDown=false;clearTimeout(eqT);press('=')}
   if(negDown&&!negHeld){negDown=false;clearTimeout(negT);press('neg')}
+  if(pctDown&&!pctHeld){pctDown=false;clearTimeout(pctT);press('pct')}
   b.classList.add('down');
   const k=b.dataset.k;
   if(k==='='){eqDown=true;eqHeld=false;clearTimeout(eqT);
@@ -733,6 +748,9 @@ function down(b){
   /* hold +/− (bottom left) 0.7 s = PIN math on / off */
   if(k==='neg'){negDown=true;negHeld=false;clearTimeout(negT);
     negT=setTimeout(()=>{negHeld=true;b.classList.remove('down');pmSet(!S.pmOn)},700);return}
+  /* hold % 0.7 s = magic square on / off (Cosmos) */
+  if(k==='pct'){pctDown=true;pctHeld=false;clearTimeout(pctT);
+    pctT=setTimeout(()=>{pctHeld=true;b.classList.remove('down');if(window.msSet)msSet(!S.ms.on)},700);return}
   if(k==='0'){zeroDown=true;held=false;holdT=setTimeout(()=>{held=true;b.classList.remove('down');openSheet()},700);return}
   if(k==='1'&&force===null){
     const z=snap();
@@ -755,7 +773,8 @@ function up(){document.querySelectorAll('.k.down').forEach(b=>b.classList.remove
   clearTimeout(digT);digT=null;
   if(zeroDown){zeroDown=false;clearTimeout(holdT);if(!held)press('0')}
   if(eqDown){eqDown=false;clearTimeout(eqT);if(!eqHeld)press('=')}
-  if(negDown){negDown=false;clearTimeout(negT);if(!negHeld)press('neg')}}
+  if(negDown){negDown=false;clearTimeout(negT);if(!negHeld)press('neg')}
+  if(pctDown){pctDown=false;clearTimeout(pctT);if(!pctHeld)press('pct')}}
 keys.addEventListener('touchstart',e=>{const b=e.target.closest('.k');if(!b)return;e.preventDefault();down(b)},{passive:false});
 keys.addEventListener('touchend',e=>{e.preventDefault();up()},{passive:false});
 keys.addEventListener('touchcancel',up);
@@ -877,7 +896,7 @@ async function bleFlush(){bleSending=true;
   blePend=null;bleSending=false}
 function bleSend(t){psHist.push(t);if(psHist.length>50)psHist.shift();psBack=0;bleShow(t)}
 /* button actions */
-const BACT={none:'Nothing',inject:'Send to Inject',birthday:'Show birthday peek',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith',cosmos:'Cosmos print',cosDays:'Cosmos print days since birth'};
+const BACT={none:'Nothing',inject:'Send to Inject',birthday:'Show birthday peek',lastInput:'Show last input',lastPeek:'Show full last peek',shortPeek:'Show short peek',previousPeek:'Show previous peek',clear:'Clear PeekSmith',cosmos:'Cosmos print',cosDays:'Cosmos print days since birth',cosSquare:'Cosmos print magic square'};
 const BDEF={'1.click':'lastInput','1.longpress':'previousPeek','2.click':'lastPeek','2.longpress':'clear','0.click':'inject','0.longpress':'none'};
 S.btns=Object.assign({},BDEF,S.btns||{});
 document.querySelectorAll('#sheet select[data-k]').forEach(s=>{
@@ -900,6 +919,7 @@ function bleButton(b,e){
   if(a==='clear'){aps.clear().catch(()=>{});return}
   if(a==='cosmos'){if(window.czPanel)czPanel.print();return}
   if(a==='cosDays'){if(window.czPanel)czPanel.printId('_days');return}
+  if(a==='cosSquare'){if(window.msPrint)msPrint();return}
   if(a==='inject'){injSend(true);return}   // sends the number chosen in Send to Inject
   if(a==='birthday'){const nn=result!==null?eqNums:toks.filter(x=>!isOp(x)).concat(cur!==''?[cur]:[]);bleShow(birthPeek(nn.slice(0,3))||lastBirth||'No birthday yet');return}
   if(!last){bleShow('No peek yet');return}
@@ -1030,7 +1050,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v54. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v55. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -1638,8 +1658,46 @@ addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.det
     {id:'_sign',name:'Star sign',tpl:{text:'You are\na {prediction}',source:'calcSign',mode:'fixed',len:61,size:56}},
     {id:'_total',name:'Calculator result',tpl:{text:'The total\nwill be\n{prediction}',source:'calcResult',mode:'fixed',len:61,size:52}}];
   window.czPanel=Cosmos.panel({page:'calculator',presets,psShow:t=>{try{bleShow(t)}catch(e){}}});
+  /* ---- magic square (Napkin look): hold % = on / off, = prints the square for the total ---- */
+  S.ms=Object.assign({on:false,mess:7,font:'Reenie Beanie',cap:false,keep:false,try:''},S.ms||{});
+  const msOpts=()=>({font:S.ms.font,mess:+S.ms.mess,cap:!!S.ms.cap});
+  const msSay=t=>{try{bleShow(t)}catch(e){}};
+  let msSeed=1;
+  function msPreview(){const cv=$('msPrev');if(!cv)return;const n=parseInt(S.ms.try,10)||47;
+    Cosmos.fontsReady({font:S.ms.font}).then(()=>{const r=Cosmos.renderSquare(Math.max(Cosmos.MS_MIN,n),Object.assign(msOpts(),{seed:msSeed}),1);if(!r)return;
+      Cosmos.paint(cv,r);const w=170,h=r.h*w/Cosmos.W;cv.style.width=w+'px';cv.style.height=h+'px';cv.style.background='#f7f6f1';cv.style.borderRadius='2px';cv.style.margin='8px auto';cv.style.display='block'})}
+  function msSync(){$('msOn').checked=!!S.ms.on;$('msMess').value=String(S.ms.mess);$('msCap').checked=!!S.ms.cap;$('msKeep').checked=!!S.ms.keep;$('msTry').value=S.ms.try||'';
+    const fs=$('msFont');fs.innerHTML='';Cosmos.FONTS.forEach(([f,n,mine])=>{const o=document.createElement('option');o.value=f;o.textContent=mine?n+' (my font)':f+' ('+n+')';fs.appendChild(o)});
+    fs.value=Cosmos.FONTS.some(x=>x[0]===S.ms.font)?S.ms.font:'Reenie Beanie';msPreview()}
+  window.msSet=function(on,quiet){S.ms.on=!!on;saveS();try{$('msOn').checked=S.ms.on}catch(e){}
+    if(!quiet){try{buzz()}catch(e){}toast(on?'Square on':'Square off');msSay(on?'Square on':'Square off')}};
+  /* the number to print: the total after =, else the number on the display */
+  function msNumber(){if(result!==null&&isFinite(result))return +result.toPrecision(12);const v=parseFloat(String(cur||'').replace(/,/g,''));return isFinite(v)?v:null}
+  window.msPrint=async function(n){
+    if(n==null)n=msNumber();
+    if(!Number.isInteger(n)||n<Cosmos.MS_MIN){msSay('Square: too low');return false}
+    if(!Cosmos.connected){msSay('Cosmos not connected');return false}
+    if(Cosmos.busy){msSay('Busy');return false}
+    const ok=await Cosmos.printSquare(n,msOpts());
+    msSay((ok?'Square ':'Sent square ')+n);return ok};
+  /* returns true when the square takes this = (then the normal auto print does not run) */
+  function msOnEq(){
+    if(!S.ms.on||result===null)return false;
+    const n=+result.toPrecision(12);
+    if(!Number.isInteger(n)||n<Cosmos.MS_MIN){setTimeout(()=>msSay('Square: too low'),600);return true}
+    if(!S.ms.keep)msSet(false,true);
+    setTimeout(()=>msPrint(n),350);return true}
+  $('msOn').onchange=()=>msSet($('msOn').checked,true);
+  $('msMess').onchange=e=>{S.ms.mess=+e.target.value;saveS();msPreview()};
+  $('msFont').onchange=e=>{S.ms.font=e.target.value;saveS();msPreview()};
+  $('msCap').onchange=e=>{S.ms.cap=e.target.checked;saveS();msPreview()};
+  $('msKeep').onchange=e=>{S.ms.keep=e.target.checked;saveS()};
+  $('msTry').oninput=e=>{S.ms.try=e.target.value.replace(/\D/g,'');saveS();msPreview()};
+  $('msNew').onclick=()=>{msSeed=(msSeed*7919+13)%100000;msPreview()};
+  $('msTest').onclick=()=>{if(!Cosmos.connected){Cosmos.connect();return}msPrint(Math.max(Cosmos.MS_MIN,parseInt(S.ms.try,10)||47))};
+  Cosmos.on('fonts',msSync);msSync();
   const oe=injOnEq;
-  injOnEq=function(){oe.apply(this,arguments);if(czPanel&&czPanel.autoEq()&&Cosmos.connected)setTimeout(()=>czPanel.print(),350)};
+  injOnEq=function(){oe.apply(this,arguments);if(msOnEq())return;if(czPanel&&czPanel.autoEq()&&Cosmos.connected)setTimeout(()=>czPanel.print(),350)};
 })();
 </script>
 <script>
@@ -1649,6 +1707,8 @@ FVTVol.setup({page:'calc',
     {id:'ac',label:'Clear (AC)',run:()=>press('clr')},
     {id:'cb',label:'Codebreaker on/off',run:()=>cbSet(!cbOn)},
     {id:'pm',label:'PIN math on/off',run:()=>pmSet(!S.pmOn)},
+    {id:'ms',label:'Magic square on/off',run:()=>{if(window.msSet)msSet(!S.ms.on)}},
+    {id:'msp',label:'Print magic square now',run:()=>{if(window.msPrint)msPrint()}},
     {id:'van',label:'Vanish one digit',run:()=>vanSwipe(['l','r','u','d'].includes(S.vanDir)?S.vanDir:'l')},
     {id:'rd',label:'Ragdoll',run:()=>rdShake()},
     {id:'mirr',label:'Mirror on/off',run:()=>setMirr(!S.mirr)}],

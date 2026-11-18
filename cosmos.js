@@ -458,6 +458,123 @@ C.calibrate = async () => {
   return runJob(2, async () => { for (const ch of chunks) { await waitCredit(); await write(ch); } await waitCredit(); await write(CMD.feed(feedDots(120))); });
 };
 
+/* ---------- Magic square (4 × 4, "Napkin" hand-drawn look) ----------
+   C.magicSquare(n) -> 4×4 array or null. n = whole number 34 or more (34 = 1+2+…+16, the lowest total
+   with 16 different positive numbers). Every row, column, both diagonals, the 4 corners, the center 4
+   and each 2×2 corner block add up to n.
+   Method: base square (1–16, total 34) + q on every cell, + r on 4 "key" cells (one in each row,
+   column, diagonal, corner set, center and corner block). q = floor((n−34)/4), r = (n−34) mod 4.
+   So the numbers stay close together and look natural. A random turn / mirror makes each print different. */
+const MS_BASE = [[14,1,12,7],[11,8,13,2],[5,10,3,16],[4,15,6,9]];
+const MS_KEY = [[0,0],[1,2],[2,3],[3,1]];
+C.MS_MIN = 34;
+C.magicSquare = (n, seed) => {
+  n = Number(n);
+  if (!Number.isInteger(n) || n < C.MS_MIN || n > 9999999) return null;
+  const q = Math.floor((n - 34) / 4), r = (n - 34) % 4;
+  let g = MS_BASE.map(row => row.map(v => v + q));
+  MS_KEY.forEach(([y, x]) => { g[y][x] += r; });
+  const R = rng(seed == null ? (Date.now() ^ (Math.random() * 1e9)) : seed);
+  const turns = Math.floor(R() * 4), flip = R() < 0.5;
+  for (let i = 0; i < turns; i++) g = g[0].map((_, x) => g.map(row => row[x]).reverse());
+  if (flip) g = g.map(row => row.slice().reverse());
+  return g;
+};
+C.MS_DEFAULT = { font: 'Reenie Beanie', mess: 7, cap: false, len: 61, dens: 2, ink: 3.4 };
+/* renderSquare(n, o, k) -> same shape as render(): { rows, h, bpr, w, mm, grid } or null.
+   o.mess 0–10 = how sloppy (lines and numbers). o.cap = write "= n" under the square. */
+C.renderSquare = (n, o0, k = 1) => {
+  const o = Object.assign({}, C.MS_DEFAULT, o0 || {});
+  const grid = o.grid || C.magicSquare(n, o.seed);
+  if (!grid) return null;
+  const R = rng(o.seed == null ? (Date.now() & 0xffffff) + 7 : o.seed + 99);
+  const m = Math.max(0, Math.min(10, +o.mess)) / 10;             // 0 … 1
+  const W = Math.round(C.W * k), BPR = W >> 3, H = Math.max(16, Math.round(+o.len * 8 * k));
+  const cell = 74 * k, gw = cell * 4;
+  const capH = o.cap ? 70 * k : 0;
+  const x0 = (W - gw) / 2 + (R() - 0.5) * 18 * k * m;
+  const y0 = Math.max(10 * k, (H - gw - capH) / 2) + (R() - 0.5) * 16 * k * m;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#000'; g.strokeStyle = '#000'; g.lineCap = 'round'; g.lineJoin = 'round';
+  /* the whole drawing sits a little crooked */
+  g.translate(W / 2, y0 + gw / 2); g.rotate((R() - 0.5) * 0.07 * m); g.translate(-W / 2, -(y0 + gw / 2));
+  /* Napkin grid: no outer box, 3 + 3 loose lines that run past the ends, bent, with a thick/thin pen */
+  const pen = (x1, y1, x2, y2) => {
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy), ux = dx / L, uy = dy / L;
+    const a = (6 + R() * 26 * m) * k, b = (6 + R() * 30 * m) * k;
+    const sx = x1 - ux * a + (R() - 0.5) * 8 * k * m, sy = y1 - uy * a + (R() - 0.5) * 8 * k * m;
+    const ex = x2 + ux * b + (R() - 0.5) * 10 * k * m, ey = y2 + uy * b + (R() - 0.5) * 10 * k * m;
+    const b1 = (R() - 0.5) * 22 * k * m, b2 = (R() - 0.5) * 22 * k * m;
+    const c1x = sx + (ex - sx) / 3 - uy * b1, c1y = sy + (ey - sy) / 3 + ux * b1;
+    const c2x = sx + (ex - sx) * 2 / 3 - uy * b2, c2y = sy + (ey - sy) * 2 / 3 + ux * b2;
+    const w0 = +o.ink * k, steps = 18;
+    let px = sx, py = sy;
+    for (let i = 1; i <= steps; i++) {                            // pen pressure: thin at the ends
+      const t = i / steps, u = 1 - t;
+      const x = u*u*u*sx + 3*u*u*t*c1x + 3*u*t*t*c2x + t*t*t*ex, y = u*u*u*sy + 3*u*u*t*c1y + 3*u*t*t*c2y + t*t*t*ey;
+      g.lineWidth = w0 * (0.55 + 0.6 * Math.sin(Math.PI * t) + (R() - 0.5) * 0.25 * m);
+      g.beginPath(); g.moveTo(px, py); g.lineTo(x, y); g.stroke(); px = x; py = y;
+    }
+  };
+  for (let i = 1; i <= 3; i++) {
+    pen(x0, y0 + i * cell, x0 + gw, y0 + i * cell);
+    pen(x0 + i * cell, y0, x0 + i * cell, y0 + gw);
+  }
+  /* sloppy numbers: each number off-center and tilted, each digit with its own size, tilt and bounce */
+  const fam = o.font, fs0 = 50 * k;
+  const font = sz => `400 ${sz.toFixed(1)}px "${fam}", "Reenie Beanie", "Caveat", cursive`;
+  const ink = Math.max(0.6, (+o.ink * 0.45) * k);
+  const drawNum = (txt, cx, cy, maxW, base) => {
+    const ch = [...String(txt)], sz = ch.map(() => base * (1 + (R() - 0.5) * 0.34 * m));
+    const adv = ch.map((d, i) => { g.font = font(sz[i]); return g.measureText(d).width * (0.86 + R() * 0.2 * m); });
+    let tot = adv.reduce((s, v) => s + v, 0);
+    const sc = tot > maxW ? maxW / tot : 1;
+    const tilt = (R() - 0.5) * 0.5 * m, slope = (R() - 0.5) * 0.22 * m;
+    g.save(); g.translate(cx, cy); g.rotate(tilt); g.scale(sc, sc);
+    let x = -tot / 2;
+    ch.forEach((d, i) => {
+      g.save();
+      g.translate(x + adv[i] / 2, (R() - 0.5) * base * 0.22 * m + (x + adv[i] / 2) * slope);
+      g.rotate((R() - 0.5) * 0.5 * m);
+      g.font = font(sz[i]); g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = ink; g.strokeText(d, 0, 0); g.fillText(d, 0, 0);
+      g.restore(); x += adv[i];
+    });
+    g.restore();
+  };
+  grid.forEach((row, y) => row.forEach((v, x) => {
+    const long = String(v).length > 2 ? 0.35 : 1;                 // long numbers drift less, so they do not touch the lines
+    const cx = x0 + (x + 0.5) * cell + (R() - 0.5) * cell * 0.24 * m * long;
+    const cy = y0 + (y + 0.5) * cell + (R() - 0.5) * cell * 0.22 * m;
+    drawNum(v, cx, cy, cell * (long < 1 ? 0.78 : 0.9), fs0);
+  }));
+  if (o.cap) drawNum('= ' + grid[0].reduce((s, v) => s + v, 0), W / 2 + (R() - 0.5) * 30 * k * m, y0 + gw + capH * 0.62, gw, fs0 * 0.9);
+  const src = g.getImageData(0, 0, W, H).data, rows = new Uint8Array(H * BPR);
+  for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++)
+    if (src[(yy*W + xx) * 4] < 140) rows[yy*BPR + (xx>>3)] |= 0x80 >> (xx & 7);
+  return { rows, h: H, bpr: BPR, w: W, mm: Math.round(H / (8 * k)), grid };
+};
+/* print a magic square for n. The same square goes to the live view and the printer (one grid, one seed). */
+C.printSquare = async (n, o0) => {
+  const o = Object.assign({}, C.MS_DEFAULT, o0 || {});
+  if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
+  const grid = C.magicSquare(n);
+  if (!grid) { emit('toast', 'Magic square: ' + C.MS_MIN + ' or more'); return false; }
+  await C.fontsReady({ font: o.font });
+  const pr = C.prof(), seed = Date.now() & 0xffffff;
+  const r = C.renderSquare(n, Object.assign({}, o, { grid, seed }), pr.dpm / 8);
+  const slip = Math.round(+o.len * pr.dpm), feed = Math.max(0, slip - r.h) + Math.round(C.edge() * pr.dpm);
+  const chunks = rasterChunks(r.rows, r.h, r.bpr);
+  log(`magic square ${n}: ${grid.map(x => x.join(' ')).join(' / ')} — ${r.w}×${r.h} dots, feed ${feed}`);
+  emit('status', 'Printing…', 'warn');
+  return runJob(o.dens, async () => {
+    for (const ch of chunks) { await waitCredit(); await write(ch); }
+    if (feed > 0) { await waitCredit(); await write(CMD.feed(feed)); }
+  });
+};
+
 
 /* ---------- Settings panel for Notes / Calculator ("Print" tab) ----------
    opts: { page: 'notes' | 'calculator', psShow(text), defaultSource: 'inject' }
