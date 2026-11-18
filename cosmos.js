@@ -96,15 +96,15 @@ C.PROFILES = { '203': { dpm: 8, w: 384, name: '203 dpi (384 dots)' }, '300': { d
 C.dpi = () => { try { const v = localStorage.getItem('fvtCosmosDpi'); return C.PROFILES[v] ? v : '300'; } catch(e){ return '300'; } };
 C.setDpi = v => { if (!C.PROFILES[v]) return; try { localStorage.setItem('fvtCosmosDpi', v); } catch(e){} emit('change'); };
 C.prof = () => C.PROFILES[C.dpi()];
-/* Tear edge distance: paper between the print head and the tear edge (mm). With feed "Auto", a Fixed
-   slip prints (length − this) and then feeds this, so each torn slip is the paper length. */
-C.edge = () => { try { const v = +localStorage.getItem('fvtCosmosEdge'); return v >= 2 && v <= 40 ? v : 8; } catch(e){ return 8; } };
+/* Feed "Auto" is for a loaded slip (a torn piece of paper put in the printer): after the print it feeds
+   the rest of the slip (paper length − printed length) plus this extra (mm), so the slip comes out. */
+C.edge = () => { try { const v = +localStorage.getItem('fvtCosmosEdge'); return v >= 2 && v <= 60 ? v : 15; } catch(e){ return 15; } };
 C.setEdge = v => { try { localStorage.setItem('fvtCosmosEdge', String(+v)); } catch(e){} emit('change'); };
 C.DEFAULT = {
   text: 'You will think of\nthe {prediction}', font: 'Caveat', size: 52, ink: 1.5, mess: 4, lh: 1.1,
   align: 'center', bold: false, slant: false, seed: 1,
   mode: 'fixed', len: 61, px: 0.5, py: 0.5, yAuto: 24,
-  dens: 2, feed: -1, flip: false, mirror: false,      // feed -1 = Auto (torn slip = paper length)
+  dens: 2, feed: -1, flip: false, mirror: false,      // feed -1 = Auto (push the loaded slip out)
   source: 'inject', caseT: 'asis', fallback: '', sample: 'Cosmos System',
 };
 C.tpl = o => Object.assign({}, C.DEFAULT, o || {});
@@ -411,13 +411,9 @@ C.print = async (t, word) => {
   const pr = C.prof(), r = C.render(t, word == null ? t.sample : word, pr.dpm / 8);
   let rows = r.rows, h = r.h, feed = feedDots(t.feed);
   if (+t.feed === -1) {
-    const edge = Math.round(C.edge() * pr.dpm); feed = edge;
-    /* Fixed: the first part of the slip is the blank paper that is already past the print head */
-    if (t.mode === 'fixed') {
-      const cut = Math.min(edge, h - 8);
-      if (r.box.y < cut) emit('toast', 'The text starts in the top ' + C.edge() + ' mm: move it down or make the paper longer');
-      rows = r.rows.subarray(cut * r.bpr); h = h - cut;
-    }
+    /* rest of the slip (Auto length: slip = the Fixed length setting) + the extra to push it out */
+    const slip = Math.round(+t.len * pr.dpm), rest = Math.max(0, slip - h);
+    feed = rest + Math.round(C.edge() * pr.dpm);
   }
   const chunks = rasterChunks(rows, h, r.bpr);
   log(`printing ${r.w}×${h} dots (${pr.name}), feed ${feed} in ${chunks.length} writes`);

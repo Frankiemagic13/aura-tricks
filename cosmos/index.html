@@ -113,7 +113,7 @@ select{-webkit-appearance:none;appearance:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v3</small></h1>
+    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v4</small></h1>
     <div class="row" style="gap:2px">
       <button class="ib" id="bRoutines" aria-label="Routines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/></svg></button>
       <button class="ib" id="bSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -138,7 +138,7 @@ select{-webkit-appearance:none;appearance:none}
   </div>
 
   <div class="row" style="margin-top:12px;justify-content:space-between"><span class="k">Live view · 59 mm paper · drag the text</span><span class="k" id="mmV"></span></div>
-  <div id="paperBox"><div id="paper"><div class="gd" id="gL"></div><div class="gd" id="gR"></div><div id="edgeZ" style="position:absolute;left:0;right:0;top:0;pointer-events:none;background:repeating-linear-gradient(45deg,rgba(0,0,0,.035) 0 6px,transparent 6px 12px);border-bottom:1px dashed #d4a64a;display:none"></div><canvas id="prev"></canvas><div id="blk"></div></div></div>
+  <div id="paperBox"><div id="paper"><div class="gd" id="gL"></div><div class="gd" id="gR"></div><canvas id="prev"></canvas><div id="blk"></div></div></div>
   <div id="warn"></div>
   <div class="nud">
     <button id="nC">Center</button><button data-x="0" data-y="-1" class="nb">↑</button><button data-x="0" data-y="1" class="nb">↓</button><button data-x="-1" data-y="0" class="nb">←</button><button data-x="1" data-y="0" class="nb">→</button>
@@ -196,9 +196,9 @@ select{-webkit-appearance:none;appearance:none}
 
     <div class="sec"><button class="sh">Paper and print <i>⌄</i></button><div class="sb">
       <div class="fl"><span>Darkness</span><select id="dens"><option value="0">Light</option><option value="1">Normal</option><option value="2">Dark</option></select></div>
-      <div class="fl"><span>Feed after print</span><select id="feed"><option value="-1">Auto (slip = paper length)</option><option value="0">None</option><option value="80">10 mm</option><option value="160">20 mm</option><option value="320">40 mm</option><option value="480">60 mm</option></select></div>
-      <div class="fl"><span>Tear edge distance</span><select id="edge"><option value="6">6 mm</option><option value="8">8 mm</option><option value="10">10 mm</option><option value="12">12 mm</option><option value="14">14 mm</option><option value="16">16 mm</option><option value="20">20 mm</option></select></div>
-      <div class="note">Feed "Auto": each slip that you tear off is the paper length you set (Fixed). The page prints a little less and feeds the rest, because the paper between the print head and the tear edge is already out. Tear edge distance: if the end of the text stays inside the printer, choose a larger value. If there is too much blank paper after the text, choose a smaller value.</div>
+      <div class="fl"><span>Feed after print</span><select id="feed"><option value="-1">Auto (push the slip out)</option><option value="0">None</option><option value="80">10 mm</option><option value="160">20 mm</option><option value="320">40 mm</option><option value="480">60 mm</option></select></div>
+      <div class="fl"><span>Extra feed (push out)</span><select id="edge"><option value="5">5 mm</option><option value="10">10 mm</option><option value="15">15 mm</option><option value="20">20 mm</option><option value="25">25 mm</option><option value="30">30 mm</option><option value="40">40 mm</option></select></div>
+      <div class="note">Feed "Auto" is for a torn piece of paper that you put in the printer. Set the paper length to the length of that piece. After the print, the printer feeds the rest of the piece, plus the extra feed, so the piece comes out completely. If the piece stays in the printer, choose a larger extra feed.</div>
       <div class="fl"><span>Upside down</span><input type="checkbox" class="sw" id="flip"></div>
       <div class="fl"><span>Mirror</span><input type="checkbox" class="sw" id="mirror"></div>
       <div class="note">The live view always shows the text the right way up. Upside down and Mirror apply when it prints.</div>
@@ -297,10 +297,7 @@ async function draw(){
   const b = r.box, s = k / 8, blk = $('blk');
   blk.style.left = (side + b.x * s) + 'px'; blk.style.top = (b.y * s) + 'px'; blk.style.width = (b.w * s) + 'px'; blk.style.height = (Math.min(b.h, r.h - b.y) * s) + 'px';
   $('mmV').textContent = r.mm + ' mm long';
-  const ez = $('edgeZ'), auto = +T.feed === -1 && T.mode === 'fixed', eh = C.edge() * 8;
-  ez.style.display = auto ? 'block' : 'none'; ez.style.height = (Math.min(eh, r.h) * s) + 'px';
-  $('warn').textContent = r.over ? 'The text is longer than the paper. Make it smaller or the paper longer.'
-    : auto && b.y < eh ? 'The text is in the top ' + C.edge() + ' mm (striped). This part does not print with feed Auto: move the text down.' : '';
+  $('warn').textContent = r.over ? 'The text is longer than the paper. Make it smaller or the paper longer.' : '';
 }
 let drawQ = false;
 function redraw(save = true){ if (save) saveT(); if (drawQ) return; drawQ = true; requestAnimationFrame(() => { drawQ = false; draw(); }); }
