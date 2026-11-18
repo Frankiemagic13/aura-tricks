@@ -96,11 +96,15 @@ C.PROFILES = { '203': { dpm: 8, w: 384, name: '203 dpi (384 dots)' }, '300': { d
 C.dpi = () => { try { const v = localStorage.getItem('fvtCosmosDpi'); return C.PROFILES[v] ? v : '300'; } catch(e){ return '300'; } };
 C.setDpi = v => { if (!C.PROFILES[v]) return; try { localStorage.setItem('fvtCosmosDpi', v); } catch(e){} emit('change'); };
 C.prof = () => C.PROFILES[C.dpi()];
+/* Tear edge distance: paper between the print head and the tear edge (mm). With feed "Auto", a Fixed
+   slip prints (length − this) and then feeds this, so each torn slip is the paper length. */
+C.edge = () => { try { const v = +localStorage.getItem('fvtCosmosEdge'); return v >= 2 && v <= 40 ? v : 8; } catch(e){ return 8; } };
+C.setEdge = v => { try { localStorage.setItem('fvtCosmosEdge', String(+v)); } catch(e){} emit('change'); };
 C.DEFAULT = {
   text: 'You will think of\nthe {prediction}', font: 'Caveat', size: 52, ink: 1.5, mess: 4, lh: 1.1,
   align: 'center', bold: false, slant: false, seed: 1,
   mode: 'fixed', len: 61, px: 0.5, py: 0.5, yAuto: 24,
-  dens: 2, feed: 160, flip: false, mirror: false,
+  dens: 2, feed: -1, flip: false, mirror: false,      // feed -1 = Auto (torn slip = paper length)
   source: 'inject', caseT: 'asis', fallback: '', sample: 'Cosmos System',
 };
 C.tpl = o => Object.assign({}, C.DEFAULT, o || {});
@@ -405,15 +409,25 @@ C.print = async (t, word) => {
   if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
   await C.fontsReady(t);
   const pr = C.prof(), r = C.render(t, word == null ? t.sample : word, pr.dpm / 8);
-  const chunks = rasterChunks(r.rows, r.h, r.bpr);
-  log(`printing ${r.w}×${r.h} dots (${pr.name}) in ${chunks.length} writes`);
+  let rows = r.rows, h = r.h, feed = feedDots(t.feed);
+  if (+t.feed === -1) {
+    const edge = Math.round(C.edge() * pr.dpm); feed = edge;
+    /* Fixed: the first part of the slip is the blank paper that is already past the print head */
+    if (t.mode === 'fixed') {
+      const cut = Math.min(edge, h - 8);
+      if (r.box.y < cut) emit('toast', 'The text starts in the top ' + C.edge() + ' mm: move it down or make the paper longer');
+      rows = r.rows.subarray(cut * r.bpr); h = h - cut;
+    }
+  }
+  const chunks = rasterChunks(rows, h, r.bpr);
+  log(`printing ${r.w}×${h} dots (${pr.name}), feed ${feed} in ${chunks.length} writes`);
   emit('status', 'Printing…', 'warn');
   return runJob(t.dens, async () => {
     for (let i = 0; i < chunks.length; i++) {
       await waitCredit(); await write(chunks[i]);
       if (i % 10 === 0) emit('status', `Printing… ${Math.round(i/chunks.length*100)}%`, 'warn');
     }
-    if (+t.feed) { await waitCredit(); await write(CMD.feed(feedDots(t.feed))); }
+    if (feed > 0) { await waitCredit(); await write(CMD.feed(feed)); }
   });
 };
 /* get the prediction word, then print. Returns { ok, word } */
