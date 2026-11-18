@@ -87,8 +87,15 @@ mfSync();
 addEventListener('storage', e => { if (e.key === MFK) { mfSync(); C.myFonts.ready = null; C.myFonts.load(); } });
 
 /* ---------- Template defaults ---------- */
-C.W = 384;                      // printer dots per line (48 mm print area, 8 dots/mm)
+C.W = 384;                      // design grid: 384 units per line, 8 units/mm (48 mm print area). Templates and the live view use it.
 C.PAPER_MM = 59;                // paper width
+/* Printer resolution. A test print (17 Nov 2026) came out at about 2/3 size and off to one side with the
+   203 dpi setting, so the Cosmos seems to be 300 dpi (12 dots/mm, 576 dots per line). Print jobs are
+   rendered again at the printer resolution (k = dots per mm / 8); the live view stays on the 8/mm grid. */
+C.PROFILES = { '203': { dpm: 8, w: 384, name: '203 dpi (384 dots)' }, '300': { dpm: 12, w: 576, name: '300 dpi (576 dots)' } };
+C.dpi = () => { try { const v = localStorage.getItem('fvtCosmosDpi'); return C.PROFILES[v] ? v : '300'; } catch(e){ return '300'; } };
+C.setDpi = v => { if (!C.PROFILES[v]) return; try { localStorage.setItem('fvtCosmosDpi', v); } catch(e){} emit('change'); };
+C.prof = () => C.PROFILES[C.dpi()];
 C.DEFAULT = {
   text: 'You will think of\nthe {prediction}', font: 'Caveat', size: 52, ink: 1.5, mess: 4, lh: 1.1,
   align: 'center', bold: false, slant: false, seed: 1,
@@ -100,7 +107,6 @@ C.tpl = o => Object.assign({}, C.DEFAULT, o || {});
 
 /* ---------- Renderer ---------- */
 function rng(seed){ let s = seed >>> 0 || 1; return () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
-const PAD = 6;
 function wrapLines(ctx, text, maxW){
   const out = [];
   String(text).replace(/\r/g,'').split('\n').forEach(par => {
@@ -119,9 +125,10 @@ C.applyCase = (w, c) => { w = String(w ?? ''); if (c === 'upper') return w.toUpp
   if (c === 'title') return w.toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()); return w; };
 C.fill = (t, word) => String(t.text || '').split('{prediction}').join(C.applyCase(word, t.caseT));
 
-/* render(t, word) -> { rows: Uint8Array(H*48), h, box:{x,y,w,h}, over, mm } */
-C.render = (t0, word) => {
-  const t = C.tpl(t0), W = C.W, size = +t.size, ink = +t.ink, jit = (+t.mess)/10, lh = +t.lh;
+/* render(t, word, k) -> { rows: Uint8Array(H*bpr), h, bpr, w, box:{x,y,w,h}, over, mm }
+   k = 1: design grid (live view). k = C.prof().dpm / 8: printer dots. */
+C.render = (t0, word, k = 1) => {
+  const t = C.tpl(t0), W = Math.round(C.W * k), BPR = W >> 3, size = +t.size * k, ink = +t.ink * k, jit = (+t.mess)/10, lh = +t.lh, PAD = 6 * k;
   const fam = t.font, weight = t.bold ? '700' : '400';
   const fontStr = (sz) => `${t.slant ? 'italic ' : ''}${weight} ${sz.toFixed(1)}px "${fam}", "Caveat", "Bradley Hand", cursive`;
   const m = document.createElement('canvas').getContext('2d'); m.font = fontStr(size);
@@ -138,8 +145,8 @@ C.render = (t0, word) => {
   const bw = Math.min(W, Math.ceil(Math.max(8, ...L.map(l => l.total)) + ink*2 + size*0.18 + 4));
   const bh = Math.max(8, top + lineH * L.length + bot);
   let H, x = Math.round((+t.px) * (W - bw)), y;
-  if (t.mode === 'fixed') { H = Math.max(16, Math.round(+t.len * 8)); y = Math.round((+t.py) * Math.max(0, H - bh)); }
-  else { y = Math.max(0, Math.round(+t.yAuto)); H = y + bh + 16; }
+  if (t.mode === 'fixed') { H = Math.max(16, Math.round(+t.len * 8 * k)); y = Math.round((+t.py) * Math.max(0, H - bh)); }
+  else { y = Math.max(0, Math.round(+t.yAuto * k)); H = y + bh + Math.round(16 * k); }
   x = Math.max(0, Math.min(W - bw, x));
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
@@ -161,18 +168,18 @@ C.render = (t0, word) => {
     });
   });
   const src = g.getImageData(0, 0, W, H).data;
-  let rows = new Uint8Array(H * 48);
+  let rows = new Uint8Array(H * BPR);
   for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++) {
     const sx = t.mirror ? W-1-xx : xx;
-    if (src[(yy*W + sx) * 4] < 140) rows[yy*48 + (xx>>3)] |= 0x80 >> (xx & 7);
+    if (src[(yy*W + sx) * 4] < 140) rows[yy*BPR + (xx>>3)] |= 0x80 >> (xx & 7);
   }
   if (t.flip) {
     const r2 = new Uint8Array(rows.length);
     for (let yy = 0; yy < H; yy++) for (let xx = 0; xx < W; xx++)
-      if (rows[yy*48+(xx>>3)] & (0x80>>(xx&7))) { const nx = W-1-xx, ny = H-1-yy; r2[ny*48+(nx>>3)] |= 0x80>>(nx&7); }
+      if (rows[yy*BPR+(xx>>3)] & (0x80>>(xx&7))) { const nx = W-1-xx, ny = H-1-yy; r2[ny*BPR+(nx>>3)] |= 0x80>>(nx&7); }
     rows = r2;
   }
-  return { rows, h: H, box: { x, y, w: bw, h: bh }, over: t.mode === 'fixed' && bh > H, mm: Math.round(H/8) };
+  return { rows, h: H, bpr: BPR, w: W, box: { x, y, w: bw, h: bh }, over: t.mode === 'fixed' && bh > H, mm: Math.round(H/(8*k)) };
 };
 /* draw the 1-bit result on a canvas (ink dots only, transparent paper) */
 C.paint = (cv, r) => {
@@ -359,15 +366,16 @@ const CMD = {
   stop:   () => Uint8Array.of(0x10,0xFF,0xF1,0x45),
   feed:   n => { const a = []; while (n > 0){ const k = Math.min(255, n); a.push(0x1B,0x4A,k); n -= k; } return Uint8Array.from(a); },
 };
-const ROWS_PER_WRITE = 3;   // 8 + 3*48 = 152 bytes, under the 200-byte packet size
-function rasterChunks(rows, h){
-  const out = [];
-  for (let y = 0; y < h; y += ROWS_PER_WRITE) {
-    const n = Math.min(ROWS_PER_WRITE, h - y), b = new Uint8Array(8 + n*48);
-    b.set([0x1D,0x76,0x30,0x00,48,0x00,n & 0xFF,n >> 8]); b.set(rows.subarray(y*48, (y+n)*48), 8); out.push(b);
+const PKT_DATA = 144;       // rows per write: 8 + 144 = 152 bytes, under the 200-byte packet size
+function rasterChunks(rows, h, bpr = 48){
+  const out = [], per = Math.max(1, Math.floor(PKT_DATA / bpr));
+  for (let y = 0; y < h; y += per) {
+    const n = Math.min(per, h - y), b = new Uint8Array(8 + n*bpr);
+    b.set([0x1D,0x76,0x30,0x00,bpr & 0xFF,bpr >> 8,n & 0xFF,n >> 8]); b.set(rows.subarray(y*bpr, (y+n)*bpr), 8); out.push(b);
   }
   return out;
 }
+const feedDots = mm8 => Math.round(+mm8 * C.prof().dpm / 8);   // feed values are in 1/8 mm
 async function runJob(dens, body){
   if (C.busy) { emit('toast', 'Busy'); return false; }
   if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
@@ -396,16 +404,16 @@ C.print = async (t, word) => {
   t = C.tpl(t);
   if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
   await C.fontsReady(t);
-  const r = C.render(t, word == null ? t.sample : word);
-  const chunks = rasterChunks(r.rows, r.h);
-  log(`printing ${r.h} rows in ${chunks.length} writes`);
+  const pr = C.prof(), r = C.render(t, word == null ? t.sample : word, pr.dpm / 8);
+  const chunks = rasterChunks(r.rows, r.h, r.bpr);
+  log(`printing ${r.w}×${r.h} dots (${pr.name}) in ${chunks.length} writes`);
   emit('status', 'Printing…', 'warn');
   return runJob(t.dens, async () => {
     for (let i = 0; i < chunks.length; i++) {
       await waitCredit(); await write(chunks[i]);
       if (i % 10 === 0) emit('status', `Printing… ${Math.round(i/chunks.length*100)}%`, 'warn');
     }
-    if (+t.feed) { await waitCredit(); await write(CMD.feed(+t.feed)); }
+    if (+t.feed) { await waitCredit(); await write(CMD.feed(feedDots(t.feed))); }
   });
 };
 /* get the prediction word, then print. Returns { ok, word } */
@@ -416,7 +424,29 @@ C.printPrediction = async (t, opts = {}) => {
   if (w === null) { emit('toast', 'No prediction word'); emit('status', 'No prediction word', 'bad'); return { ok: false, word: null }; }
   return { ok: await C.print(t, w), word: w };
 };
-C.feed = (n = 80) => runJob(2, async () => { await write(CMD.feed(n)); });
+C.feed = (n = 80) => runJob(2, async () => { await write(CMD.feed(feedDots(n))); });
+/* calibration print, at the chosen resolution: a frame as wide as the print line, a ruler with a mark
+   each mm (long marks each 5 and 10 mm), and a 20 × 20 mm square. Measure it to check the resolution. */
+C.calibrate = async () => {
+  if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
+  const pr = C.prof(), d = pr.dpm, W = pr.w, H = 40 * d, BPR = W >> 3;
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d');
+  g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.fillStyle = '#000';
+  const lw = Math.max(2, Math.round(d / 4));
+  g.fillRect(0, 0, W, lw); g.fillRect(0, H - lw, W, lw); g.fillRect(0, 0, lw, H); g.fillRect(W - lw, 0, lw, H);
+  for (let mm = 0; mm * d < W; mm++) { const x = Math.round(mm * d), len = mm % 10 === 0 ? 4 * d : mm % 5 === 0 ? 2.5 * d : 1.2 * d;
+    g.fillRect(x, lw, Math.max(1, Math.round(d / 8)), Math.round(len));
+    if (mm % 10 === 0 && mm) { g.font = `${Math.round(2.6 * d)}px sans-serif`; g.fillText(String(mm), x + 2, lw + 6.6 * d); } }
+  const sq = 20 * d, sx = Math.round((W - sq) / 2), sy = Math.round(12 * d);
+  g.fillRect(sx, sy, sq, lw); g.fillRect(sx, sy + sq - lw, sq, lw); g.fillRect(sx, sy, lw, sq); g.fillRect(sx + sq - lw, sy, lw, sq);
+  g.font = `${Math.round(2.8 * d)}px sans-serif`; g.textAlign = 'center'; g.fillText('20 mm', W / 2, sy + sq / 2 + d);
+  g.textAlign = 'left'; g.fillText(pr.name, lw + d, H - 2 * d);
+  const src = g.getImageData(0, 0, W, H).data, rows = new Uint8Array(H * BPR);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (src[(y*W + x) * 4] < 140) rows[y*BPR + (x>>3)] |= 0x80 >> (x & 7);
+  const chunks = rasterChunks(rows, H, BPR);
+  log(`calibration ${W}×${H} dots (${pr.name})`); emit('status', 'Printing…', 'warn');
+  return runJob(2, async () => { for (const ch of chunks) { await waitCredit(); await write(ch); } await waitCredit(); await write(CMD.feed(feedDots(120))); });
+};
 
 
 /* ---------- Settings panel for Notes / Calculator ("Print" tab) ----------

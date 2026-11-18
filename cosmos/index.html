@@ -113,7 +113,7 @@ select{-webkit-appearance:none;appearance:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v1</small></h1>
+    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v2</small></h1>
     <div class="row" style="gap:2px">
       <button class="ib" id="bRoutines" aria-label="Routines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/></svg></button>
       <button class="ib" id="bSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -200,6 +200,9 @@ select{-webkit-appearance:none;appearance:none}
       <div class="fl"><span>Upside down</span><input type="checkbox" class="sw" id="flip"></div>
       <div class="fl"><span>Mirror</span><input type="checkbox" class="sw" id="mirror"></div>
       <div class="note">The live view always shows the text the right way up. Upside down and Mirror apply when it prints.</div>
+      <div class="fl"><span>Printer resolution</span><select id="dpi"><option value="300">300 dpi (576 dots)</option><option value="203">203 dpi (384 dots)</option></select></div>
+      <button class="bt2" id="bCal">Calibration print</button>
+      <div class="note">Calibration print: a frame as wide as the print line, a ruler (a mark each mm, numbers each 10 mm) and a square. Measure the square: it must be 20 mm. If it is about 13 mm, choose 300 dpi. If it is about 30 mm, choose 203 dpi. Then do the calibration print again.</div>
     </div></div>
 
     <div class="sec"><button class="sh">Prediction <i>⌄</i></button><div class="sb">
@@ -500,6 +503,8 @@ async function printMain(){
 }
 async function testPrint(){ if (!C.connected) { toast('Connect the Cosmos first'); return; } psShow('Test print'); await C.print(T, T.sample || 'Cosmos System'); }
 function feedNow(n){ if (!C.connected) { toast('Connect the Cosmos first'); psShow('Cosmos not connected'); return; } C.feed(n); }
+$('dpi').value = C.dpi(); $('dpi').onchange = e => { C.setDpi(e.target.value); toast('Printer: ' + C.prof().name); };
+$('bCal').onclick = () => C.connected ? C.calibrate() : toast('Connect the Cosmos first');
 $('bPrint').onclick = printMain; $('bTest').onclick = testPrint; $('bFeed').onclick = () => feedNow(80);
 $('pInj').onclick = async () => {
   try { const w = (await C.injectRead()).value; $('pInjT').textContent = w || 'Inject: no word'; $('pInj').classList.add('on'); toast(w ? 'Last Inject: ' + w : 'Inject has no word yet'); }
