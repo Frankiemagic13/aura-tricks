@@ -113,7 +113,7 @@ select{-webkit-appearance:none;appearance:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v4</small></h1>
+    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v5</small></h1>
     <div class="row" style="gap:2px">
       <button class="ib" id="bRoutines" aria-label="Routines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/></svg></button>
       <button class="ib" id="bSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -172,8 +172,9 @@ select{-webkit-appearance:none;appearance:none}
     <div class="sec"><button class="sh">Cosmos printer <i>⌄</i></button><div class="sb">
       <div class="fl"><span>Status</span><span class="v" style="min-width:0"><span class="dot" id="dot"></span><span id="status">Not connected</span></span></div>
       <div class="fl"><span>Battery</span><span class="v" id="battV">—</span></div>
+      <div class="fl"><span>Auto connect</span><input type="checkbox" class="sw" id="cosAuto"></div>
       <button class="bt2" id="bConnect">Connect</button>
-      <div class="note">The Cosmos connects only when you tap <b>Connect</b> (or the Cosmos pill on the main screen). Close the Cosmos app first: the printer accepts one connection at a time.</div>
+      <div class="note">Auto connect (Aura only): the page connects to the Cosmos when it opens, and connects again if the connection is lost, while the page is on screen. If you tap <b>Disconnect</b>, it stops until you tap <b>Connect</b> again. Close the Cosmos app first: the printer accepts one connection at a time.</div>
     </div></div>
 
     <div class="sec"><button class="sh">Handwriting <i>⌄</i></button><div class="sb">
@@ -278,7 +279,7 @@ if (!localStorage.getItem('fvtCosmosFeedMig')) { if (+T.feed === 160) T.feed = -
 })();
 if (!C.FONTS.some(f => f[0] === T.font)) T.font = 'Caveat';
 let curId = loadJSON('fvtCosmosCurId', null);
-const P = Object.assign({ auto: true, vib: false, con: 'COSMOS', feed: '80', injNew: false, showAll: false, btns: {} }, loadJSON('cosmosPS', {}));
+const P = Object.assign({ cosAuto: true, auto: true, vib: false, con: 'COSMOS', feed: '80', injNew: false, showAll: false, btns: {} }, loadJSON('cosmosPS', {}));
 if (P.injId && !localStorage.getItem('fvtInjId')) { try { localStorage.setItem('fvtInjId', P.injId); } catch(e){} }
 function saveT(){ saveJSON('fvtCosmosCur', T); saveJSON('fvtCosmosCurId', curId); }
 function saveP(){ saveJSON('cosmosPS', P); }
@@ -492,7 +493,16 @@ C.on('change', pills);
 C.on('busy', on => { $('bPrint').disabled = on; $('bFeed').disabled = on; $('bTest').disabled = on; if (!on) $('bPrint').textContent = 'Print'; });
 C.on('status', t => { if (/Printing|Waiting/.test(t)) $('bPrint').textContent = t; else if (!C.busy) $('bPrint').textContent = 'Print'; });
 C.on('printed', ok => { psShow(ok ? 'Printed' : 'Sent'); if (ok) toast('Printed ✓'); });
-const cosToggle = () => C.connected ? C.disconnect() : C.connect();
+let cosOff = false, cosTry = false;   /* cosOff: you tapped Disconnect, so auto connect waits for Connect */
+const cosToggle = () => { if (C.connected) { cosOff = true; C.disconnect(); } else { cosOff = false; C.connect(); } };
+async function cosAuto(){
+  if (!P.cosAuto || cosOff || cosTry || C.connected || C.busy || !C.hasAura() || document.visibilityState !== 'visible') return;
+  cosTry = true; try { await C.connect({ quiet: true }); } catch(e){} cosTry = false;
+}
+setTimeout(cosAuto, 800); setInterval(cosAuto, 10000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(cosAuto, 500); });
+let cosWas = false;
+C.on('change', () => { if (cosWas && !C.connected && P.cosAuto && !cosOff) setTimeout(cosAuto, 3000); cosWas = C.connected; });
 $('pCos').onclick = cosToggle; $('bConnect').onclick = cosToggle;
 
 /* ---------- printing ---------- */
@@ -585,6 +595,7 @@ document.querySelectorAll('select[data-k]').forEach(s => {
 (() => { const s = $('psTime'); for (const [v, n] of PS_TIMES) { const o = document.createElement('option'); o.value = v; o.textContent = n; s.appendChild(o); }
   s.value = String(psTime()); if (!s.value) s.value = '0';
   s.onchange = () => { try { localStorage.setItem('fvtBleTime', s.value); } catch(_){} psWinStart(); }; })();
+$('cosAuto').checked = !!P.cosAuto; $('cosAuto').onchange = e => { P.cosAuto = e.target.checked; saveP(); if (P.cosAuto) { cosOff = false; cosAuto(); } };
 $('psAuto').checked = !!P.auto; $('psAuto').onchange = e => { P.auto = e.target.checked; saveP(); };
 $('psVib').checked = !!P.vib; $('psVib').onchange = e => { P.vib = e.target.checked; saveP(); };
 $('psCon').value = P.con || ''; $('psCon').onchange = e => { P.con = e.target.value; saveP(); if (P.con) psShow(P.con, true); };

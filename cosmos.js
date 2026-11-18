@@ -293,7 +293,7 @@ function setConnected(on){
   emit('status', on ? 'Connected' : 'Not connected', on ? 'ok' : '');
   emit('change');
 }
-C.connect = async () => {
+C.connect = async (opts = {}) => {
   if (C.connected) return true;
   credits = null;
   mode = C.hasAura() ? 'aura' : C.hasWeb() ? 'web' : null;
@@ -303,8 +303,8 @@ C.connect = async () => {
     if (mode === 'aura') await connectAura(); else await connectWeb();
     setConnected(true); emit('toast', 'Cosmos connected'); return true;
   } catch (e) {
-    log('connect failed: ' + e.message); emit('status', 'Not connected', 'bad');
-    emit('toast', /cancel/i.test(e.message) ? 'Cancelled' : 'Could not connect'); return false;
+    log('connect failed: ' + e.message); emit('status', 'Not connected', opts.quiet ? '' : 'bad');
+    if (!opts.quiet) emit('toast', /cancel/i.test(e.message) ? 'Cancelled' : 'Could not connect'); return false;
   }
 };
 async function connectAura(){
