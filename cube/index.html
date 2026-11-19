@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.8</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.9</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -147,7 +147,7 @@
       <tr><td>Table</td><td><select id="phBg"><option value="wood">Wood</option><option value="dark">Dark</option><option value="white">White</option></select></td></tr>
       <tr><td>Shortcut name</td><td><input id="phName" style="width:130px;background:var(--hi);color:var(--text);border:0;border-radius:8px;padding:6px 8px;font:inherit"></td></tr>
     </table>
-    <div class="row"><button id="phTest">Test photo</button></div>
+    <div class="row"><button id="phTest">Test photo</button><button id="phTiny">Test link (tiny)</button></div>
     <div class="note" id="photoMsg">Press the button: the page makes a photo of the cube as it is now and the Shortcut saves it in Photos.</div>
     <img id="photoPrev" style="display:block;width:100%;border-radius:12px;margin-top:10px" alt="">
     <div class="note"><b>Make the Shortcut one time</b> (Shortcuts app → +):<br>
@@ -584,6 +584,13 @@ phBtn.onchange = ()=>{ cal.photoBtn = phBtn.value; saveCal(); };
 phBg.onchange = ()=>{ cal.photoBg = phBg.value; saveCal(); };
 phName.onchange = ()=>{ cal.photoShortcut = phName.value.trim() || 'Cube Photo'; saveCal(); };
 document.getElementById('phTest').onclick = ()=>takePhoto('test');
+document.getElementById('phTiny').onclick = ()=>{
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const x = c.getContext('2d'); x.fillStyle = '#ff5a00'; x.fillRect(0,0,64,64);
+  const b64 = c.toDataURL('image/jpeg', 0.8).split(',')[1];
+  photoMsg().textContent = 'Sending a tiny orange square (' + b64.length + ' characters)…';
+  runShortcut(b64);
+};
 
 // view settings
 const speedSel = document.getElementById('speed');
