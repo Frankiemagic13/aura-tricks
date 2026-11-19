@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.16</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.17</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -149,6 +149,9 @@
     <table>
       <tr><td>Photo on volume button</td><td><input type="checkbox" class="sw" id="phOn"></td></tr>
       <tr><td>Button</td><td><select id="phBtn"><option value="down">Volume −</option><option value="up">Volume +</option><option value="both">Both</option></select></td></tr>
+      <tr><td>Photo when mixing stops</td><td><input type="checkbox" class="sw" id="apOn"></td></tr>
+      <tr><td>Wait after last turn</td><td><select id="apWait"><option value="2">2 s</option><option value="3">3 s</option><option value="5">5 s</option><option value="8">8 s</option></select></td></tr>
+      <tr><td>Minimum turns</td><td><select id="apMin"><option value="5">5</option><option value="10">10</option><option value="15">15</option><option value="20">20</option></select></td></tr>
       <tr><td>Black screen first</td><td><input type="checkbox" class="sw" id="phBlack"></td></tr>
       <tr><td>Photo size</td><td><select id="phSize"><option value="large">Large (1080 px)</option><option value="medium">Medium (810 px)</option><option value="small">Small (600 px)</option></select></td></tr>
       <tr><td>Table</td><td><select id="phBg"><option value="wood">Wood</option><option value="dark">Dark</option><option value="white">White</option></select></td></tr>
@@ -184,7 +187,7 @@
     <li>The page reads the real mix when it connects, so the screen cube matches. If not, solve the cube and tap <b>Set as solved</b>.</li>
     <li>Turn the real cube. The virtual cube turns the same way.</li>
   </ol>
-  <p><b>Photo prediction:</b> press the volume button (Aura 8) and a photo of the cube as it is now goes to your Photos app through an iOS Shortcut. Set it up in Calibrate → Photo prediction.</p>
+  <p><b>Photo prediction:</b> mix the cube and stop: after a few seconds with no turns the photo is made by itself (Calibrate → Photo prediction). Or press the volume button (Aura 8) and a photo of the cube as it is now goes to your Photos app through an iOS Shortcut. Set it up in Calibrate → Photo prediction.</p>
   <p>Drag the cube to turn the view. Test with no cube: press <kbd>U</kbd> <kbd>D</kbd> <kbd>L</kbd> <kbd>R</kbd> <kbd>F</kbd> <kbd>B</kbd> (hold <kbd>Shift</kbd> for a counter-clockwise turn).</p>
   <p>Hold the cube the way you set in Calibrate → View → Top color (default: yellow on top, green in front). If the cube does not show in the list, disconnect it in LightBlue first.</p>
   <p>Works in Aura Browser, Chrome or Edge on Mac, and Bluefy on iPhone. Safari does not have Bluetooth.</p>
@@ -364,6 +367,7 @@ function onData(dv){
   if (!face) return;
   const turns = rawTurns===2 ? 2 : rawTurns * (cal.inv[code] ? -1 : 1);
   doMove(face, turns);
+  mixTurn();
 }
 
 let connected = false, connecting = false, userOff = false;
@@ -492,6 +496,7 @@ async function connectWeb(opts = {}){
 }
 
 async function setSolved(){
+  try { mixReset(); } catch(e){}
   queue.length = 0; busy = false;
   buildCube(); moveLog = []; moveCount = 0; movesEl.textContent = '—'; countEl.textContent = '0';
   if (cmdWrite){
@@ -506,7 +511,7 @@ async function setSolved(){
 const DEFAULT_MAP = {1:'B',2:'D',3:'L',4:'U',5:'R',6:'F'};
 const FACE_NAMES = {U:'White (top)',D:'Yellow (bottom)',F:'Green (front)',B:'Blue (back)',R:'Red (right)',L:'Orange (left)'};
 const STORE = 'cubeMirror.cal.v1';
-let cal = { map:{...DEFAULT_MAP}, inv:{}, speed:1, auto:true, photoOn:true, photoBtn:'down', photoShortcut:'Cube Photo', photoBg:'wood', photoSize:'large', top:'yellow', photoBlack:true, syncOnConnect:true, autoFix:false };
+let cal = { map:{...DEFAULT_MAP}, inv:{}, speed:1, auto:true, photoOn:true, photoBtn:'down', photoShortcut:'Cube Photo', photoBg:'wood', photoSize:'large', top:'yellow', photoBlack:true, autoPhoto:true, autoWait:3, autoMin:10, syncOnConnect:true, autoFix:false };
 try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && s.map) cal = Object.assign(cal, s); } catch(e){}
 function saveCal(){ try { localStorage.setItem(STORE, JSON.stringify(cal)); } catch(e){} }
 
@@ -609,6 +614,11 @@ phBtn.onchange = ()=>{ cal.photoBtn = phBtn.value; saveCal(); };
 phBg.onchange = ()=>{ cal.photoBg = phBg.value; saveCal(); };
 const phBlack = document.getElementById('phBlack'); phBlack.checked = cal.photoBlack !== false;
 phBlack.onchange = ()=>{ cal.photoBlack = phBlack.checked; saveCal(); };
+const apOn = document.getElementById('apOn'), apWait = document.getElementById('apWait'), apMin = document.getElementById('apMin');
+apOn.checked = cal.autoPhoto !== false; apWait.value = String(cal.autoWait || 3); apMin.value = String(cal.autoMin || 10);
+apOn.onchange = ()=>{ cal.autoPhoto = apOn.checked; saveCal(); mixCount = 0; };
+apWait.onchange = ()=>{ cal.autoWait = +apWait.value; saveCal(); };
+apMin.onchange = ()=>{ cal.autoMin = +apMin.value; saveCal(); };
 const phSize = document.getElementById('phSize'); phSize.value = cal.photoSize || 'large';
 phSize.onchange = ()=>{ cal.photoSize = phSize.value; saveCal(); };
 phName.onchange = ()=>{ cal.photoShortcut = phName.value.trim() || 'Cube Photo'; saveCal(); };
@@ -800,7 +810,7 @@ async function takePhoto(source){
     if (prev) prev.src = 'data:image/jpeg;base64,' + b64;
     try { if (window.Aura && Aura.haptic) Aura.haptic('impact', { style:'light' }); } catch(e){}
     if (photoMsg()) photoMsg().textContent = 'Photo made (' + Math.round(b64.length/1024) + ' KB). Sending to the Shortcut…';
-    if (cal.photoBlack !== false && source === 'volume'){ blackOn(); await new Promise(r => setTimeout(r, 250)); }
+    if (cal.photoBlack !== false && (source === 'volume' || source === 'auto')){ blackOn(); await new Promise(r => setTimeout(r, 250)); }
     runShortcut(b64);
   } finally { setTimeout(() => photoBusy = false, 1500); }
 }
@@ -899,6 +909,35 @@ function checkSync(){
   else if (cal.autoFix) { syncFromCube(lastRaw, true); setSyncState('Was out of sync, fixed', true); }
   else setSyncState('Not in sync – tap Sync from cube', false);
 }
+
+/* ---------- auto photo when the mixing stops ---------- */
+let mixCount = 0, mixTimer = null;
+function screenSolved(){
+  const center = {};
+  for (const c of cubies){ const nz = c.p.filter(v => v !== 0).length; if (nz === 1) for (const fn in c.cols) if (c.cols[fn]) center[apply(c.R, LN[fn]).map(Math.round).join(',')] = c.cols[fn]; }
+  for (const c of cubies) for (const fn in c.cols){
+    if (!c.cols[fn]) continue;
+    if (center[apply(c.R, LN[fn]).map(Math.round).join(',')] !== c.cols[fn]) return false;
+  }
+  return true;
+}
+function mixTurn(){
+  mixCount++;
+  clearTimeout(mixTimer);
+  if (!cal.autoPhoto) return;
+  mixTimer = setTimeout(mixStopped, (cal.autoWait || 3) * 1000);
+}
+function mixStopped(){
+  if (!cal.autoPhoto || !cal.photoOn) return;
+  if (mixCount < (cal.autoMin || 10)) return;
+  if (wiz.active || document.getElementById('cal').style.display === 'block') return;
+  if (document.visibilityState !== 'visible') return;
+  if (busy || queue.length){ mixTimer = setTimeout(mixStopped, 300); return; }
+  if (screenSolved()){ mixCount = 0; return; }
+  mixCount = 0;
+  takePhoto('auto');
+}
+function mixReset(){ mixCount = 0; clearTimeout(mixTimer); }
 
 /* ---------- UI ---------- */
 const help = document.getElementById('help');
