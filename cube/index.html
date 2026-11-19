@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.5</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.6</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -803,8 +803,8 @@ function tableTexture(kind){
       const ring = py*0.09 + warp*3;
       const f = ring - Math.floor(ring);
       const grain = Math.pow(Math.abs(Math.sin(f*Math.PI)), 6);
-      const tone = 0.82 + n(x*0.002+plank*7, plank*3.1)*0.3 + (n2(x*0.9, y*0.9)-.5)*0.08;
-      const k = tone * (1 - grain*0.35);
+      const tone = 0.86 + n(x*0.002+plank*7, plank*3.1)*0.18 + (n2(x*0.9, y*0.9)-.5)*0.06;
+      const k = tone * (1 - grain*0.16);
       r = 150*k; g = 101*k; b = 64*k;
       if (py < 3 || py > S/4 - 3) { r *= .45; g *= .45; b *= .45; }          // gap between planks
     } else if (kind === 'dark'){
@@ -819,7 +819,7 @@ function tableTexture(kind){
   ctx.putImageData(img, 0, 0);
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
-  t.repeat.set(kind === 'wood' ? 2.2 : 4, kind === 'wood' ? 2.2 : 4);
+  t.repeat.set(kind === 'wood' ? 4.5 : 5, kind === 'wood' ? 4.5 : 5);
   return texCache[kind] = t;
 }
 function contactShadowTexture(){
@@ -841,7 +841,7 @@ const bodyGeo = new RoundedBoxGeometry(0.975, 0.975, 0.975, 4, 0.085);
 const stkGeo = new THREE.ShapeGeometry(stickerShape(0.84, 0.11), 6);
 const bodyMat = new THREE.MeshPhysicalMaterial({ color:'#121212', roughness:0.42, clearcoat:0.25, clearcoatRoughness:0.5 });
 const stkMats = {};
-for (const f in STICKER) stkMats[f] = new THREE.MeshPhysicalMaterial({ color:STICKER[f], roughness:0.32, clearcoat:0.6, clearcoatRoughness:0.25 });
+for (const f in STICKER) stkMats[f] = new THREE.MeshPhysicalMaterial({ color:STICKER[f], roughness:0.4, clearcoat:0.35, clearcoatRoughness:0.35, envMapIntensity:0.45 });
 
 function setup(){
   if (renderer) return;
@@ -849,8 +849,8 @@ function setup(){
   renderer = new THREE.WebGLRenderer({ canvas:cv, antialias:true, preserveDrawingBuffer:true });
   renderer.setPixelRatio(1); renderer.setSize(W, H, false);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.92;
+  renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.VSMShadowMap;
   const pm = new THREE.PMREMGenerator(renderer);
   env = pm.fromScene(new RoomEnvironment(), 0.04).texture;
 }
@@ -863,7 +863,7 @@ function buildScene(state, kind, r){
     new THREE.MeshStandardMaterial({ map:tableTexture(kind), roughness: kind==='wood' ? 0.58 : 0.8, envMapIntensity: kind==='wood' ? 0.5 : 0.3 }));
   table.rotation.x = -Math.PI/2; table.rotation.z = (r()-.5)*0.6; table.position.y = -1.488; table.receiveShadow = true;
   scene.add(table);
-  const cs = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6), new THREE.MeshBasicMaterial({ map:contactShadowTexture(), transparent:true, depthWrite:false, opacity:0.75 }));
+  const cs = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6), new THREE.MeshBasicMaterial({ map:contactShadowTexture(), transparent:true, depthWrite:false, opacity:0.6 }));
   cs.rotation.x = -Math.PI/2; cs.position.y = -1.485; scene.add(cs);
 
   // cube (from the live state); a small random twist per piece so it is not perfect
@@ -891,18 +891,18 @@ function buildScene(state, kind, r){
   scene.add(cube);
 
   // light: soft window light from the left + fill
-  const key = new THREE.DirectionalLight('#fff4e6', 2.6);
+  const key = new THREE.DirectionalLight('#fff4e6', 2.2);
   key.position.set(-6 + r()*2, 9, 4 + r()*2); key.castShadow = true;
-  key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
+  key.shadow.mapSize.set(2048, 2048); key.shadow.radius = 8; key.shadow.bias = -0.0004; key.shadow.normalBias = 0.02;
   Object.assign(key.shadow.camera, { left:-5, right:5, top:5, bottom:-5, near:1, far:30 });
   scene.add(key);
-  scene.add(new THREE.HemisphereLight('#dfe8ff', kind==='wood' ? '#5a3c25' : '#444', 0.55));
+  scene.add(new THREE.HemisphereLight('#dfe8ff', kind==='wood' ? '#5a3c25' : '#444', 0.9));
 
   // phone camera: hand-held, slightly random
-  const cam = new THREE.PerspectiveCamera(52, W/H, 0.1, 100);
-  const az = (38 + (r()-.5)*10) * Math.PI/180, el = (38 + (r()-.5)*8) * Math.PI/180, dist = 7.4 + r()*0.8;
-  cam.position.set(Math.sin(az)*Math.cos(el)*dist, Math.sin(el)*dist - 0.6, Math.cos(az)*Math.cos(el)*dist);
-  cam.lookAt(0, -0.45, 0);
+  const cam = new THREE.PerspectiveCamera(44, W/H, 0.1, 100);
+  const az = (36 + (r()-.5)*10) * Math.PI/180, el = (36 + (r()-.5)*8) * Math.PI/180, dist = 11 + r()*1.2;
+  cam.position.set(Math.sin(az)*Math.cos(el)*dist, Math.sin(el)*dist - 1.0, Math.cos(az)*Math.cos(el)*dist);
+  cam.lookAt(0, -0.35, 0);
   cam.rotateZ((r()-.5)*0.05);
   return { scene, cam };
 }
