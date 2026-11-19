@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.7</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.8</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -820,7 +820,7 @@ function tableTexture(kind){
   ctx.putImageData(img, 0, 0);
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8;
-  t.repeat.set(kind === 'wood' ? 4.5 : 5, kind === 'wood' ? 4.5 : 5);
+  t.repeat.set(kind === 'wood' ? 22.5 : 25, kind === 'wood' ? 22.5 : 25);
   return texCache[kind] = t;
 }
 function contactShadowTexture(){
@@ -859,8 +859,10 @@ function setup(){
 function buildScene(state, kind, r){
   const scene = new THREE.Scene();
   scene.environment = env;
+  scene.background = new THREE.Color(kind === 'white' ? '#cfcac2' : kind === 'dark' ? '#111214' : '#3a2617');
+  scene.fog = new THREE.Fog(scene.background, 30, 90);
   // table
-  const table = new THREE.Mesh(new THREE.PlaneGeometry(40, 40),
+  const table = new THREE.Mesh(new THREE.PlaneGeometry(200, 200),
     new THREE.MeshStandardMaterial({ map:tableTexture(kind), roughness: kind==='wood' ? 0.58 : 0.8, envMapIntensity: kind==='wood' ? 0.5 : 0.3 }));
   table.rotation.x = -Math.PI/2; table.rotation.z = (r()-.5)*0.6; table.position.y = -1.488; table.receiveShadow = true;
   scene.add(table);
