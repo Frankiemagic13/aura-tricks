@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.18</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.19</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -351,14 +351,27 @@ function decode(v){
 }
 const nib = (raw,i) => (raw[i>>1] >> (i%2 ? 0 : 4)) & 15;
 
-function onData(dv){
+let lastNote = null, needSync = false;     // lastNote = last live packet (the cube's read answer can be old)
+function rawSolved(raw){
+  const f = cubeFacelets(raw); if (!f) return false;
+  return f.every((x,i) => x === G_FACES[Math.floor(i/9)]);
+}
+function onData(dv, src = 'notify'){
   const raw = decode(dv);
   hexEl.textContent = raw.map(b=>b.toString(16).padStart(2,'0')).join(' ');
-  if (performance.now() < ignoreUntil){ lastRaw = raw; return; }   // reset echo, not a move
+  if (src === 'read'){
+    // a read answer is only trusted when it shows a mix (a 'solved' answer can be old data)
+    if (!lastRaw) lastRaw = raw;
+    if (needSync && cal.syncOnConnect !== false && !rawSolved(raw) && syncFromCube(raw, true)) needSync = false;
+    return;
+  }
+  if (performance.now() < ignoreUntil){ lastRaw = raw; lastNote = raw; return; }   // reset echo, not a move
   if (lastRaw && raw.length === lastRaw.length && raw.every((b,i)=>b===lastRaw[i])) return;
-  const first = !lastRaw;
-  lastRaw = raw;
-  if (first){ if (cal.syncOnConnect !== false) syncFromCube(raw); return; }   // first packet = current mix, not a move
+  lastRaw = raw; lastNote = raw;
+  if (needSync){                            // first live packet after connect: copy the real mix, do not animate
+    needSync = false;
+    if (cal.syncOnConnect !== false && syncFromCube(raw, true)) { mixTurn(); return; }
+  }
   const code = nib(raw,32), a = nib(raw,33);
   const rawTurns = a===1 ? 1 : a===3 ? -1 : (a===2 || a===9) ? 2 : 1;
   showLive(code, a, raw);
@@ -398,7 +411,8 @@ async function connect(opts = {}){
     lastRaw = null;
     if (mode === 'aura') await connectAura(opts); else await connectWeb(opts);
     setConnected(true);
-    try { onData(await dataRead()); } catch(e){}
+    needSync = true; lastNote = null;
+    try { onData(await dataRead(), 'read'); } catch(e){}
   }catch(err){
     setConnected(false);
     if (opts.quiet) setStatus(cal.auto ? 'Auto connect: searching…' : 'Not connected');
@@ -504,6 +518,7 @@ async function setSolved(){
     try { await cmdWrite(new Uint8Array([0xa1])); } catch(e){}
     await new Promise(r=>setTimeout(r, 600));
     try { if (dataRead) lastRaw = decode(await dataRead()); } catch(e){}
+    needSync = false; lastNote = null;
   }
 }
 
@@ -636,7 +651,7 @@ const syncSw = document.getElementById('syncSw'), fixSw = document.getElementByI
 syncSw.checked = cal.syncOnConnect !== false; fixSw.checked = !!cal.autoFix;
 syncSw.onchange = ()=>{ cal.syncOnConnect = syncSw.checked; saveCal(); };
 fixSw.onchange = ()=>{ cal.autoFix = fixSw.checked; saveCal(); };
-document.getElementById('syncNow').onclick = ()=>{ if (!lastRaw){ setSyncState('Connect the cube first', false); return; } syncFromCube(lastRaw); };
+document.getElementById('syncNow').onclick = ()=>{ if (!lastNote){ setSyncState('Turn one face first', false); return; } syncFromCube(lastNote); };
 
 // view settings
 const speedSel = document.getElementById('speed');
@@ -798,10 +813,8 @@ async function takePhoto(source){
   photoBusy = true;
   try {
     // read the cube one more time, so the photo shows the real mix at this moment
-    if (connected && dataRead){
-      try { const fresh = decode(await dataRead()); if (fresh && fresh.length) lastRaw = fresh; } catch(e){}
-      try { if (lastRaw && stickerMapFromCube(lastRaw)) syncFromCube(lastRaw, true); } catch(e){}
-    }
+    // copy the real mix from the last live packet, so the photo shows the real cube
+    try { if (connected && lastNote && stickerMapFromCube(lastNote)) syncFromCube(lastNote, true); } catch(e){}
     let cv = null;
     try { if (window.CubePhotoGL) cv = await CubePhotoGL.render(cubies.map(c=>({ p:c.p, R:c.R, cols:c.cols })), cal.photoBg); } catch(e){ console.warn('GL photo', e); }
     if (!cv) cv = renderCubePhoto();      // simple drawing if WebGL / three.js is not available
@@ -906,12 +919,12 @@ function syncFromCube(raw, quiet){
   return true;
 }
 function checkSync(){
-  if (!lastRaw || busy || queue.length) return;
-  const a = stickerMapFromCube(lastRaw); if (!a) return;
+  if (!lastNote || busy || queue.length) return;
+  const a = stickerMapFromCube(lastNote); if (!a) return;
   const b = stickerMapFromScreen();
   const same = Object.keys(a).every(k => a[k] === b[k]);
   if (same) setSyncState('In sync ✓', true);
-  else if (cal.autoFix) { syncFromCube(lastRaw, true); setSyncState('Was out of sync, fixed', true); }
+  else if (cal.autoFix) { syncFromCube(lastNote, true); setSyncState('Was out of sync, fixed', true); }
   else setSyncState('Not in sync – tap Sync from cube', false);
 }
 
