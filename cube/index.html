@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.20</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.21</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -167,6 +167,12 @@
       4. Add <b>Open App</b> → <b>Aura</b>, so you come back to this page.<br>
       In the Shortcut settings, turn off "Show When Run" if you see it. The first time, iOS asks to let the Shortcut open links and use Photos: tap Always Allow.<br><br>
       Needs Aura 8 for the volume buttons. The photo has today's date and time.</div>
+  </div></div>
+
+  <div class="sec" id="secAuto"><div class="tab">Automations</div><div class="body">
+    <div class="note" style="margin-top:0">Run one of your Shortcuts when something happens with the cube. The Shortcut gets the input you select. Use the move letters as the Moves list shows them. "Cube is solved" runs only after a mix of 8 or more turns. A "Mixing stops" automation is used instead of the auto photo.</div>
+    <div id="autoList"></div>
+    <div class="row"><button id="autoAdd">Add automation</button></div>
   </div></div>
 
   <div class="sec" id="secView"><div class="tab">View</div><div class="body">
@@ -259,7 +265,7 @@ const queue = []; let busy = false;
 function enqueue(face, turns){ queue.push({face,turns}); if (!busy) nextMove(); }
 function nextMove(){
   const m = queue.shift();
-  if (!m){ busy = false; setTimeout(checkSync, 50); return; }
+  if (!m){ busy = false; setTimeout(checkSync, 50); try { autoAfterMoves(); } catch(e){} return; }
   busy = true;
   const def = MOVES[m.face];
   const layer = cubies.filter(c=>def.sel(c.p));
@@ -309,7 +315,7 @@ function logMove(face, turns){
   movesEl.innerHTML = '<span style="direction:ltr;unicode-bidi:isolate">' + moveLog.join(' ') + '</span>';
   countEl.textContent = moveCount;
 }
-function doMove(face, turns){ enqueue(face, turns); logMove(face, turns); }
+function doMove(face, turns){ enqueue(face, turns); logMove(face, turns); try { autoMove(face, turns); } catch(e){} }
 
 document.addEventListener('keydown', e=>{
   const f = e.key.toUpperCase();
@@ -391,13 +397,14 @@ function buzzTwice(){
   try { if (navigator.vibrate) navigator.vibrate([90, 110, 90]); } catch(e){}
 }
 function setConnected(on){
-  if (on && !connected) buzzTwice();
+  if (on && !connected){ buzzTwice(); setTimeout(() => { try { fireAuto('connect'); } catch(e){} }, 600); }
   connected = on;
   btnConnect.textContent = on ? 'Disconnect' : 'Connect cube';
   if (!on){ cmdWrite = null; dataRead = null; dataChr = null; }
 }
 function onLost(){
   if (!connected) return;
+  try { fireAuto('disconnect'); } catch(e){}
   setConnected(false);
   setStatus(cal.auto && !userOff ? 'Lost cube, reconnecting…' : 'Disconnected');
   if (cal.auto && !userOff) setTimeout(autoTry, 2500);
@@ -653,6 +660,9 @@ syncSw.onchange = ()=>{ cal.syncOnConnect = syncSw.checked; saveCal(); };
 fixSw.onchange = ()=>{ cal.autoFix = fixSw.checked; saveCal(); };
 document.getElementById('syncNow').onclick = ()=>{ if (!lastNote){ setSyncState('Turn one face first', false); return; } syncFromCube(lastNote); };
 
+// automations
+document.getElementById('autoAdd').onclick = ()=>{ autos().push({ on:true, event:'solved', param:'', shortcut:'', input:'none', black:false }); saveCal(); drawAutos(); };
+
 // view settings
 const speedSel = document.getElementById('speed');
 speedSel.value = String(cal.speed);
@@ -670,7 +680,7 @@ document.querySelectorAll('#cal .sec>.tab').forEach(tab=>tab.onclick = ()=>{
   if (!was) sec.classList.add('open');
 });
 const calEl = document.getElementById('cal');
-document.getElementById('btnCal').onclick = ()=>{ drawMap(); calEl.style.display = 'block'; };
+document.getElementById('btnCal').onclick = ()=>{ drawMap(); drawAutos(); calEl.style.display = 'block'; };
 document.getElementById('btnCalClose').onclick = ()=>{ if (wiz.active) wizStop(); calEl.style.display = 'none'; };
 calEl.addEventListener('click', e=>{ if (e.target === calEl){ if (wiz.active) wizStop(); calEl.style.display = 'none'; } });
 
@@ -920,6 +930,7 @@ function syncFromCube(raw, quiet){
   queue.length = 0; busy = false;
   buildCube((p, fn) => map[p.join(',') + '|' + LN[fn].join(',')] || null);
   setSyncState('Synced from cube', true);
+  try { wasSolved = screenSolved(); } catch(e){}
   return true;
 }
 function checkSync(){
@@ -946,10 +957,13 @@ function screenSolved(){
 function mixTurn(){
   mixCount++;
   clearTimeout(mixTimer);
-  if (!cal.autoPhoto) return;
+  if (!cal.autoPhoto && !autos().some(r => r.on && r.event === 'mixstop')) return;
   mixTimer = setTimeout(mixStopped, (cal.autoWait || 3) * 1000);
 }
 function mixStopped(){
+  if (mixCount >= (cal.autoMin || 10) && !screenSolved() && autos().some(r => r.on && r.event === 'mixstop')){
+    mixCount = 0; fireAuto('mixstop'); return;
+  }
   if (!cal.autoPhoto || !cal.photoOn) return;
   if (mixCount < (cal.autoMin || 10)) return;
   if (wiz.active || document.getElementById('cal').style.display === 'block') return;
@@ -960,6 +974,119 @@ function mixStopped(){
   takePhoto('auto');
 }
 function mixReset(){ mixCount = 0; clearTimeout(mixTimer); }
+
+/* ---------- automations: cube event → run a Shortcut ---------- */
+const AUTO_EVENTS = {
+  connect:   'Cube connects',
+  disconnect:'Cube disconnects',
+  solved:    'Cube is solved',
+  mixstop:   'Mixing stops',
+  sequence:  'Move sequence',
+  count:     'Move count reaches',
+};
+const AUTO_INPUTS = { none:'Nothing', moves:'Move list (text)', state:'Mix as text (54 letters)', photo:'Photo (Base64)' };
+let autoBusyUntil = 0, wasSolved = true, recentMoves = [], movesSinceSolved = 0;
+function autos(){ return Array.isArray(cal.autos) ? cal.autos : (cal.autos = []); }
+function mixText(){                          // 54 letters, U R F D L B order, letter = colour of that face
+  const C2F = {}; for (const f in COLORS) C2F[COLORS[f]] = f;
+  const map = stickerMapFromScreen(); let out = '';
+  for (let i=0; i<54; i++){ const [p, n] = faceletPos(i); out += C2F[map[p.join(',') + '|' + n.join(',')]] || '?'; }
+  return out;
+}
+async function autoInput(kind){
+  if (kind === 'moves') return moveLog.join(' ');
+  if (kind === 'state') return mixText();
+  if (kind === 'photo'){
+    let cv = null;
+    try { if (window.CubePhotoGL) cv = await CubePhotoGL.render(photoState(), cal.photoBg); } catch(e){}
+    if (!cv) cv = renderCubePhoto();
+    return cv.toDataURL('image/jpeg', 0.82).split(',')[1];
+  }
+  return '';
+}
+async function runAuto(rule, test){
+  if (!rule || !rule.shortcut) return;
+  if (!test && performance.now() < autoBusyUntil) return;
+  if (!test && (wiz.active || document.getElementById('cal').style.display === 'block')) return;
+  autoBusyUntil = performance.now() + 3000;
+  const text = await autoInput(rule.input || 'none');
+  let url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(rule.shortcut.trim());
+  if (text) url += '&input=text&text=' + encodeURIComponent(text);
+  if (!test && rule.black) { blackOn(); await new Promise(r => setTimeout(r, 250)); }
+  location.href = url;
+}
+function fireAuto(event, extra){
+  for (const r of autos()){
+    if (!r.on || r.event !== event) continue;
+    if (event === 'count' && +r.param !== extra) continue;
+    runAuto(r);
+    break;                                   // one Shortcut at a time
+  }
+}
+const normMove = t => t.trim().toUpperCase().replace(/[’`´]/g, "'").replace(/2'$/, '2');
+function autoMove(face, turns){
+  const tok = face + (turns===2 ? '2' : turns===-1 ? "'" : '');
+  movesSinceSolved++;
+  recentMoves.push({ t: performance.now(), m: tok });
+  if (recentMoves.length > 30) recentMoves.shift();
+  for (const r of autos()){
+    if (!r.on || r.event !== 'sequence' || !r.param) continue;
+    const seq = r.param.split(/[\s,]+/).filter(Boolean).map(normMove);
+    if (!seq.length || recentMoves.length < seq.length) continue;
+    const tail = recentMoves.slice(-seq.length);
+    if (tail.every((x,i) => x.m === seq[i]) && tail[tail.length-1].t - tail[0].t < 1500 * seq.length){
+      recentMoves = []; runAuto(r); return;
+    }
+  }
+  fireAuto('count', moveCount);
+}
+function autoAfterMoves(){                   // called when the screen cube stops turning
+  const s = screenSolved();
+  if (s && !wasSolved && movesSinceSolved >= 8) fireAuto('solved');
+  if (s) movesSinceSolved = 0;
+  wasSolved = s;
+}
+
+// settings list
+function drawAutos(){
+  const box = document.getElementById('autoList'); if (!box) return;
+  box.innerHTML = '';
+  autos().forEach((r, i) => {
+    const d = document.createElement('div');
+    d.style.cssText = 'background:var(--hi);border-radius:12px;padding:10px;margin:8px 0';
+    const evOpts = Object.entries(AUTO_EVENTS).map(([k,v]) => `<option value="${k}" ${r.event===k?'selected':''}>${v}</option>`).join('');
+    const inOpts = Object.entries(AUTO_INPUTS).map(([k,v]) => `<option value="${k}" ${r.input===k?'selected':''}>${v}</option>`).join('');
+    const needParam = r.event === 'sequence' || r.event === 'count';
+    d.innerHTML = `
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <input type="checkbox" class="sw" data-k="on" ${r.on?'checked':''}>
+        <select data-k="event" style="flex:1">${evOpts}</select>
+        <button data-del style="flex:0 0 auto;padding:6px 10px">✕</button>
+      </div>
+      ${needParam ? `<input data-k="param" placeholder="${r.event==='sequence' ? "R R' R R'" : '50'}" value="${(r.param||'').replace(/"/g,'&quot;')}" style="width:100%;margin-bottom:8px;background:var(--panel);color:var(--text);border:0;border-radius:8px;padding:7px 9px;font:inherit">` : ''}
+      <input data-k="shortcut" placeholder="Shortcut name" value="${(r.shortcut||'').replace(/"/g,'&quot;')}" style="width:100%;margin-bottom:8px;background:var(--panel);color:var(--text);border:0;border-radius:8px;padding:7px 9px;font:inherit">
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12px;color:var(--dim)">Input</span>
+        <select data-k="input" style="flex:1">${inOpts}</select>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+        <span style="font-size:12px;color:var(--dim);flex:1">Black screen first</span>
+        <input type="checkbox" class="sw" data-k="black" ${r.black?'checked':''}>
+        <button data-test style="flex:0 0 auto;padding:6px 12px">Test</button>
+      </div>`;
+    d.querySelectorAll('[data-k]').forEach(el => {
+      el.onchange = () => {
+        const k = el.dataset.k;
+        r[k] = el.type === 'checkbox' ? el.checked : el.value;
+        saveCal();
+        if (k === 'event') drawAutos();
+      };
+    });
+    d.querySelector('[data-del]').onclick = () => { autos().splice(i, 1); saveCal(); drawAutos(); };
+    d.querySelector('[data-test]').onclick = () => runAuto(r, true);
+    box.appendChild(d);
+  });
+}
 
 /* ---------- UI ---------- */
 const help = document.getElementById('help');
