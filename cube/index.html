@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.11</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.12</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -117,7 +117,7 @@
       <button id="wizSkip" disabled>Skip face</button>
       <button id="wizCancel" disabled>Cancel</button>
     </div>
-    <div class="note">Turn each face one quarter turn clockwise, as you look straight at that face. The cube on the screen does not move during calibration.</div>
+    <div class="note">Start with a solved cube. For each face: turn it one quarter turn clockwise (as you look straight at that face), then turn it back. At the end the cube is solved again and the page syncs it. The cube on the screen does not move during calibration.</div>
   </div></div>
 
   <div class="sec" id="secMap"><div class="tab">Face map</div><div class="body">
@@ -528,20 +528,21 @@ function showLive(code, a, raw){
 
 // guided wizard
 const WIZ_ORDER = ['U','F','R','B','L','D'];
-const wiz = { active:false, i:0, map:{}, inv:{} };
+const wiz = { active:false, i:0, map:{}, inv:{}, back:false, lastCode:0, lastTurn:0, mixed:false };
 const wizStep = document.getElementById('wizStep'), wizChip = document.getElementById('wizChip');
 const wizAsk = document.getElementById('wizAsk'), wizMsg = document.getElementById('wizMsg');
 const wizStartBtn = document.getElementById('wizStart'), wizSkipBtn = document.getElementById('wizSkip'), wizCancelBtn = document.getElementById('wizCancel');
 function wizMsgSet(t, cls){ wizMsg.textContent = t; wizMsg.className = 'msg' + (cls ? ' '+cls : ''); }
 function wizShow(){
   const f = WIZ_ORDER[wiz.i];
-  wizStep.textContent = `Step ${wiz.i+1} of 6`;
+  const name = FACE_NAMES[f].split(' ')[0].toUpperCase();
+  wizStep.textContent = `Step ${wiz.i+1} of 6` + (wiz.back ? ' – turn it back' : '');
   wizChip.style.background = COLORS[f];
-  wizAsk.textContent = `Turn the ${FACE_NAMES[f].split(' ')[0].toUpperCase()} face clockwise once`;
+  wizAsk.textContent = wiz.back ? `Now turn the ${name} face back (counter-clockwise once)` : `Turn the ${name} face clockwise once`;
 }
 function wizStart(){
   if (!dataChr){ wizMsgSet('Connect the cube first.', 'bad'); return; }
-  Object.assign(wiz, { active:true, i:0, map:{}, inv:{} });
+  Object.assign(wiz, { active:true, i:0, map:{}, inv:{}, back:false, lastCode:0, lastTurn:0, mixed:false });
   wizStartBtn.disabled = true; wizSkipBtn.disabled = false; wizCancelBtn.disabled = false;
   wizMsgSet(''); wizShow();
 }
@@ -554,17 +555,24 @@ function wizStop(text, cls){
   wizMsgSet(text || '', cls);
 }
 function wizNext(){
-  wiz.i++;
+  wiz.i++; wiz.back = false;
   if (wiz.i < 6) return wizShow();
   // keep faces that were skipped
   const newMap = {}, newInv = {};
   for (let c=1;c<=6;c++){ if (!(c in wiz.map)) { newMap[c] = cal.map[c]; newInv[c] = cal.inv[c]; } }
   for (const c in wiz.map){ newMap[c] = wiz.map[c]; newInv[c] = wiz.inv[c]; }
   cal.map = newMap; cal.inv = newInv; saveCal(); drawMap();
-  wizStop('Calibration saved. Tap Set as solved, then test.', 'good');
+  if (wiz.mixed){ wizStop('Calibration saved. A face was not turned back: solve the cube, then tap Set as solved.', 'good'); return; }
+  setSolved();                                       // the real cube is solved again: sync both
+  wizStop('Calibration saved. The cube is solved and in sync. Turn a face to test.', 'good');
 }
 function wizInput(code, rawTurns){
   const f = WIZ_ORDER[wiz.i];
+  if (wiz.back){
+    if (code === wiz.lastCode && rawTurns === -wiz.lastTurn){ wizMsgSet('Good. Face is back.', 'good'); wizNext(); return; }
+    if (code === wiz.lastCode && rawTurns === wiz.lastTurn){ wiz.lastTurn = -wiz.lastTurn; wizMsgSet('That turned it further. Turn it the other way, 2 times.', 'bad'); wiz.mixed = true; return; }
+    wizMsgSet(`Turn the ${FACE_NAMES[f].split(' ')[0]} face back, not another face.`, 'bad'); wiz.mixed = true; return;
+  }
   if (code < 1 || code > 6){ wizMsgSet(`Unknown face code ${code}. Try again.`, 'bad'); return; }
   if (rawTurns === 2){ wizMsgSet('That was a double turn. Turn one quarter turn only.', 'bad'); return; }
   const used = Object.keys(wiz.map).find(c => +c === code);
@@ -572,10 +580,10 @@ function wizInput(code, rawTurns){
   wiz.map[code] = f;
   wiz.inv[code] = rawTurns === -1;
   wizMsgSet(`Code ${code} = ${f}${rawTurns===-1 ? ' (inverted)' : ''}`, 'good');
-  wizNext();
+  wiz.back = true; wiz.lastCode = code; wiz.lastTurn = rawTurns; wizShow();
 }
 wizStartBtn.onclick = wizStart;
-wizSkipBtn.onclick = ()=>{ wizMsgSet('Skipped. This face keeps its old setting.'); wizNext(); };
+wizSkipBtn.onclick = ()=>{ if (wiz.back) wiz.mixed = true; wizMsgSet(wiz.back ? 'Skipped. Turn that face back by hand.' : 'Skipped. This face keeps its old setting.'); wizNext(); };
 wizCancelBtn.onclick = ()=>wizStop('Cancelled. Nothing changed.');
 
 // connection settings
