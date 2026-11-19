@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.19</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.20</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -808,6 +808,10 @@ function runShortcut(b64){
   location.href = url;
 }
 let photoBusy = false;
+function photoState(){                        // each sticker: its real colour as a face letter (U D F B R L)
+  const C2F = {}; for (const f in COLORS) C2F[COLORS[f]] = f;
+  return cubies.map(c => { const cols = {}; for (const f in c.cols) cols[f] = c.cols[f] ? (C2F[c.cols[f]] || null) : null; return { p:c.p, R:c.R, cols }; });
+}
 async function takePhoto(source){
   if (photoBusy) return;
   photoBusy = true;
@@ -816,7 +820,7 @@ async function takePhoto(source){
     // copy the real mix from the last live packet, so the photo shows the real cube
     try { if (connected && lastNote && stickerMapFromCube(lastNote)) syncFromCube(lastNote, true); } catch(e){}
     let cv = null;
-    try { if (window.CubePhotoGL) cv = await CubePhotoGL.render(cubies.map(c=>({ p:c.p, R:c.R, cols:c.cols })), cal.photoBg); } catch(e){ console.warn('GL photo', e); }
+    try { if (window.CubePhotoGL) cv = await CubePhotoGL.render(photoState(), cal.photoBg); } catch(e){ console.warn('GL photo', e); }
     if (!cv) cv = renderCubePhoto();      // simple drawing if WebGL / three.js is not available
     const SZ = { large:[1080,0.82], medium:[810,0.78], small:[600,0.75] }[cal.photoSize || 'large'];
     if (cv.width !== SZ[0]){
@@ -1085,7 +1089,7 @@ function buildScene(state, kind, r){
     const body = new THREE.Mesh(bodyGeo, bodyMat); body.castShadow = true; body.receiveShadow = true; g.add(body);
     for (const face in c.cols){
       if (!c.cols[face]) continue;
-      const s = new THREE.Mesh(stkGeo, stkMats[face]);
+      const s = new THREE.Mesh(stkGeo, stkMats[c.cols[face]] || stkMats[face]);   // material by the real colour
       const n = LOCAL_N[face]; s.position.set(n[0]*0.4885, n[1]*0.4885, n[2]*0.4885);
       s.rotation.set(STK_ROT[face][0], STK_ROT[face][1], 0); s.receiveShadow = true;
       g.add(s);
