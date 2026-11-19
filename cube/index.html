@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.17</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.18</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -797,6 +797,11 @@ async function takePhoto(source){
   if (photoBusy) return;
   photoBusy = true;
   try {
+    // read the cube one more time, so the photo shows the real mix at this moment
+    if (connected && dataRead){
+      try { const fresh = decode(await dataRead()); if (fresh && fresh.length) lastRaw = fresh; } catch(e){}
+      try { if (lastRaw && stickerMapFromCube(lastRaw)) syncFromCube(lastRaw, true); } catch(e){}
+    }
     let cv = null;
     try { if (window.CubePhotoGL) cv = await CubePhotoGL.render(cubies.map(c=>({ p:c.p, R:c.R, cols:c.cols })), cal.photoBg); } catch(e){ console.warn('GL photo', e); }
     if (!cv) cv = renderCubePhoto();      // simple drawing if WebGL / three.js is not available
