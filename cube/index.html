@@ -80,7 +80,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.3</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.4</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -139,6 +139,25 @@
     <div class="note">On: the page connects to the cube when it opens, tries again every 10 seconds, and reconnects if the cube disconnects. Tap Disconnect to stop it until you tap Connect cube again.<br><br>In Aura it finds the cube by itself. In Chrome you must tap Connect cube one time first.</div>
   </div></div>
 
+  <div class="sec" id="secPhoto"><div class="tab">Photo prediction</div><div class="body">
+    <table>
+      <tr><td>Photo on volume button</td><td><input type="checkbox" class="sw" id="phOn"></td></tr>
+      <tr><td>Button</td><td><select id="phBtn"><option value="down">Volume −</option><option value="up">Volume +</option><option value="both">Both</option></select></td></tr>
+      <tr><td>Table</td><td><select id="phBg"><option value="wood">Wood</option><option value="dark">Dark</option><option value="white">White</option></select></td></tr>
+      <tr><td>Shortcut name</td><td><input id="phName" style="width:130px;background:var(--hi);color:var(--text);border:0;border-radius:8px;padding:6px 8px;font:inherit"></td></tr>
+    </table>
+    <div class="row"><button id="phTest">Test photo</button></div>
+    <div class="note" id="photoMsg">Press the button: the page makes a photo of the cube as it is now and the Shortcut saves it in Photos.</div>
+    <img id="photoPrev" style="display:block;width:100%;border-radius:12px;margin-top:10px" alt="">
+    <div class="note"><b>Make the Shortcut one time</b> (Shortcuts app → +):<br>
+      1. Name it <b>Cube Photo</b> (same as Shortcut name above).<br>
+      2. Add <b>Base64 Encode</b>. Tap it and set Mode to <b>Decode</b>. Input: <b>Shortcut Input</b>.<br>
+      3. Add <b>Save to Photo Album</b> (album: Recents).<br>
+      4. Add <b>Open App</b> → <b>Aura</b>, so you come back to this page.<br>
+      In the Shortcut settings, turn off "Show When Run" if you see it. The first time, iOS asks to let the Shortcut open links and use Photos: tap Always Allow.<br><br>
+      Needs Aura 8 for the volume buttons. The photo has today's date and time.</div>
+  </div></div>
+
   <div class="sec" id="secView"><div class="tab">View</div><div class="body">
     <table>
       <tr><td>Animation speed</td><td><select id="speed"><option value="1.6">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option><option value="0.01">Instant</option></select></td></tr>
@@ -156,6 +175,7 @@
     <li>Tap <b>Set as solved</b>. The real cube and the virtual cube are now the same.</li>
     <li>Turn the real cube. The virtual cube turns the same way.</li>
   </ol>
+  <p><b>Photo prediction:</b> press the volume button (Aura 8) and a photo of the cube as it is now goes to your Photos app through an iOS Shortcut. Set it up in Calibrate → Photo prediction.</p>
   <p>Drag the cube to turn the view. Test with no cube: press <kbd>U</kbd> <kbd>D</kbd> <kbd>L</kbd> <kbd>R</kbd> <kbd>F</kbd> <kbd>B</kbd> (hold <kbd>Shift</kbd> for a counter-clockwise turn).</p>
   <p>Hold white on top and green in front. If the cube does not show in the list, disconnect it in LightBlue first.</p>
   <p>Works in Aura Browser, Chrome or Edge on Mac, and Bluefy on iPhone. Safari does not have Bluetooth.</p>
@@ -208,13 +228,15 @@ function buildCube(){
   for (let x=-1;x<=1;x++) for (let y=-1;y<=1;y++) for (let z=-1;z<=1;z++){
     const p = [x,y,z];
     const el = document.createElement('div'); el.className = 'cubie';
+    const cols = {};
     FACES.forEach(f=>{
       const d = document.createElement('div'); d.className = 'face'; d.style.transform = f.tf;
       const st = document.createElement('i'); st.style.background = f.on(p) ? COLORS[f.n] : '#08090a';
+      cols[f.n] = f.on(p) ? COLORS[f.n] : null;
       d.appendChild(st); el.appendChild(d);
     });
     cubeEl.appendChild(el);
-    const c = { el, p:[...p], R:I3.map(r=>[...r]) };
+    const c = { el, p:[...p], R:I3.map(r=>[...r]), cols };
     cubies.push(c); render(c);
   }
 }
@@ -269,7 +291,7 @@ function logMove(face, turns){
   moveLog.push(face + (turns===2 ? '2' : turns===-1 ? "'" : ''));
   if (moveLog.length > 40) moveLog.shift();
   moveCount++;
-  movesEl.textContent = moveLog.join(' ');
+  movesEl.innerHTML = '<span style="direction:ltr;unicode-bidi:isolate">' + moveLog.join(' ') + '</span>';
   countEl.textContent = moveCount;
 }
 function doMove(face, turns){ enqueue(face, turns); logMove(face, turns); }
@@ -466,7 +488,7 @@ async function setSolved(){
 const DEFAULT_MAP = {1:'B',2:'D',3:'L',4:'U',5:'R',6:'F'};
 const FACE_NAMES = {U:'White (top)',D:'Yellow (bottom)',F:'Green (front)',B:'Blue (back)',R:'Red (right)',L:'Orange (left)'};
 const STORE = 'cubeMirror.cal.v1';
-let cal = { map:{...DEFAULT_MAP}, inv:{}, speed:1, auto:true };
+let cal = { map:{...DEFAULT_MAP}, inv:{}, speed:1, auto:true, photoOn:true, photoBtn:'down', photoShortcut:'Cube Photo', photoBg:'wood' };
 try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && s.map) cal = Object.assign(cal, s); } catch(e){}
 function saveCal(){ try { localStorage.setItem(STORE, JSON.stringify(cal)); } catch(e){} }
 
@@ -553,6 +575,15 @@ const autoSw = document.getElementById('autoSw');
 autoSw.checked = !!cal.auto;
 autoSw.onchange = ()=>{ cal.auto = autoSw.checked; saveCal(); if (cal.auto){ userOff = false; autoTry(); } else if (!connected) setStatus('Not connected'); };
 
+// photo settings
+const phOn = document.getElementById('phOn'), phBtn = document.getElementById('phBtn'), phBg = document.getElementById('phBg'), phName = document.getElementById('phName');
+phOn.checked = !!cal.photoOn; phBtn.value = cal.photoBtn; phBg.value = cal.photoBg; phName.value = cal.photoShortcut;
+phOn.onchange = ()=>{ cal.photoOn = phOn.checked; saveCal(); volStart(); };
+phBtn.onchange = ()=>{ cal.photoBtn = phBtn.value; saveCal(); };
+phBg.onchange = ()=>{ cal.photoBg = phBg.value; saveCal(); };
+phName.onchange = ()=>{ cal.photoShortcut = phName.value.trim() || 'Cube Photo'; saveCal(); };
+document.getElementById('phTest').onclick = ()=>takePhoto('test');
+
 // view settings
 const speedSel = document.getElementById('speed');
 speedSel.value = String(cal.speed);
@@ -570,6 +601,157 @@ document.getElementById('btnCal').onclick = ()=>{ drawMap(); calEl.style.display
 document.getElementById('btnCalClose').onclick = ()=>{ if (wiz.active) wizStop(); calEl.style.display = 'none'; };
 calEl.addEventListener('click', e=>{ if (e.target === calEl){ if (wiz.active) wizStop(); calEl.style.display = 'none'; } });
 
+/* ---------- photo prediction (volume button → photo → iOS Shortcut → Photos) ---------- */
+const NORMALS = { F:[0,0,1], B:[0,0,-1], R:[1,0,0], L:[-1,0,0], U:[0,-1,0], D:[0,1,0] };
+// World face → [normal, u axis (columns), v axis (rows)] as seen in the photo.
+const PHOTO_FACES = {
+  U:{ n:[0,-1,0], u:[1,0,0], v:[0,0,1],  light:1.00 },
+  F:{ n:[0,0,1],  u:[1,0,0], v:[0,1,0],  light:0.84 },
+  R:{ n:[1,0,0],  u:[0,0,-1], v:[0,1,0], light:0.68 },
+};
+function stickerAt(p, n){
+  const c = cubies.find(c => c.p[0]===p[0] && c.p[1]===p[1] && c.p[2]===p[2]);
+  if (!c) return '#111';
+  for (const f in NORMALS){
+    const w = apply(c.R, NORMALS[f]).map(Math.round);
+    if (w[0]===n[0] && w[1]===n[1] && w[2]===n[2]) return c.cols[f] || '#111';
+  }
+  return '#111';
+}
+function shade(hex, k){
+  const n = parseInt(hex.slice(1), 16);
+  const f = v => Math.max(0, Math.min(255, Math.round(v * k)));
+  return `rgb(${f(n>>16&255)},${f(n>>8&255)},${f(n&255)})`;
+}
+function mulberry(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+function drawBackground(ctx, W, H, rnd, kind){
+  if (kind === 'dark'){
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#2b2c30'); g.addColorStop(1,'#151619');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  } else if (kind === 'white'){
+    const g = ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,'#eeece8'); g.addColorStop(1,'#cfccc6');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  } else {                                                   // wood table
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#6b4a2f'); g.addColorStop(1,'#4a3020');
+    ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    for (let i=0; i<170; i++){
+      const y0 = rnd()*H*1.2 - H*0.1, amp = 6 + rnd()*22, len = 300 + rnd()*500, ph = rnd()*6.28;
+      ctx.strokeStyle = rnd() < .5 ? `rgba(30,15,5,${.05+rnd()*.12})` : `rgba(150,105,65,${.04+rnd()*.10})`;
+      ctx.lineWidth = .8 + rnd()*3.5;
+      ctx.beginPath();
+      for (let x=-20; x<=W+20; x+=20){ const y = y0 + Math.sin(x/len*6.28+ph)*amp + x*0.06; x===-20 ? ctx.moveTo(x,y) : ctx.lineTo(x,y); }
+      ctx.stroke();
+    }
+  }
+}
+
+function renderCubePhoto(){
+  const W = 1080, H = 1440;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const ctx = cv.getContext('2d');
+  const rnd = mulberry(Date.now() & 0xffffffff);
+  drawBackground(ctx, W, H, rnd, cal.photoBg);
+
+  // camera: a little random each time so it looks hand-held
+  const ry = (-38 + (rnd()-.5)*10) * Math.PI/180, rx = (-30 + (rnd()-.5)*8) * Math.PI/180;
+  const cy0 = Math.cos(ry), sy0 = Math.sin(ry), cx0 = Math.cos(rx), sx0 = Math.sin(rx);
+  const K = 140 + rnd()*18, D = 9, CX = W/2 + (rnd()-.5)*60, CY = H*0.47 + (rnd()-.5)*70;
+  const proj = v => {
+    let x = v[0]*cy0 + v[2]*sy0, z = -v[0]*sy0 + v[2]*cy0, y = v[1];
+    const y2 = y*cx0 - z*sx0, z2 = y*sx0 + z*cx0;
+    const f = D / (D - z2);
+    return [CX + x*f*K, CY + y2*f*K];
+  };
+  const add = (a,b,s=1) => [a[0]+b[0]*s, a[1]+b[1]*s, a[2]+b[2]*s];
+
+  // shadow on the table
+  const base = proj([0,1.5,0]);
+  const sh = ctx.createRadialGradient(base[0]+70, base[1]+10, 20, base[0]+70, base[1]+10, 430);
+  sh.addColorStop(0, 'rgba(0,0,0,.55)'); sh.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.save(); ctx.translate(base[0]+70, base[1]+10); ctx.scale(1, .42); ctx.translate(-(base[0]+70), -(base[1]+10));
+  ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(base[0]+70, base[1]+10, 430, 0, 6.29); ctx.fill(); ctx.restore();
+
+  for (const key of ['U','F','R']){
+    const fd = PHOTO_FACES[key], c0 = fd.n.map(v=>v*1.5);
+    // black plastic body of this face
+    const corners = [[-1.5,-1.5],[1.5,-1.5],[1.5,1.5],[-1.5,1.5]].map(([a,b]) => proj(add(add(c0, fd.u, a), fd.v, b)));
+    ctx.fillStyle = shade('#1a1a1a', fd.light);
+    ctx.beginPath(); corners.forEach((q,i)=> i ? ctx.lineTo(q[0],q[1]) : ctx.moveTo(q[0],q[1])); ctx.closePath(); ctx.fill();
+    // stickers
+    for (let b=-1; b<=1; b++) for (let a=-1; a<=1; a++){
+      const p = add(add(fd.n, fd.u, a), fd.v, b);
+      const col = stickerAt(p, fd.n);
+      const ctr = add(add(c0, fd.u, a), fd.v, b);
+      const h = 0.43, r = 0.11, pts = [];
+      for (const [sx, sy, a0] of [[1,1,0],[-1,1,90],[-1,-1,180],[1,-1,270]]){
+        const ox = sx*(h-r), oy = sy*(h-r);
+        for (let k=0; k<=4; k++){ const t = (a0 + k*22.5)*Math.PI/180; pts.push(proj(add(add(ctr, fd.u, ox + Math.cos(t)*r), fd.v, oy + Math.sin(t)*r))); }
+      }
+      ctx.fillStyle = shade(col, fd.light * (0.94 + rnd()*0.08));
+      ctx.beginPath(); pts.forEach((q,i)=> i ? ctx.lineTo(q[0],q[1]) : ctx.moveTo(q[0],q[1])); ctx.closePath(); ctx.fill();
+    }
+    // soft gloss from the light (top left)
+    const gl = ctx.createLinearGradient(corners[0][0], corners[0][1], corners[2][0], corners[2][1]);
+    gl.addColorStop(0, `rgba(255,255,255,${key==='U' ? .22 : .10})`); gl.addColorStop(.6, 'rgba(255,255,255,0)');
+    ctx.fillStyle = gl; ctx.beginPath(); corners.forEach((q,i)=> i ? ctx.lineTo(q[0],q[1]) : ctx.moveTo(q[0],q[1])); ctx.closePath(); ctx.fill();
+  }
+  // edge highlight
+  ctx.strokeStyle = 'rgba(255,255,255,.10)'; ctx.lineWidth = 2;
+  [[[-1.5,-1.5,1.5],[1.5,-1.5,1.5]],[[1.5,-1.5,1.5],[1.5,-1.5,-1.5]],[[1.5,-1.5,1.5],[1.5,1.5,1.5]]].forEach(([a,b])=>{
+    const p1 = proj(a), p2 = proj(b); ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+  });
+
+  // vignette + light fall-off + sensor grain = camera look
+  const vg = ctx.createRadialGradient(W*.42, H*.38, H*.15, W/2, H/2, H*.8);
+  vg.addColorStop(0, 'rgba(255,240,220,.06)'); vg.addColorStop(1, 'rgba(0,0,0,.45)');
+  ctx.fillStyle = vg; ctx.fillRect(0,0,W,H);
+  const img = ctx.getImageData(0,0,W,H), d = img.data;
+  for (let i=0; i<d.length; i+=4){ const n = (rnd()-.5)*14; d[i]+=n; d[i+1]+=n; d[i+2]+=n; }
+  ctx.putImageData(img, 0, 0);
+  return cv;
+}
+
+const photoMsg = () => document.getElementById('photoMsg');
+function runShortcut(b64){
+  const name = (cal.photoShortcut || 'Cube Photo').trim();
+  const url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(name) + '&input=text&text=' + encodeURIComponent(b64);
+  location.href = url;
+}
+let photoBusy = false;
+async function takePhoto(source){
+  if (photoBusy) return;
+  photoBusy = true;
+  try {
+    const cv = renderCubePhoto();
+    const b64 = cv.toDataURL('image/jpeg', 0.82).split(',')[1];
+    const prev = document.getElementById('photoPrev');
+    if (prev) prev.src = 'data:image/jpeg;base64,' + b64;
+    try { if (window.Aura && Aura.haptic) Aura.haptic('impact', { style:'light' }); } catch(e){}
+    if (photoMsg()) photoMsg().textContent = 'Photo made (' + Math.round(b64.length/1024) + ' KB). Sending to the Shortcut…';
+    runShortcut(b64);
+  } finally { setTimeout(() => photoBusy = false, 1500); }
+}
+
+// volume buttons (Aura 8 bridge)
+let volOn = false;
+async function volStart(){
+  if (!(window.Aura && Aura.volumeButtons)) return;
+  try { if (volOn) { await Aura.volumeButtons.stop(); volOn = false; } } catch(e){}
+  if (!cal.photoOn) return;
+  try { await Aura.volumeButtons.start({ keepVolume:true }); volOn = true; } catch(e){ volOn = false; }
+}
+if (window.Aura && Aura.on){
+  Aura.on('volumeButton', ({ button }) => {
+    if (!cal.photoOn) return;
+    if (document.getElementById('cal').style.display === 'block') return;   // off while settings are open
+    const b = button === 'up' ? 'up' : 'down';
+    if (cal.photoBtn === 'both' || cal.photoBtn === b) takePhoto('volume');
+  });
+}
+addEventListener('pageshow', e => { if (e.persisted) volStart(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') setTimeout(volStart, 400); });
+
 /* ---------- UI ---------- */
 const help = document.getElementById('help');
 function openHelp(){ help.style.display = 'block'; }
@@ -581,7 +763,7 @@ document.getElementById('btnSolved').onclick = setSolved;
 document.getElementById('btnHelp').onclick = openHelp;
 document.getElementById('btnCloseHelp').onclick = ()=>help.style.display = 'none';
 
-buildCube(); setView();
+buildCube(); setView(); volStart();
 </script>
 </body>
 </html>
