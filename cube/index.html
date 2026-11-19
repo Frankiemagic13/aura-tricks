@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1>Cube Mirror <span class="ver">v1.10</span></h1>
+    <h1>Cube Mirror <span class="ver">v1.11</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -358,7 +358,13 @@ function onData(dv){
 
 let connected = false, connecting = false, userOff = false;
 const btnConnect = document.getElementById('btnConnect');
+function buzzTwice(){
+  const one = () => { try { if (window.Aura && Aura.haptic) Aura.haptic('impact', { style:'heavy' }); } catch(e){} };
+  one(); setTimeout(one, 180);
+  try { if (navigator.vibrate) navigator.vibrate([90, 110, 90]); } catch(e){}
+}
 function setConnected(on){
+  if (on && !connected) buzzTwice();
   connected = on;
   btnConnect.textContent = on ? 'Disconnect' : 'Connect cube';
   if (!on){ cmdWrite = null; dataRead = null; dataChr = null; }
