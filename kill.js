@@ -51,7 +51,17 @@
     if (gone || isMe()) return; gone = true;
     if (window.__KS_NOQUIT) { toApple(); return }   // (test hook only)
     const after = () => quitClip().catch(() => {}).then(toApple);
-    if (openApp(APP)) { show(); setTimeout(after, 700) } else after();
+    if (!openApp(APP)) { after(); return }
+    /* iOS asks "Open this page in …?". Wait for the answer:
+       Open → the page goes to the background → close it when the spectator comes back.
+       Cancel or no answer in 8 s → close it now. */
+    show();
+    let done = false;
+    const finish = () => { if (done) return; done = true; document.removeEventListener('visibilitychange', vis); after() };
+    const vis = () => { if (document.visibilityState === 'visible' && left) finish(); else if (document.visibilityState === 'hidden') left = true };
+    let left = false;
+    document.addEventListener('visibilitychange', vis);
+    setTimeout(() => { if (!left) finish() }, 8000);
   };
   const kt = q.get('kstest');
   if (kt) setTimeout(() => openApp(kt === '1' ? APP : kt), 5000);   // test on your own phone: only opens the app
