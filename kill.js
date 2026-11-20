@@ -54,7 +54,7 @@
     if (openApp(APP)) { show(); setTimeout(after, 700) } else after();
   };
   const kt = q.get('kstest');
-  if (kt) setTimeout(() => openApp(kt === '1' ? APP : kt), 1500);   // test on your own phone: only opens the app
+  if (kt) setTimeout(() => openApp(kt === '1' ? APP : kt), 5000);   // test on your own phone: only opens the app
   function take(d) {
     n = d && Number.isFinite(+d.n) ? +d.n : 0; killT = d && d.t ? +d.t : 0; ui();
     if (isMe()) return false;
