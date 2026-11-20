@@ -6,6 +6,9 @@
    show number of the first time it opened a trick. Its number smaller than the online number = past show.
    No clocks are compared, so a wrong phone time has no effect.
    Your own phone (the phone that tapped Kill, or a link with ?me=1) is never sent away.
+   App first (optional): a page can open a phone app before it is sent away, e.g. the calculator page opens
+   the Calculator app. Put <script>window.KS_APP='calc://'</script> before kill.js. Test any app link on
+   your own phone with ?kstest=1 (the page's app) or ?kstest=mobilenotes:// (any link).
    Put <script src="../kill.js"></script> in <head>, before the page shows.
    A settings row with id="ksBtn" (button) and id="ksSt" (status) is connected automatically. */
 (function () {
@@ -36,11 +39,22 @@
     try { const p = A.peer.join({ room: '~quit-' + Math.random().toString(36).slice(2, 10), timeout: 1e300 }); if (p && p.catch) p.catch(() => {}) } catch (e) { return }
     await new Promise(r => setTimeout(r, QUIT_MS));
   }
+  /* open the page's own phone app first (e.g. Calculator). The page then goes to the background;
+     when the spectator comes back to it, it closes / goes to apple.com as before. */
+  const APP = window.KS_APP || '';
+  function openApp(link) {
+    if (!link) return false;
+    try { location.href = link } catch (e) { return false }
+    return true;
+  }
   const go = () => {
     if (gone || isMe()) return; gone = true;
     if (window.__KS_NOQUIT) { toApple(); return }   // (test hook only)
-    quitClip().catch(() => {}).then(toApple);
+    const after = () => quitClip().catch(() => {}).then(toApple);
+    if (openApp(APP)) { show(); setTimeout(after, 700) } else after();
   };
+  const kt = q.get('kstest');
+  if (kt) setTimeout(() => openApp(kt === '1' ? APP : kt), 1500);   // test on your own phone: only opens the app
   function take(d) {
     n = d && Number.isFinite(+d.n) ? +d.n : 0; killT = d && d.t ? +d.t : 0; ui();
     if (isMe()) return false;
@@ -110,7 +124,7 @@
       const v = { n: cur + 1, t: Date.now() };
       const r = await fetch(URL_, { method: 'PUT', body: JSON.stringify(v) });
       if (!r.ok) throw new Error(r.status);
-      n = v.n; killT = v.t; ui('Killed ' + when(killT) + ' – past spectators → apple.com');
+      n = v.n; killT = v.t; ui('Killed ' + when(killT) + ' – past spectators → ' + (APP ? 'app, then closed' : 'apple.com'));
     } catch (e) { ui('Not saved – no internet? Tap again') }
     busy = false;
   }
