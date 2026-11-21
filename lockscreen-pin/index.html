@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v2.3 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v2.4 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v2.3</div>
+<div id="verTag">v2.4</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -292,6 +292,7 @@
   <div class="lbl">Passcode</div>
   <div class="grp">
     <div class="r">Digits<select id="sLen"><option value="4">4 digits</option><option value="6">6 digits</option></select></div>
+    <div class="r">Next-digit dot (your cue)<input type="checkbox" id="sKeyHint"></div>
   </div>
   <div class="lbl">Attempts to unlock</div>
   <div class="grp">
@@ -351,10 +352,11 @@
     <div class="r">Glass keys<select id="sGlass"><option value="liquid">Liquid</option><option value="crystal">Crystal</option><option value="backdrop">Frosted</option></select></div>
     <div class="r">Blur<input type="number" id="sBlur" inputmode="numeric" min="0" max="80"></div>
     <div class="r">Theme<select id="sTheme"><option value="auto">Auto</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
+    <div class="r">Lock to portrait<input type="checkbox" id="sLockPortrait"></div>
   </div>
   <div class="lbl">After unlock</div>
   <div class="grp">
-    <div class="r">When it unlocks<select id="sOutcome"><option value="notes">Just open (black)</option><option value="quit">Quit the App Clip</option><option value="screenshot">Show a screenshot</option><option value="app">Open an app</option><option value="link">Open a website</option><option value="home">Home screen (your photo)</option></select></div>
+    <div class="r">When it unlocks<select id="sOutcome"><option value="notes">Just open (black)</option><option value="quit">Quit the App Clip</option><option value="screenshot">Show a screenshot</option><option value="app">Open an app</option><option value="link">Open a website</option><option value="home">Home screen (close / photo)</option></select></div>
     <div class="r">App<select id="sUApp"><option value="photos">Photos</option><option value="notes">Notes</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="facebook">Facebook</option><option value="custom">Other (app link)</option></select></div>
     <div class="r"><span class="lk">App link</span><input type="text" id="sUAppUrl" placeholder="instagram://" autocapitalize="off" autocorrect="off"></div>
     <div class="r"><span class="lk">Website</span><input type="text" id="sULink" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
@@ -420,7 +422,9 @@ const CFG = window.CFG = {
   unlockAppUrl: "",
   unlockLinkUrl: "",
   ghostButton: "1:click",
-  homeScreenDataUrl: ""
+  homeScreenDataUrl: "",
+  keyHintDot: true,
+  lockPortrait: true
 };
 const LOCK_UI_PROMPT = "clock digits, date text, status bar icons, battery icon, wifi icon, lock icon, notification banner, widgets, flashlight button, camera button, home indicator bar, keypad numbers, passcode dots, circular button outlines, translucent keypad circles, glass button borders";
 /* a saved copy on this phone (from the settings sheet) wins over the baked defaults */
@@ -507,6 +511,18 @@ window.getLinkSafariPref = function getLinkSafariPref(key) {
 };
 
 /* ============ Lock Screen engine ============ */
+function applyOrientation() {
+  try {
+    if (!window.AuraKit) return;
+    AuraKit.ready().then(function(){
+      if (!AuraKit.orientation) return;
+      if (CFG.lockPortrait !== false) { if (AuraKit.orientation.lock) AuraKit.orientation.lock("portrait").catch(function(){}); }
+      else { if (AuraKit.orientation.unlock) AuraKit.orientation.unlock().catch(function(){}); }
+    }).catch(function(){});
+  } catch (_) {}
+}
+applyOrientation();
+
 const LockScreen = window.LockScreen = {
   open: false,
   digits: CFG.lockDigits || 4,
@@ -717,6 +733,7 @@ const LockScreen = window.LockScreen = {
     if (this.open) this.updateKeyHintDot();
   },
   updateKeyHintDot() {
+    if (CFG && CFG.keyHintDot === false) { document.querySelectorAll("#lockKeypad .lockscreen-key").forEach(k => k.classList.remove("show-hint")); return; }
     let lastCode = this.lastBackendPasscode;
     if (lastCode === undefined) {
       try { lastCode = localStorage.getItem("notes_last_passcode") || ""; } catch (_) { lastCode = ""; }
@@ -926,8 +943,8 @@ const LockScreen = window.LockScreen = {
       document.getElementById("customShotView").classList.remove("show");
     }
 
-    if (outcome === "quit" && window.AuraKit && typeof AuraKit.quitAppClip === "function") {
-      try { await AuraKit.quitAppClip(); } catch (_) {}
+    if ((outcome === "quit" || outcome === "home") && window.AuraKit && typeof AuraKit.quitAppClip === "function") {
+      try { await AuraKit.quitAppClip(); } catch (_) {}   // App Clip: closes to the real home screen
     }
 
     if (!this._outcomeOpened) this._openOutcome();
@@ -1598,6 +1615,8 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
     S("sUAppUrl").value = CFG.unlockAppUrl||"";
     S("sULink").value = CFG.unlockLinkUrl||"";
     { const e=S("sHomeSt"); if(e) e.textContent = CFG.homeScreenDataUrl ? "set" : "none"; }
+    { const e=S("sKeyHint"); if(e) e.checked = CFG.keyHintDot!==false; }
+    { const e=S("sLockPortrait"); if(e) e.checked = CFG.lockPortrait!==false; }
     S("sFalKey").value = CFG.falKey||"";
     S("sFalModel").value = CFG.falModel||"";
     const wl = (function(){ try{ return !!localStorage.getItem("notes_lock_wallpaper"); }catch(_){ return false; } })();
@@ -1634,6 +1653,8 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   })();
   on("sFalKey","input", el=>CFG.falKey=el.value.trim());
   on("sFalModel","input", el=>CFG.falModel=el.value.trim());
+  on("sKeyHint","change", el=>CFG.keyHintDot=el.checked);
+  S("sLockPortrait") && S("sLockPortrait").addEventListener("change", ()=>{ CFG.lockPortrait=S("sLockPortrait").checked; saveCfg(); try{ applyOrientation(); }catch(_){} });
 
   S("sScTest") && (S("sScTest").onclick=()=>{ if(CFG.shortcutUrl) openShortcutInSafari(CFG.shortcutUrl, window.getLinkSafariPref("shortcut")); });
   S("sInjTest") && (S("sInjTest").onclick=()=>{
