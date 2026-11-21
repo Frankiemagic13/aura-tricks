@@ -28,3 +28,9 @@ URL options: `&format=text` (only the words), `&field=NAME` (also send the text 
 
 ## Free plan
 100,000 requests and 1,000 saves a day. The Notes page saves only 1.5 s after typing stops.
+
+## Notifications (ntfy)
+1. Install the free ntfy app on the iPhone. Subscribe to a topic name that is hard to guess.
+2. In Cloudflare: notes-api > Settings > Variables and secrets > Add: Secret `NTFY_TOPIC` = that topic name.
+3. Optional: Text `NTFY_WAIT` = seconds with no new text before it notifies (default 4).
+One notification comes when the spectator stops typing.
