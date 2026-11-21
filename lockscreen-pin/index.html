@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v1.7 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v1.8 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v1.7</div>
+<div id="verTag">v1.8</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -284,7 +284,7 @@
 
 
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"Peeks","i":"peek","s":["peek"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost","peeksmith"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"Peeks","i":"peek","s":["peek"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
 
@@ -309,6 +309,14 @@
     <div class="r">Digit 6 delay (s)<input type="number" id="gD5" inputmode="decimal" step="0.1" min="0"></div>
   </div>
   <div class="snote">Hold the 0 key and slide to run the last code by itself. The delays are the pause before each digit. The code used is the last one typed on this phone.</div>
+
+  <div class="lbl">PeekSmith (ghost unlock)</div>
+  <div class="grp">
+    <div class="r"><button class="sbtn" id="bleBtn">Connect PeekSmith</button><span class="val" id="bleSt">Not connected</span></div>
+    <div class="r">Search time<select id="bleTime"></select></div>
+    <div class="r">Ghost-unlock button<select id="sGhostBtn"><option value="0:click">Left - click</option><option value="1:click">Middle - click</option><option value="2:click">Right - click</option><option value="0:longpress">Left - hold</option><option value="1:longpress">Middle - hold</option><option value="2:longpress">Right - hold</option></select></div>
+  </div>
+  <div class="snote">Connect the PeekSmith in Aura. Press the chosen button to run the ghost unlock (it types the last code by itself). Bluetooth works only when this page is open in Aura.</div>
 
   <div class="lbl">Shortcut (hold Cancel)</div>
   <div class="grp">
@@ -430,7 +438,8 @@ const CFG = window.CFG = {
   falModel: "fal-ai/image-editing/object-removal",
   unlockApp: "photos",
   unlockAppUrl: "",
-  unlockLinkUrl: ""
+  unlockLinkUrl: "",
+  ghostButton: "1:click"
 };
 const LOCK_UI_PROMPT = "clock digits, date text, status bar icons, battery icon, wifi icon, lock icon, notification banner, widgets, flashlight button, camera button, home indicator bar, keypad numbers, passcode dots, circular button outlines, translucent keypad circles, glass button borders";
 /* a saved copy on this phone (from the settings sheet) wins over the baked defaults */
@@ -1651,6 +1660,40 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
 <script src="../hui.js"></script>
 <script src="../notes-api.js" data-ch="lock" data-title="Lock Screen"></script>
 <script>try{window.NotesAPI&&NotesAPI.mount();}catch(_){}</script>
+<script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
+<script>
+/* ============ PeekSmith -> ghost unlock ============ */
+(function(){
+  const S = id => document.getElementById(id);
+  const AURA = !!(window.AuraPeekSmith && AuraPeekSmith.isAvailable && AuraPeekSmith.isAvailable());
+  const BLE_TIMES = [[10,"10 s"],[15,"15 s"],[30,"30 s"],[60,"1 min"],[120,"2 min"],[300,"5 min"],[0,"Until found"]];
+  function bleTime(){ let v=NaN; try{ v=parseInt(localStorage.getItem("fvtBleTime"),10); }catch(_){ } return Number.isFinite(v)&&v>=0?v:0; }
+  let bleEnd=0, bleManual=false, bleOff=false, aps=null, bleBusy=false;
+  function bleWinStart(){ const t=bleTime(); bleEnd=t?Date.now()+t*1000:0; }
+  function bleWinOpen(){ return !bleEnd || Date.now()<bleEnd; }
+  function bleScanT(){ return bleEnd?Math.max(3,Math.min(15,Math.ceil((bleEnd-Date.now())/1000))):15; }
+  const bleOn = () => !!(aps && aps.connected);
+  function st(t){ const e=S("bleSt"); if(e) e.textContent=t; }
+  function btnText(){ const e=S("bleBtn"); if(e) e.textContent=bleOn()?"Disconnect":"Connect PeekSmith"; }
+  function matchGhost(button,event){ const sel=String(CFG.ghostButton||"1:click").split(":"); return String(button)===sel[0] && event===sel[1]; }
+  async function bleSearch(){
+    if(!AURA||bleBusy||bleOn()) return; bleBusy=true;
+    try{
+      aps=new AuraPeekSmith({lang:"en",timeout:bleScanT()});
+      aps.on("status",({state,name,attempt})=>{ if(state==="scanning")st("Searching\u2026"); else if(state==="connecting")st("Connecting\u2026"); else if(state==="connected")st(name||"Connected"); else if(state==="reconnecting")st("Reconnecting ("+attempt+")"); else if(state==="disconnected")st("Not connected"); btnText(); });
+      aps.on("connect",()=>{ try{ aps.vibrate("''").catch(()=>{}); }catch(_){ } btnText(); });
+      aps.on("button",({button,event})=>{ if(matchGhost(button,event)){ try{ if(window.LockScreen){ if(!LockScreen.open) LockScreen.show(); LockScreen.startGhostUnlock(CFG.ghostUnlockMode||"keys"); } }catch(_){ } try{ aps.vibrate("''").catch(()=>{}); }catch(_){ } } });
+      try{ await aps.connect(); }catch(e){ st(bleWinOpen()?"Searching again\u2026":"Not found - tap Connect"); aps=null; }
+    }catch(_){ aps=null; }
+    bleBusy=false; btnText();
+  }
+  async function bleToggle(){ if(!AURA){ st("Only in Aura"); return; } if(bleOn()){ bleOff=true; bleManual=false; try{ await aps.disconnect(); }catch(_){ } aps=null; st("Not connected"); btnText(); return; } bleOff=false; bleManual=true; bleWinStart(); bleSearch(); }
+  function bleTimeUI(){ const s=S("bleTime"); if(!s||s.dataset.built) return; s.dataset.built="1"; for(const [v,n] of BLE_TIMES){ const o=document.createElement("option"); o.value=v; o.textContent=n; s.appendChild(o); } s.value=String(bleTime()); if(!s.value) s.value="0"; s.onchange=()=>{ try{ localStorage.setItem("fvtBleTime",s.value); }catch(_){ } bleWinStart(); }; }
+  function mount(){ bleTimeUI(); const sb=S("sGhostBtn"); if(sb){ sb.value=CFG.ghostButton||"1:click"; sb.onchange=()=>{ CFG.ghostButton=sb.value; try{ localStorage.setItem("lockpin_cfg2",JSON.stringify(CFG)); }catch(_){ } }; } const bb=S("bleBtn"); if(bb) bb.onclick=bleToggle; btnText(); if(!AURA) st("Only in Aura"); }
+  bleWinStart(); mount();
+  if(AURA){ const auto=()=>{ if(!bleOff&&!bleOn()&&!bleBusy&&document.visibilityState==="visible"&&bleWinOpen()) bleSearch(); }; setTimeout(auto,600); setInterval(auto,6000); document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible"){ bleWinStart(); setTimeout(auto,300); } }); }
+})();
+</script>
 <script src="../perms.js" data-perms="motion"></script>
 </body>
 </html>
