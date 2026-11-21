@@ -348,7 +348,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v11</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v12</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -1410,7 +1410,7 @@ const FakeLock=(function(){
     const lg=a.createGain();lg.gain.setValueAtTime(.6,t0);lg.gain.exponentialRampToValueAtTime(.001,t0+.07);l.connect(lg);lg.connect(out);l.start(t0);l.stop(t0+.08)}
   function make(){
     el=document.createElement('div');
-    el.style.cssText='position:fixed;inset:0;background:#000;z-index:2147483001;display:none;touch-action:none;-webkit-user-select:none;user-select:none';
+    el.style.cssText='position:fixed;top:0;left:0;width:100vw;height:100vh;height:100lvh;background:#000;z-index:2147483001;display:none;touch-action:none;-webkit-user-select:none;user-select:none';
     pk=document.createElement('div');el.appendChild(pk);document.body.appendChild(el);
     const stop=e=>{if(e.cancelable)e.preventDefault();e.stopPropagation()};
     const down=e=>{stop(e);clearTimeout(t);t=setTimeout(peek,+P.fl.hold||450)};
@@ -1454,9 +1454,12 @@ const FakeLock=(function(){
     pk.style.cssText='position:absolute;left:24px;right:24px;'+pos+'color:'+(COLORS[f.color]||COLORS.gray)+';font:500 '+(+f.size||18)+'px/1.35 '+(FONTS[f.font]||FONTS.sys)+
       ';text-align:'+(f.align==='left'?'left':'center')+';white-space:pre-wrap;word-break:break-word;opacity:0;transition:opacity .12s'}
   function peek(sample){style();pk.textContent=sample||textOf();pk.style.opacity='1';if(P.fl.buzz)try{AuraKit.haptics.light()}catch(e){}}
+  /* a quick second toggle (a double event from the volume button) makes the black screen flash: skip it */
+  let lastT=0;
+  function toggle(){const t=Date.now();if(t-lastT<450)return;lastT=t;set(!on)}
   async function set(v){
-    if(!el)make();on=!!v;clearTimeout(t);pk.style.opacity='0';taps=[];
-    if(on){try{note.blur()}catch(e){}el.style.display='block';lockSound();
+    if(!el)make();if(!!v===on&&(!v||el.style.display==='block'))return;on=!!v;clearTimeout(t);pk.style.opacity='0';taps=[];
+    if(on){el.style.display='block';lockSound();try{note.blur()}catch(e){}
       try{sb=await AuraKit.statusBar.get();await AuraKit.statusBar.hide()}catch(e){sb=null}}
     else{el.style.display='none';
       if(sb){try{await AuraKit.statusBar.set({hidden:sb.hidden,transparent:sb.transparent})}catch(e){}sb=null}}}
@@ -1475,7 +1478,7 @@ const FakeLock=(function(){
     try{localStorage.setItem(SND_KEY+'Name',f.name)}catch(e){}return ''}
   function clearFile(){fileBuf=null;try{localStorage.removeItem(SND_KEY);localStorage.removeItem(SND_KEY+'Name')}catch(e){}}
   function fileInfo(){const d=fileData();if(!d)return 'No file';let n='';try{n=localStorage.getItem(SND_KEY+'Name')||''}catch(e){}return (n||'Sound file')+' ('+Math.round(d.length*.75/1024)+' KB)'}
-  return{toggle:()=>set(!on),set,forget:()=>{memo='';dir='';old=[]},lockSound,preview,setFile,clearFile,fileInfo,get on(){return on}}})();
+  return{toggle,set,forget:()=>{memo='';dir='';old=[]},lockSound,preview,setFile,clearFile,fileInfo,get on(){return on}}})();
 </script>
 <script>
 /* ---------- volume buttons (Aura 8): see ../vol.js ---------- */

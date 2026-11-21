@@ -58,8 +58,11 @@
       if (a) a.run();
     } catch (e) { console.warn('[vol]', e) }
   }
+  let lastPress = { up: 0, down: 0 };
   function onPress({ button }) {
     const b = button === 'up' ? 'up' : 'down';
+    /* one press can come 2 times (press + the volume reset of "Keep the volume"): skip a copy that comes very fast */
+    const t = Date.now(); if (t - lastPress[b] < 150) return; lastPress[b] = t;
     if (S.buzz) buzz('light');
     if (blk && blk.style.display !== 'none' && (S.map[b] !== 'g:black' && S.map[b + '2'] !== 'g:black')) return; // black screen: only the black action works
     if (sheetOpen() || (cfg.blocked && cfg.blocked())) return;
