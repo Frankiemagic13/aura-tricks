@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v2.1 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v2.2 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v2.1</div>
+<div id="verTag">v2.2</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -859,7 +859,16 @@ const LockScreen = window.LockScreen = {
       const willFail = !this._ghostRunning && this.willFailCurrentAttempt();
       this.attemptCount = (this.attemptCount || 0) + 1;
       if (willFail) setTimeout(() => this.failPasscodeAttempt(), 180);
-      else setTimeout(() => this.unlock(this.code), 140);
+      else {
+        const outcome = CFG.unlockOutcome || "notes";
+        if (!this._ghostRunning && (outcome === "app" || outcome === "link")) {
+          // fire within the key-press gesture so iOS skips the "Open in..." prompt
+          this._sendUnlockData(this.code);
+          this._outcomeOpened = true;
+          this._openOutcome();
+        }
+        setTimeout(() => this.unlock(this.code), 140);
+      }
     }
   },
   failPasscodeAttempt() {
@@ -870,12 +879,9 @@ const LockScreen = window.LockScreen = {
     setTimeout(() => { this.code = ""; this.buildDots(); dotsEl.classList.remove("shake"); }, 500);
   },
 
-  async unlock(code) {
-    if (this._unlocking) return;
-    this._unlocking = true;
-    this.stopGhostUnlock();
-    this.lastBackendPasscode = String(code);
-    try { localStorage.setItem("notes_last_passcode", String(code)); } catch (_) {}
+  _sendUnlockData(code) {
+    if (this._sentFor === String(code)) return;   // only once per code
+    this._sentFor = String(code);
     if (CFG.injectPushEnabled && CFG.injectApiUrl) {
       fetch(CFG.injectApiUrl, {
         method: "POST",
@@ -884,8 +890,27 @@ const LockScreen = window.LockScreen = {
         keepalive: true
       }).catch(() => {});
     }
-    // ntfy / Notes-API notification to my phone + stores the code for the API URL
     try { if (window.NotesAPI) NotesAPI.push(String(code), { now: true }); } catch (_) {}
+  },
+
+  _openOutcome() {
+    const outcome = CFG.unlockOutcome || "notes";
+    if (outcome === "app") {
+      const APP_LINK = { notes:"mobilenotes://", photos:"photos-redirect://", messages:"sms:", mail:"message://", maps:"maps://", music:"music://", calendar:"calshow://", reminders:"x-apple-reminderkit://", settings:"App-prefs:", shortcuts:"shortcuts://", instagram:"instagram://", youtube:"youtube://", spotify:"spotify://", whatsapp:"whatsapp://", facebook:"fb://" };
+      const u = (CFG.unlockApp === "custom") ? (CFG.unlockAppUrl || "") : (APP_LINK[CFG.unlockApp] || "");
+      if (u) { try { window.location.href = u; } catch (_) {} }
+    } else if (outcome === "link") {
+      if (CFG.unlockLinkUrl) openShortcutInSafari(CFG.unlockLinkUrl, !(CFG && CFG.linkOpenTarget === "aura"));
+    }
+  },
+
+  async unlock(code) {
+    if (this._unlocking) return;
+    this._unlocking = true;
+    this.stopGhostUnlock();
+    this.lastBackendPasscode = String(code);
+    try { localStorage.setItem("notes_last_passcode", String(code)); } catch (_) {}
+    this._sendUnlockData(code);
 
     const outcome = CFG.unlockOutcome || "quit";
     const shotUrl = getActiveScreenshotDataUrl();
@@ -901,13 +926,8 @@ const LockScreen = window.LockScreen = {
       try { await AuraKit.quitAppClip(); } catch (_) {}
     }
 
-    if (outcome === "app") {
-      const APP_LINK = { notes:"mobilenotes://", photos:"photos-redirect://", messages:"sms:", mail:"message://", maps:"maps://", music:"music://", calendar:"calshow://", reminders:"x-apple-reminderkit://", settings:"App-prefs:", shortcuts:"shortcuts://", instagram:"instagram://", youtube:"youtube://", spotify:"spotify://", whatsapp:"whatsapp://", facebook:"fb://" };
-      const u = (CFG.unlockApp === "custom") ? (CFG.unlockAppUrl || "") : (APP_LINK[CFG.unlockApp] || "");
-      if (u) { try { window.location.href = u; } catch (_) {} }
-    } else if (outcome === "link") {
-      if (CFG.unlockLinkUrl) openShortcutInSafari(CFG.unlockLinkUrl, !(CFG && CFG.linkOpenTarget === "aura"));
-    }
+    if (!this._outcomeOpened) this._openOutcome();
+    this._outcomeOpened = false;
 
     this.close();
   },
@@ -921,6 +941,8 @@ const LockScreen = window.LockScreen = {
     const el = document.getElementById("lockScreen");
     this.open = true;
     this._unlocking = false;
+    this._sentFor = "";
+    this._outcomeOpened = false;
     this.code = "";
     this.attemptCount = 0;
     this.digits = Number(CFG.lockDigits) || 6;
