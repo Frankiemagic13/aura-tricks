@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v1.1 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v1.3 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -210,11 +210,35 @@
   .lockscreen-paste .paste-no{background:transparent;color:#8e8e93;padding:8px 10px;font-size:16px;}
   .lockscreen-paste .paste-pick{background:rgba(255,255,255,0.14);color:#fff;}
 
+
+  /* ---- settings sheet (matches pincode look) ---- */
+  #setHold{position:fixed;top:0;left:0;right:0;height:48px;z-index:100000;background:transparent;}
+  #sheetBg{position:fixed;inset:0;background:rgba(0,0,0,.45);opacity:0;pointer-events:none;transition:opacity .3s;z-index:100050;}
+  #sheet{position:fixed;left:0;right:0;bottom:0;z-index:100060;background:#1C1C1E;color:#fff;border-radius:28px 28px 0 0;
+    padding:8px 16px calc(env(safe-area-inset-bottom) + 20px);transform:translateY(105%);transition:transform .38s cubic-bezier(.2,.9,.25,1);
+    max-height:88%;overflow-y:auto;max-width:520px;margin:0 auto;touch-action:pan-y;-webkit-user-select:none;user-select:none;}
+  body.open #sheetBg{opacity:1;pointer-events:auto;}
+  body.open #sheet{transform:none;}
+  .grab{width:36px;height:5px;border-radius:3px;background:#48484A;margin:0 auto 10px;}
+  .shead{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .shead b{font-size:17px;font-weight:600;}.shead span{width:60px;}
+  .sbtn{color:#FF9F0A;font-size:16px;font-weight:600;background:none;border:0;font-family:inherit;cursor:pointer;}
+  .lbl{font-size:13px;color:rgba(235,235,245,.6);text-transform:uppercase;margin:16px 16px 6px;}
+  .grp{background:#2C2C2E;border-radius:14px;overflow:hidden;}
+  .grp+.grp{margin-top:8px;}
+  .r{display:flex;align-items:center;justify-content:space-between;min-height:48px;padding:0 16px;font-size:16px;gap:10px;border-bottom:.5px solid #3A3A3C;}
+  .r:last-child{border-bottom:0;}
+  .r select{background:none;border:0;color:rgba(235,235,245,.6);font:16px -apple-system,system-ui;text-align:right;outline:none;-webkit-appearance:none;appearance:none;}
+  .r input[type=checkbox]{width:20px;height:20px;accent-color:#FF9F0A;}
+  .r input[type=number],.r input[type=text]{background:none;border:0;color:#fff;font:15px -apple-system,system-ui;text-align:right;outline:none;flex:1;min-width:0;width:auto;-webkit-user-select:text;user-select:text;}
+  .r .lk{flex:0 0 auto;color:rgba(235,235,245,.85);}
+  .r .val{color:rgba(235,235,245,.6);}
+  .snote{font-size:13px;color:rgba(235,235,245,.6);margin:8px 16px 0;line-height:1.35;}
 </style>
 </head>
 <body>
 
-<div id="verTag">v1.2</div>
+<div id="verTag">v1.3</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -259,6 +283,107 @@
   </div>
 
 
+<div id="setHold" aria-hidden="true"></div>
+<div id="sheetBg"></div>
+<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject"]},{"n":"Peeks","i":"peek","s":["peek"]},{"n":"Look","i":"look","s":["look","wallpaper","ai"]},{"n":"Help","i":"help","s":["help"],"x":true}]}'>
+  <div class="grab"></div>
+  <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
+
+  <div class="lbl">Passcode</div>
+  <div class="grp">
+    <div class="r">Digits<select id="sLen"><option value="4">4 digits</option><option value="6">6 digits</option></select></div>
+  </div>
+  <div class="lbl">Attempts to unlock</div>
+  <div class="grp">
+    <div class="r">Codes before it opens<select id="sAtt"><option value="1">1 (first code)</option><option value="2">2</option><option value="3">3</option></select></div>
+  </div>
+  <div class="snote">The wrong-code shake happens until this many full codes are entered. Hold the lower-left corner during a try to flip the next code to pass or fail.</div>
+
+  <div class="lbl">Ghost unlock</div>
+  <div class="grp">
+    <div class="r">Keys light up<select id="sGhostMode"><option value="keys">Show the keys</option><option value="dots_only">Dots only</option></select></div>
+    <div class="r">Digit 1 delay (s)<input type="number" id="gD0" inputmode="decimal" step="0.1" min="0"></div>
+    <div class="r">Digit 2 delay (s)<input type="number" id="gD1" inputmode="decimal" step="0.1" min="0"></div>
+    <div class="r">Digit 3 delay (s)<input type="number" id="gD2" inputmode="decimal" step="0.1" min="0"></div>
+    <div class="r">Digit 4 delay (s)<input type="number" id="gD3" inputmode="decimal" step="0.1" min="0"></div>
+    <div class="r">Digit 5 delay (s)<input type="number" id="gD4" inputmode="decimal" step="0.1" min="0"></div>
+    <div class="r">Digit 6 delay (s)<input type="number" id="gD5" inputmode="decimal" step="0.1" min="0"></div>
+  </div>
+  <div class="snote">Hold the 0 key and slide to run the last code by itself. The delays are the pause before each digit. The code used is the last one typed on this phone.</div>
+
+  <div class="lbl">Shortcut (hold Cancel)</div>
+  <div class="grp">
+    <div class="r"><span class="lk">Shortcut link</span><input type="text" id="sScUrl" placeholder="https://www.icloud.com/shortcuts/..." autocapitalize="off" autocorrect="off"></div>
+    <div class="r">Open links in<select id="sOpen"><option value="safari">Safari</option><option value="aura">Aura</option></select></div>
+    <div class="r"><button class="sbtn" id="sScTest">Grab it now (test)</button></div>
+  </div>
+  <div class="snote">Hold the Cancel button on the lock screen for about 0.8 s to open this Shortcut link, so the phone can add it.</div>
+  <div class="lbl">Emergency (hold)</div>
+  <div class="grp">
+    <div class="r"><span class="lk">Emergency link</span><input type="text" id="sEmergUrl" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
+  </div>
+
+  <div class="lbl">Inject</div>
+  <div class="grp">
+    <div class="r">Send the code to Inject<input type="checkbox" id="sInj"></div>
+    <div class="r"><span class="lk">Inject URL</span><input type="text" id="sInjUrl" placeholder="https://11z.co/_w/ID/selection" autocapitalize="off" autocorrect="off"></div>
+    <div class="r"><button class="sbtn" id="sInjTest">Send now (test: 1234)</button><span class="val" id="sInjSt"></span></div>
+  </div>
+  <div class="snote">When a code unlocks the phone, it goes straight to your Inject. Needs internet.</div>
+
+  <div class="lbl">Peek feeds</div>
+    <div class="grp">
+      <div class="r"><span class="lk">Label</span><input type="text" id="pkLbl0" placeholder="Feed 1"></div>
+      <div class="r"><span class="lk">URL</span><input type="text" id="pkUrl0" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
+      <div class="r"><span class="lk">Field</span><input type="text" id="pkFld0" placeholder="value" autocapitalize="off" autocorrect="off"></div>
+      <div class="r"><span class="lk">Show</span><select id="pkMax0"><option value="1">Last 1</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All</option></select></div>
+    </div>
+    <div class="grp">
+      <div class="r"><span class="lk">Label</span><input type="text" id="pkLbl1" placeholder="Feed 2"></div>
+      <div class="r"><span class="lk">URL</span><input type="text" id="pkUrl1" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
+      <div class="r"><span class="lk">Field</span><input type="text" id="pkFld1" placeholder="value" autocapitalize="off" autocorrect="off"></div>
+      <div class="r"><span class="lk">Show</span><select id="pkMax1"><option value="1">Last 1</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All</option></select></div>
+    </div>
+    <div class="grp">
+      <div class="r"><span class="lk">Label</span><input type="text" id="pkLbl2" placeholder="Feed 3"></div>
+      <div class="r"><span class="lk">URL</span><input type="text" id="pkUrl2" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
+      <div class="r"><span class="lk">Field</span><input type="text" id="pkFld2" placeholder="value" autocapitalize="off" autocorrect="off"></div>
+      <div class="r"><span class="lk">Show</span><select id="pkMax2"><option value="1">Last 1</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All</option></select></div>
+    </div>
+  <div class="lbl">Peek mode</div>
+  <div class="grp">
+    <div class="r">Swipe-up peek shows<select id="sPkMode"><option value="single">One feed at a time</option><option value="all">All feeds</option></select></div>
+  </div>
+  <div class="snote">On the lock screen, hold the lower-right corner to show the peek, and swipe left or right to change feed. "Field" reads one key from the JSON (for example value or noteData).</div>
+
+  <div class="lbl">Look</div>
+  <div class="grp">
+    <div class="r">Glass keys<select id="sGlass"><option value="liquid">Liquid</option><option value="crystal">Crystal</option><option value="backdrop">Frosted</option></select></div>
+    <div class="r">Blur<input type="number" id="sBlur" inputmode="numeric" min="0" max="80"></div>
+    <div class="r">Theme<select id="sTheme"><option value="auto">Auto</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
+    <div class="r">When it unlocks<select id="sOutcome"><option value="notes">Just open (black)</option><option value="quit">Quit the App Clip</option><option value="screenshot">Show a screenshot</option></select></div>
+  </div>
+  <div class="lbl">Wallpaper</div>
+  <div class="grp">
+    <div class="r"><button class="sbtn" id="sWallPaste">Paste / choose wallpaper</button></div>
+    <div class="r"><button class="sbtn" id="sWallClear" style="color:#FF453A">Clear wallpaper</button><span class="val" id="sWallSt"></span></div>
+  </div>
+  <div class="lbl">AI clean (fal)</div>
+  <div class="grp">
+    <div class="r"><span class="lk">fal API key</span><input type="text" id="sFalKey" placeholder="fal_sk_..." autocapitalize="off" autocorrect="off"></div>
+  </div>
+  <div class="snote">Paste your fal API key here to remove the clock, widgets and lock UI from a pasted wallpaper. Leave it empty to use the wallpaper as-is.</div>
+
+  <div class="lbl">Help</div>
+  <div class="grp">
+    <div class="r" style="display:block;padding:12px 16px;font-size:14px;line-height:1.4;color:rgba(235,235,245,.85)">Open the page: the lock screen shows. The spectator types a code; it goes to Inject and the peek. Hold the lower-left corner to flip pass/fail. Hold the 0 key and slide for a ghost unlock. Hold Cancel to grab the Shortcut. Hold the top of the screen for 1.2 s to open these settings.</div>
+  </div>
+  <div class="lbl">Reset</div>
+  <div class="grp">
+    <div class="r"><button class="sbtn" id="sReset" style="color:#FF453A">Reset to the built-in settings</button></div>
+  </div>
+</div>
+
 <script>
 /* ============ my settings (baked in - edit here) ============ */
 const CFG = window.CFG = {
@@ -294,6 +419,8 @@ const CFG = window.CFG = {
   falModel: "fal-ai/image-editing/object-removal"
 };
 const LOCK_UI_PROMPT = "clock digits, date text, status bar icons, battery icon, wifi icon, lock icon, notification banner, widgets, flashlight button, camera button, home indicator bar, keypad numbers, passcode dots, circular button outlines, translucent keypad circles, glass button borders";
+/* a saved copy on this phone (from the settings sheet) wins over the baked defaults */
+try { const _sv = JSON.parse(localStorage.getItem("lockpin_cfg") || "null"); if (_sv && typeof _sv === "object") Object.assign(CFG, _sv); } catch (_) {}
 
 /* ============ theme + shortcut helpers ============ */
 function isDarkModeNow() {
@@ -1397,6 +1524,7 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   if (document.readyState === "complete" || document.readyState === "interactive") present();
   else window.addEventListener("load", present);
   document.addEventListener("pointerdown", function(e){
+    if (document.body.classList.contains("open")) return;
     if (LockScreen.open || LockScreen._unlocking) return;
     if (e.target.closest("#lockPastePrompt") || e.target.closest("#customShotView")) return;
     present();
@@ -1406,6 +1534,102 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   });
 })();
 </script>
+<script>
+/* ============ settings sheet controller ============ */
+(function(){
+  const S = id => document.getElementById(id);
+  const B = document.body;
+  function saveCfg(){ try { localStorage.setItem("lockpin_cfg", JSON.stringify(CFG)); } catch(_){} }
+  function applyCfg(){
+    try { applyNotesTheme(); } catch(_){}
+    if (window.LockScreen){
+      LockScreen.digits = Number(CFG.lockDigits) || 6;
+      if (LockScreen.open){ LockScreen.buildDots(); LockScreen.fetchAllApiPeeks(); requestAnimationFrame(()=>LockScreen.renderLiquidGlassLenses(true)); }
+    }
+  }
+  function ensureFeeds(){ if(!Array.isArray(CFG.lockApiPeeks)) CFG.lockApiPeeks=[]; while(CFG.lockApiPeeks.length<3) CFG.lockApiPeeks.push({label:"",url:"",field:"",maxValues:"1"}); }
+
+  function syncControls(){
+    ensureFeeds();
+    S("sLen").value = String(CFG.lockDigits||6);
+    S("sAtt").value = String(CFG.lockAttemptsToUnlock||1);
+    S("sGhostMode").value = CFG.ghostUnlockMode||"keys";
+    const d = CFG.ghostUnlockDelays||[]; for(let i=0;i<6;i++){ const el=S("gD"+i); if(el) el.value = (d[i]!=null? d[i] : (i===0?1.4:0.5)); }
+    S("sScUrl").value = CFG.shortcutUrl||"";
+    S("sOpen").value = CFG.linkOpenTarget||"safari";
+    S("sEmergUrl").value = CFG.lockEmergencyUrl||"";
+    S("sInj").checked = CFG.injectPushEnabled!==false;
+    S("sInjUrl").value = CFG.injectApiUrl||"";
+    for(let i=0;i<3;i++){ const ft=CFG.lockApiPeeks[i]||{}; S("pkLbl"+i).value=ft.label||""; S("pkUrl"+i).value=ft.url||""; S("pkFld"+i).value=ft.field||""; S("pkMax"+i).value=ft.maxValues||"1"; }
+    S("sPkMode").value = CFG.lockApiPeekMode||"single";
+    S("sGlass").value = CFG.lockGlassStyle||"liquid";
+    S("sBlur").value = Number(CFG.lockBlur)||0;
+    S("sTheme").value = CFG.notesTheme||"auto";
+    S("sOutcome").value = CFG.unlockOutcome||"notes";
+    S("sFalKey").value = CFG.falKey||"";
+    const wl = (function(){ try{ return !!localStorage.getItem("notes_lock_wallpaper"); }catch(_){ return false; } })();
+    S("sWallSt").textContent = wl ? "set" : "none";
+  }
+
+  function on(id, ev, fn){ const el=S(id); if(el) el.addEventListener(ev, ()=>{ fn(el); saveCfg(); applyCfg(); }); }
+  const num = v => { const n=parseFloat(v); return Number.isFinite(n)?n:0; };
+
+  on("sLen","change", el=>CFG.lockDigits=Number(el.value));
+  on("sAtt","change", el=>CFG.lockAttemptsToUnlock=Number(el.value));
+  on("sGhostMode","change", el=>CFG.ghostUnlockMode=el.value);
+  for(let i=0;i<6;i++) on("gD"+i,"input",(el)=>{ CFG.ghostUnlockDelays=CFG.ghostUnlockDelays||[1.4,0.5,0.5,0.5,0.5,0.5]; CFG.ghostUnlockDelays[i]=num(el.value); });
+  on("sScUrl","input", el=>CFG.shortcutUrl=el.value.trim());
+  on("sOpen","change", el=>CFG.linkOpenTarget=el.value);
+  on("sEmergUrl","input", el=>CFG.lockEmergencyUrl=el.value.trim());
+  on("sInj","change", el=>CFG.injectPushEnabled=el.checked);
+  on("sInjUrl","input", el=>CFG.injectApiUrl=el.value.trim());
+  for(let i=0;i<3;i++){
+    on("pkLbl"+i,"input",el=>{ensureFeeds();CFG.lockApiPeeks[i].label=el.value;});
+    on("pkUrl"+i,"input",el=>{ensureFeeds();CFG.lockApiPeeks[i].url=el.value.trim();});
+    on("pkFld"+i,"input",el=>{ensureFeeds();CFG.lockApiPeeks[i].field=el.value.trim();});
+    on("pkMax"+i,"change",el=>{ensureFeeds();CFG.lockApiPeeks[i].maxValues=el.value;});
+  }
+  on("sPkMode","change", el=>CFG.lockApiPeekMode=el.value);
+  on("sGlass","change", el=>CFG.lockGlassStyle=el.value);
+  on("sBlur","input", el=>CFG.lockBlur=num(el.value));
+  on("sTheme","change", el=>CFG.notesTheme=el.value);
+  on("sOutcome","change", el=>CFG.unlockOutcome=el.value);
+  on("sFalKey","input", el=>CFG.falKey=el.value.trim());
+
+  S("sScTest") && (S("sScTest").onclick=()=>{ if(CFG.shortcutUrl) openShortcutInSafari(CFG.shortcutUrl, window.getLinkSafariPref("shortcut")); });
+  S("sInjTest") && (S("sInjTest").onclick=()=>{
+    const st=S("sInjSt"); if(!CFG.injectApiUrl){ if(st)st.textContent="no URL"; return; }
+    if(st)st.textContent="sending\u2026";
+    fetch(CFG.injectApiUrl,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({value:"1234",selection:"1234"})})
+      .then(r=>{ if(st)st.textContent=r.ok?"sent":("HTTP "+r.status); }).catch(()=>{ if(st)st.textContent="failed"; });
+  });
+  S("sWallPaste") && (S("sWallPaste").onclick=()=>{ if(window.LockScreen) LockScreen.doPasteWallpaper(); });
+  S("sWallClear") && (S("sWallClear").onclick=()=>{
+    try{ localStorage.removeItem("notes_lock_wallpaper"); localStorage.removeItem("notes_lock_wallpaper_cleaned"); }catch(_){}
+    if(window.LockScreen){ LockScreen.wallpaperDataUrl=""; LockScreen.rawWallpaperDataUrl=""; LockScreen.cleanedWallpaperDataUrl=""; LockScreen.wallpaperCleaned=false; LockScreen.setAiReadyDot(false); if(LockScreen.open) LockScreen.show(); }
+    S("sWallSt").textContent="none";
+  });
+  S("sReset") && (S("sReset").onclick=()=>{ try{ localStorage.removeItem("lockpin_cfg"); }catch(_){} location.reload(); });
+
+  function openSheet(){ syncControls(); B.classList.add("open"); try{ if(window.AuraKit&&AuraKit.haptics) AuraKit.haptics.impact("medium"); }catch(_){} }
+  function closeSheet(){ B.classList.remove("open"); }
+  S("sDone") && (S("sDone").onclick=closeSheet);
+  S("sheetBg") && (S("sheetBg").onclick=closeSheet);
+
+  (function(){ const el=S("setHold"); if(!el) return; let tm=null;
+    const start=()=>{ clearTimeout(tm); tm=setTimeout(()=>{ tm=null; openSheet(); },1200); };
+    const stop=()=>{ clearTimeout(tm); tm=null; };
+    el.addEventListener("touchstart",start,{passive:true});
+    el.addEventListener("touchmove",stop,{passive:true});
+    el.addEventListener("touchend",stop); el.addEventListener("touchcancel",stop);
+    el.addEventListener("mousedown",start); el.addEventListener("mouseup",stop); el.addEventListener("mouseleave",stop);
+  })();
+
+  syncControls();
+  window.__openLockSettings = openSheet;
+})();
+</script>
+<script src="../hui.js"></script>
 <script src="../perms.js" data-perms="motion"></script>
 </body>
 </html>
