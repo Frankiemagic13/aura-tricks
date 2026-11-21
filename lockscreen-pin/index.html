@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v1.9 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v2.0 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v1.9</div>
+<div id="verTag">v2.0</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -284,7 +284,7 @@
 
 
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost","peeksmith"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"Peeks","i":"peek","s":["peek"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help","default"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help","default"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
 
@@ -344,30 +344,6 @@
   </div>
   <div class="snote">When a code unlocks the phone, your ntfy app gets a "Lock Screen" notification with the code. Other apps can GET the code from the API URL (same system as your Notes page).</div>
 
-  <div class="lbl">Peek feeds</div>
-    <div class="grp">
-      <div class="r"><span class="lk">Label</span><input type="text" id="pkLbl0" placeholder="Feed 1"></div>
-      <div class="r"><span class="lk">URL</span><input type="text" id="pkUrl0" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
-      <div class="r"><span class="lk">Field</span><input type="text" id="pkFld0" placeholder="value" autocapitalize="off" autocorrect="off"></div>
-      <div class="r"><span class="lk">Show</span><select id="pkMax0"><option value="1">Last 1</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All</option></select></div>
-    </div>
-    <div class="grp">
-      <div class="r"><span class="lk">Label</span><input type="text" id="pkLbl1" placeholder="Feed 2"></div>
-      <div class="r"><span class="lk">URL</span><input type="text" id="pkUrl1" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
-      <div class="r"><span class="lk">Field</span><input type="text" id="pkFld1" placeholder="value" autocapitalize="off" autocorrect="off"></div>
-      <div class="r"><span class="lk">Show</span><select id="pkMax1"><option value="1">Last 1</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All</option></select></div>
-    </div>
-    <div class="grp">
-      <div class="r"><span class="lk">Label</span><input type="text" id="pkLbl2" placeholder="Feed 3"></div>
-      <div class="r"><span class="lk">URL</span><input type="text" id="pkUrl2" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
-      <div class="r"><span class="lk">Field</span><input type="text" id="pkFld2" placeholder="value" autocapitalize="off" autocorrect="off"></div>
-      <div class="r"><span class="lk">Show</span><select id="pkMax2"><option value="1">Last 1</option><option value="3">Last 3</option><option value="5">Last 5</option><option value="all">All</option></select></div>
-    </div>
-  <div class="lbl">Peek mode</div>
-  <div class="grp">
-    <div class="r">Swipe-up peek shows<select id="sPkMode"><option value="single">One feed at a time</option><option value="all">All feeds</option></select></div>
-  </div>
-  <div class="snote">These are the feeds the peek reads. "Field" reads one key from the JSON (for example value or noteData). The old right-of-zero peek gesture is off.</div>
 
   <div class="lbl">Look</div>
   <div class="grp">
@@ -1586,8 +1562,6 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
     S("sOpen").value = CFG.linkOpenTarget||"safari";
     S("sInj").checked = CFG.injectPushEnabled!==false;
     S("sInjUrl").value = CFG.injectApiUrl||"";
-    for(let i=0;i<3;i++){ const ft=CFG.lockApiPeeks[i]||{}; S("pkLbl"+i).value=ft.label||""; S("pkUrl"+i).value=ft.url||""; S("pkFld"+i).value=ft.field||""; S("pkMax"+i).value=ft.maxValues||"1"; }
-    S("sPkMode").value = CFG.lockApiPeekMode||"single";
     S("sGlass").value = CFG.lockGlassStyle||"liquid";
     S("sBlur").value = Number(CFG.lockBlur)||0;
     S("sTheme").value = CFG.notesTheme||"auto";
@@ -1612,13 +1586,6 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   on("sOpen","change", el=>CFG.linkOpenTarget=el.value);
   on("sInj","change", el=>CFG.injectPushEnabled=el.checked);
   on("sInjUrl","input", el=>CFG.injectApiUrl=el.value.trim());
-  for(let i=0;i<3;i++){
-    on("pkLbl"+i,"input",el=>{ensureFeeds();CFG.lockApiPeeks[i].label=el.value;});
-    on("pkUrl"+i,"input",el=>{ensureFeeds();CFG.lockApiPeeks[i].url=el.value.trim();});
-    on("pkFld"+i,"input",el=>{ensureFeeds();CFG.lockApiPeeks[i].field=el.value.trim();});
-    on("pkMax"+i,"change",el=>{ensureFeeds();CFG.lockApiPeeks[i].maxValues=el.value;});
-  }
-  on("sPkMode","change", el=>CFG.lockApiPeekMode=el.value);
   on("sGlass","change", el=>CFG.lockGlassStyle=el.value);
   on("sBlur","input", el=>CFG.lockBlur=num(el.value));
   on("sTheme","change", el=>CFG.notesTheme=el.value);
