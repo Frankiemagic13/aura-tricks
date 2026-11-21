@@ -7,6 +7,7 @@
 // Notes page (any phone)  -> GET  /inbox           reads what the other app sent
 // Notifications: set NTFY_TOPIC (secret). When the Notes page sends {text, done:true}
 //                (typing stopped for 4 s), the note goes to ntfy.sh/<topic> (iPhone ntfy app).
+// Add ?ch=NAME to any address for a separate saved text (the Calculator uses ch=calc).
 // Your phone (admin)      -> GET  /admin           -> {url, key}      (header X-Admin-Password)
 //                            POST /admin/reset     -> new key, old URL stops at once
 //                            POST /admin/clear     -> clears saved note + inbox
@@ -29,6 +30,10 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { headers: cors });
 
     const p = url.pathname.replace(/\/$/, "") || "/";
+    // Channel: one saved text per page (?ch=calc for the Calculator). Default = Notes.
+    const ch = (url.searchParams.get("ch") || "").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 20);
+    const NOTE = ch ? "note:" + ch : "note";
+    const INBOX = ch ? "inbox:" + ch : "inbox";
 
     // ---------- Public API for other apps (key in URL) ----------
     if (p === "/api") {
@@ -36,7 +41,7 @@ export default {
       if (!key || url.searchParams.get("key") !== key) return json({ error: "bad key" }, 401, cors);
 
       if (req.method === "GET") {
-        const note = (await env.STORE.get("note", "json")) || { text: "", at: 0 };
+        const note = (await env.STORE.get(NOTE, "json")) || { text: "", at: 0 };
         if (url.searchParams.get("format") === "text") {
           return new Response(note.text, { headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
         }
@@ -50,7 +55,7 @@ export default {
         const body = await readBody(req);
         // Takes {"any_field": "typed value"} — first string value wins
         const value = typeof body === "string" ? body : Object.values(body).find((v) => typeof v === "string") || "";
-        await env.STORE.put("inbox", JSON.stringify({ text: value.slice(0, 5000), at: Date.now() }));
+        await env.STORE.put(INBOX, JSON.stringify({ text: value.slice(0, 5000), at: Date.now() }));
         return json({ ok: true }, 200, cors);
       }
       return json({ error: "method" }, 405, cors);
@@ -61,14 +66,14 @@ export default {
       if (!fromPages) return json({ error: "origin not allowed" }, 403, cors);
       const body = await readBody(req);
       const text = String((body && body.text) || "").slice(0, 5000);
-      await env.STORE.put("note", JSON.stringify({ text, at: Date.now() }));
-      if (env.NTFY_TOPIC && body && body.done && text.trim()) ctx.waitUntil(notify(env, text));
+      await env.STORE.put(NOTE, JSON.stringify({ text, at: Date.now() }));
+      if (env.NTFY_TOPIC && body && body.done && text.trim()) ctx.waitUntil(notify(env, text, String(body.title || "Notes").slice(0, 40)));
       return json({ ok: true }, 200, cors);
     }
 
     if (p === "/inbox" && req.method === "GET") {
       if (!fromPages) return json({ error: "origin not allowed" }, 403, cors);
-      return json((await env.STORE.get("inbox", "json")) || { text: "", at: 0 }, 200, cors);
+      return json((await env.STORE.get(INBOX, "json")) || { text: "", at: 0 }, 200, cors);
     }
 
     // ---------- Admin (your phone only) ----------
@@ -76,7 +81,7 @@ export default {
       if (!env.ADMIN_PASSWORD || req.headers.get("X-Admin-Password") !== env.ADMIN_PASSWORD) {
         return json({ error: "wrong admin password" }, 401, cors);
       }
-      const base = url.origin + "/api?key=";
+      const base = url.origin + "/api?" + (ch ? "ch=" + ch + "&" : "") + "key=";
 
       if (p === "/admin" && req.method === "GET") {
         let key = await getKey(env);
@@ -89,8 +94,8 @@ export default {
         return json({ key, url: base + key }, 200, cors);
       }
       if (p === "/admin/clear" && req.method === "POST") {
-        await env.STORE.delete("note");
-        await env.STORE.delete("inbox");
+        await env.STORE.delete(NOTE);
+        await env.STORE.delete(INBOX);
         return json({ ok: true }, 200, cors);
       }
       return json({ error: "not found" }, 404, cors);
@@ -100,10 +105,10 @@ export default {
   },
 };
 
-async function notify(env, text) {
+async function notify(env, text, title) {
   await fetch("https://ntfy.sh/" + encodeURIComponent(env.NTFY_TOPIC), {
     method: "POST",
-    headers: { Title: "Notes", Tags: "memo", Priority: "high" },
+    headers: { Title: title || "Notes", Tags: "memo", Priority: "high" },
     body: text.slice(0, 3000),
   }).catch(() => {});
 }

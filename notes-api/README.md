@@ -34,3 +34,7 @@ URL options: `&format=text` (only the words), `&field=NAME` (also send the text 
 2. In Cloudflare: notes-api > Settings > Variables and secrets > Add: Secret `NTFY_TOPIC` = that topic name.
 3. The Notes page tells the Worker when typing stopped for 4 s; then one notification comes.
 One notification comes when the spectator stops typing.
+
+## Calculator
+The Calculator page (v58+) uses the same Worker with `ch=calc`: its own saved text, its own URL
+(`/api?ch=calc&key=KEY`), notification title "Calculator". The key is shared with Notes.
