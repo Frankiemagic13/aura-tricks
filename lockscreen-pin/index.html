@@ -214,7 +214,7 @@
 </head>
 <body>
 
-<div id="verTag">v1.1</div>
+<div id="verTag">v1.2</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -288,8 +288,12 @@ const CFG = window.CFG = {
     { label: "Inject",  url: "https://11z.co/_w/19470/selection", field: "value", maxValues: "1" },
     { label: "Noteify", url: "https://675da5da8962b0a8c8e5.digitalforestapp.xyz/276", field: "noteData", maxValues: "1" },
     { label: "V2",      url: "https://icontrol-magic.onrender.com/api/summaries/latest", field: "phone, dob, keyPerson, keyPersonRelationship, pets", maxValues: "1" }
-  ]
+  ],
+  // AI wallpaper clean (removes clock/widgets/etc). Paste your fal key here to turn it on.
+  falKey: "",
+  falModel: "fal-ai/image-editing/object-removal"
 };
+const LOCK_UI_PROMPT = "clock digits, date text, status bar icons, battery icon, wifi icon, lock icon, notification banner, widgets, flashlight button, camera button, home indicator bar, keypad numbers, passcode dots, circular button outlines, translucent keypad circles, glass button borders";
 
 /* ============ theme + shortcut helpers ============ */
 function isDarkModeNow() {
@@ -1011,7 +1015,38 @@ const LockScreen = window.LockScreen = {
       r.readAsDataURL(file);
     });
   },
-  async cleanWallpaperAI() { /* standalone: no backend AI clean */ },
+  async cleanWallpaperAI(dataUrl) {
+    const key = (CFG.falKey || "").trim();
+    if (!key || !dataUrl) return;   // no key yet -> keep the pasted wallpaper as-is
+    try {
+      const model = CFG.falModel || "fal-ai/image-editing/object-removal";
+      const target = model.startsWith("http") ? model : "https://fal.run/" + model.replace(/^\/+/, "");
+      const prompt = CFG.lockUiPrompt || LOCK_UI_PROMPT;
+      const res = await fetch(target, {
+        method: "POST",
+        headers: { Authorization: "Key " + key, "Content-Type": "application/json" },
+        body: JSON.stringify({ image_url: dataUrl, prompt, object_to_remove: prompt, aspect_ratio: "9:16" })
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) return;
+      const outUrl = (d.images && d.images[0] && d.images[0].url) || (d.image && d.image.url) || d.url || "";
+      if (!outUrl) return;
+      this.cleanedWallpaperDataUrl = outUrl;
+      this.wallpaperDataUrl = outUrl;
+      this.wallpaperCleaned = true;
+      this._lastLensKey = "";
+      this.setAiReadyDot(true);
+      try {
+        localStorage.setItem("notes_lock_wallpaper", this.wallpaperDataUrl);
+        localStorage.setItem("notes_lock_wallpaper_cleaned", "1");
+      } catch (_) {}
+      try {
+        if (window.AuraKit && AuraKit.haptics && typeof AuraKit.haptics.success === "function") AuraKit.haptics.success();
+        else if (navigator.vibrate) navigator.vibrate([60, 80, 60]);
+      } catch (_) {}
+      if (this.open) this.show();
+    } catch (_) {}
+  },
 
   _apiPeekShowAll: false,
 
