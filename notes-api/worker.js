@@ -67,8 +67,9 @@ export default {
       const body = await readBody(req);
       const text = String((body && body.text) || "").slice(0, 5000);
       await env.STORE.put(NOTE, JSON.stringify({ text, at: Date.now() }));
-      if (env.NTFY_TOPIC && body && body.done && text.trim()) ctx.waitUntil(notify(env, text, String(body.title || "Notes").slice(0, 40)));
-      return json({ ok: true }, 200, cors);
+      let ntfy;
+      if (env.NTFY_TOPIC && body && body.done && text.trim()) ntfy = await notify(env, text, String(body.title || "Notes").slice(0, 40));
+      return json({ ok: true, ntfy }, 200, cors);
     }
 
     if (p === "/inbox" && req.method === "GET") {
@@ -105,12 +106,22 @@ export default {
   },
 };
 
+// Sends the notification and tries again if ntfy is busy (429/5xx). NTFY_TOKEN (secret, optional) = ntfy access token.
 async function notify(env, text, title) {
-  await fetch("https://ntfy.sh/" + encodeURIComponent(env.NTFY_TOPIC), {
-    method: "POST",
-    headers: { Title: title || "Notes", Tags: "memo", Priority: "high" },
-    body: text.slice(0, 3000),
-  }).catch(() => {});
+  const headers = { Title: title || "Notes", Tags: "memo", Priority: "high" };
+  if (env.NTFY_TOKEN) headers.Authorization = "Bearer " + env.NTFY_TOKEN;
+  let status = 0;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await fetch("https://ntfy.sh/" + encodeURIComponent(env.NTFY_TOPIC), { method: "POST", headers, body: text.slice(0, 3000) });
+      status = r.status;
+      if (r.ok) return status;
+      if (status !== 429 && status < 500) return status;
+    } catch (e) { status = -1; }
+    await new Promise((r) => setTimeout(r, 400 * (i + 1)));
+  }
+  console.log("ntfy failed", status);
+  return status;
 }
 
 async function getKey(env) {
