@@ -237,13 +237,14 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="lbl">Notes API</div>
   <div class="grp">
     <div class="r">Send the note to my API<input type="checkbox" id="naOn"></div>
+    <div class="r">Also send from my phone (Magician)<input type="checkbox" id="naMe"></div>
     <div class="r">Worker<input class="tx" id="naWorker" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="r">Admin password<input class="tx" id="naApiPw" type="password" autocapitalize="off" autocorrect="off"></div>
-    <div class="r" style="display:block;padding:10px 18px"><div id="naUrl" style="font:12px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#8d919c">—</div></div>
+    <div class="r" style="display:block;padding:10px 18px"><div id="naUrl" style="font:12px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#8d919c">—</div><div id="naUrlMe" style="font:11px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#6c707a;margin-top:6px"></div></div>
     <div class="r"><button class="sbtn" id="naCopy">Copy URL</button><button class="sbtn" id="naReset" style="color:#ff453a!important">Reset key</button></div>
     <div class="r"><button class="sbtn" id="naClear">Clear saved note</button><span id="naSt" class="dim">—</span></div>
   </div>
-  <div class="snote">Paste the URL into the other app (URL field). Value: <b>text</b>. Method: <b>GET</b>. Add <b>&amp;format=text</b> to the URL to get only the words. <b>Reset key</b>: new URL at once, the old URL stops (one tap, no confirm). The note is sent 1.5 s after typing stops. Your phone (mirror) does not send, so predictions do not go to the API.</div>
+  <div class="snote">Paste the URL into the other app (URL field). Value: <b>text</b>. Method: <b>GET</b>. Add <b>&amp;format=text</b> to the URL to get only the words. <b>Reset key</b>: new URL at once, the old URL stops (one tap, no confirm). The note is sent 1.5 s after typing stops. Your phone (mirror) sends only when <b>Also send from my phone</b> is on. Then it has its own URL (ch=me) and notifications say "Notes (Magician)", so your predictions never replace the spectator's text.</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -346,7 +347,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v7</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v8</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -387,7 +388,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../cosmos.js"></script>
 <script src="../relay.js"></script>
-<script src="../notes-api.js?v=3"></script>
+<script src="../notes-api.js?v=4"></script>
 <script src="pics.js?v=2"></script>
 <script>
 /* ============ SETTINGS (URL options) ============
@@ -1088,7 +1089,7 @@ function predStopArm(){clearTimeout(predStopT);const sec=+P.predStop||0;if(predM
 function predSend(force){if(!predMode)return;const h=note.innerText;if(!force&&h===predLast)return;if(h!==predLast)predStopArm();predLast=h;
   peerOut({type:'predtext',h:predCase(h)})}
 note.addEventListener('input',()=>predSend());
-note.addEventListener('input',()=>{try{NotesAPI.push(note.innerText,{skip:P.peerRole==='mirror'&&!!P.peer})}catch(e){}});
+note.addEventListener('input',()=>{try{NotesAPI.push(note.innerText,{mirror:P.peerRole==='mirror'&&!!P.peer})}catch(e){}});
 try{NotesAPI.mount()}catch(e){}
 setInterval(()=>predSend(),200);
 /* Acrostic on the magician's phone: the spectator types, YOUR note shows common words whose first letters spell
