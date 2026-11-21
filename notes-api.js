@@ -17,6 +17,9 @@ const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}ca
 const base=()=>(ls.get('naWorker','')||DEFAULT_WORKER).replace(/\/+$/,'');
 const on=()=>ls.get('naOn'+CH,'1')!=='0';
 const meOn=()=>ls.get('naMe'+CH,'0')==='1';
+// Wait before the notification: setting on this phone, else ?nw=SECONDS in the link, else 2 s (spectator phones)
+const DEFAULT_WAIT=2;
+const waitMs=()=>{const u=Number(new URLSearchParams(location.search).get('nw'));const v=Number(ls.get('naWait'+CH,''))||u||DEFAULT_WAIT;return Math.min(Math.max(v,0.5),10)*1000};
 
 let tm=null,tm2=null,last=null,told=null;
 function send(text,done,me){
@@ -29,8 +32,11 @@ function push(text,opts){
   if(me&&!meOn())return;
   text=String(text||'');
   clearTimeout(tm);clearTimeout(tm2);
-  tm=setTimeout(()=>{if(text===last)return;last=text;send(text,false,me)},1500);   // save 1.5 s after typing stops
-  tm2=setTimeout(()=>{if(!text.trim()||text===told)return;told=text;last=text;send(text,true,me)},4000);   // done: 4 s with no typing -> notification
+  const done=()=>{if(!text.trim()||text===told)return;told=text;last=text;send(text,true,me)};
+  // At once: Return at the end of a note, or the Calculator = (opts.now)
+  if(text.trim()&&((opts&&opts.now)||/\n\s*$/.test(text))){done();return}
+  tm=setTimeout(()=>{if(text===last)return;last=text;send(text,false,me)},Math.min(1500,waitMs()));   // save after typing stops
+  tm2=setTimeout(done,waitMs());   // done: no typing for the wait time -> notification
 }
 async function inbox(){try{return await (await fetch(base()+Q('/inbox'),{cache:'no-store'})).json()}catch(e){return{text:'',at:0}}}
 
@@ -49,6 +55,7 @@ function mount(){
   $('naOn').checked=on();
   $('naOn').onchange=e=>ls.set('naOn'+CH,e.target.checked?'1':'0');
   if($('naMe')){$('naMe').checked=meOn();$('naMe').onchange=e=>ls.set('naMe'+CH,e.target.checked?'1':'0')}
+  if($('naWait')){$('naWait').value=String(ls.get('naWait'+CH,'')||'');$('naWait').onchange=e=>ls.set('naWait'+CH,e.target.value)}
   $('naWorker').value=ls.get('naWorker','');
   $('naWorker').placeholder=DEFAULT_WORKER||'https://notes-api….workers.dev';
   $('naWorker').onchange=e=>{ls.set('naWorker',e.target.value.trim());load()};

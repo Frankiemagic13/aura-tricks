@@ -330,13 +330,14 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Send to my API<input type="checkbox" id="naOn"></div>
     <div class="r">Also send from my phone (Magician)<input type="checkbox" id="naMe"></div>
+    <div class="r">Notify after<select id="naWait"><option value="">2 s (default)</option><option value="0.5">0.5 s</option><option value="1">1 s</option><option value="3">3 s</option><option value="4">4 s</option><option value="6">6 s</option></select></div>
     <div class="r">Worker<input class="tx" id="naWorker" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="r">Admin password<input class="tx" id="naApiPw" type="password" autocapitalize="off" autocorrect="off"></div>
     <div class="r" style="display:block;padding:10px 18px"><div id="naUrl" style="font:12px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#8d919c">—</div><div id="naUrlMe" style="font:11px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#6c707a;margin-top:6px"></div></div>
     <div class="r"><button class="sbtn" id="naCopy">Copy URL</button><button class="sbtn" id="naReset" style="color:#ff453a!important">Reset key</button></div>
     <div class="r"><button class="sbtn" id="naClear">Clear saved number</button><span id="naSt" class="dim">—</span></div>
   </div>
-  <div class="note">Sends the same text as the peeks (each number, total, result). Paste the URL into the other app: Value <b>text</b>, Method <b>GET</b>. Add <b>&amp;format=text</b> for only the text. Your ntfy app gets a "Calculator" notification 4 s after the spectator stops. The key is the same as on the Notes page: <b>Reset key</b> here changes both URLs. Your phone (mirror) sends only when <b>Also send from my phone</b> is on: own URL (ch=calc-me), notifications say "Calculator (Magician)".</div>
+  <div class="note">Sends the same text as the peeks (each number, total, result). Paste the URL into the other app: Value <b>text</b>, Method <b>GET</b>. Add <b>&amp;format=text</b> for only the text. Your ntfy app gets a "Calculator" notification at once when = is pressed, or when typing stops for the "Notify after" time (spectator phones: 2 s, or <b>&amp;nw=1</b> in the link). The key is the same as on the Notes page: <b>Reset key</b> here changes both URLs. Your phone (mirror) sends only when <b>Also send from my phone</b> is on: own URL (ch=calc-me), notifications say "Calculator (Magician)".</div>
   <div class="lbl">Kill switch</div>
   <div class="grp">
     <div class="r">Status<span id="ksSt" style="opacity:.6">—</span></div>
@@ -446,7 +447,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v59</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v60</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -488,7 +489,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../cosmos.js"></script>
 <script src="../relay.js"></script>
-<script src="../notes-api.js?v=4" data-ch="calc" data-title="Calculator"></script>
+<script src="../notes-api.js?v=5" data-ch="calc" data-title="Calculator"></script>
 <script>
 const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
@@ -592,9 +593,9 @@ function press(k){if(rd)rdEnd();rdTxtShow=null;vanHold=false;vanSer=false;vanCar
 /* ---------- PeekSmith: send each number / total / result to Peek Island and PeekLink ---------- */
 let lastExpr='';const PS_TOPIC=Q.get('pk')||'fvt-c-k27x9m4q8w';let psT=null,psLast='';
 function psPost(t){if(!t||t===psLast)return;psLast=t;try{bleSend(t)}catch(e){}   // this phone's own typing always goes to the PeekSmith, in any role, mirror on or off
-  if(S.peerRole==='mirror'){try{NotesAPI.push(t,{mirror:true})}catch(e){}}
+  if(S.peerRole==='mirror'){try{NotesAPI.push(t,{mirror:true,now:/=/.test(t)})}catch(e){}}
   if(S.peerRole==='mirror')return;   // the Magician phone does not send its typing to the spectator or Peek Island
-  try{NotesAPI.push(t)}catch(e){}
+  try{NotesAPI.push(t,{now:/=/.test(t)})}catch(e){}
   try{peerSend(t)}catch(e){}if(!S.ps)return;
   try{PeekRelay.send(PS_TOPIC,t,Q.get('nt')||'Peek')}catch(e){}}
 function psNow(t){clearTimeout(psT);psPost(t)}
@@ -1064,7 +1065,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v59. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v60. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
