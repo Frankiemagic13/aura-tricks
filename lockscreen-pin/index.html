@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v2.4 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v2.5 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v2.4</div>
+<div id="verTag">v2.5</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -285,7 +285,7 @@
 
 <div id="sheetBg"></div>
 <input type="file" id="sHomeFile" accept="image/*" style="display:none">
-<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help","default"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Launch","i":"shortcut","s":["launch"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"PeekSmith","i":"peek","s":["peeksmith"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help","default"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
 
@@ -299,6 +299,17 @@
     <div class="r">Codes before it opens<select id="sAtt"><option value="1">1 (first code)</option><option value="2">2</option><option value="3">3</option></select></div>
   </div>
   <div class="snote">The wrong-code shake happens until this many full codes are entered. Hold the lower-left corner during a try to flip the next code to pass or fail.</div>
+
+  <div class="lbl">Launch sequence</div>
+  <div class="grp">
+    <div class="r">Use launch sequence<input type="checkbox" id="sLaunchOn"></div>
+    <div class="r">Run the shortcut on open<input type="checkbox" id="sLaunchSc"></div>
+    <div class="r">Then open<select id="sLaunchOpen"><option value="none">Nothing</option><option value="app">An app</option><option value="link">A website</option></select></div>
+    <div class="r">App<select id="sLaunchApp"><option value="photos">Photos</option><option value="notes">Notes</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="facebook">Facebook</option><option value="custom">Other (app link)</option></select></div>
+    <div class="r"><span class="lk">App link</span><input type="text" id="sLaunchAppUrl" placeholder="instagram://" autocapitalize="off" autocorrect="off"></div>
+    <div class="r"><span class="lk">Website</span><input type="text" id="sLaunchLink" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
+  </div>
+  <div class="snote">On the spectator's AuraClip: runs your shortcut (the link in the Shortcut tab), then opens the app or website, and stays dark. Double-press a volume button (either one, twice) to reveal the lock screen. Volume buttons only work while the AuraClip page is on screen.</div>
 
   <div class="lbl">Ghost unlock</div>
   <div class="grp">
@@ -424,7 +435,13 @@ const CFG = window.CFG = {
   ghostButton: "1:click",
   homeScreenDataUrl: "",
   keyHintDot: true,
-  lockPortrait: true
+  lockPortrait: true,
+  launchSeq: false,
+  launchSc: true,
+  launchOpen: "none",
+  launchApp: "photos",
+  launchAppUrl: "",
+  launchLink: ""
 };
 const LOCK_UI_PROMPT = "clock digits, date text, status bar icons, battery icon, wifi icon, lock icon, notification banner, widgets, flashlight button, camera button, home indicator bar, keypad numbers, passcode dots, circular button outlines, translucent keypad circles, glass button borders";
 /* a saved copy on this phone (from the settings sheet) wins over the baked defaults */
@@ -1564,19 +1581,62 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   });
 })();
 
-/* ============ standalone bootstrap ============ */
+/* ============ standalone bootstrap + launch sequence ============ */
 (function(){
-  function present(){ try { if (!LockScreen.open && !LockScreen._unlocking) LockScreen.show(); } catch(_){} }
-  if (document.readyState === "complete" || document.readyState === "interactive") present();
-  else window.addEventListener("load", present);
+  function present(){
+    if (CFG.launchSeq && !window.__lockRevealed) return;   // launch mode: wait for the volume reveal
+    try { if (!LockScreen.open && !LockScreen._unlocking) LockScreen.show(); } catch(_){}
+  }
+  function revealLock(){ window.__lockRevealed = true; try { LockScreen.show(); } catch(_){} }
+  window.__revealLock = revealLock;
+
+  var step = 0;
+  function openLaunchTarget(){
+    if (CFG.launchOpen === "app"){
+      var APP_LINK = { notes:"mobilenotes://", photos:"photos-redirect://", messages:"sms:", mail:"message://", maps:"maps://", music:"music://", calendar:"calshow://", reminders:"x-apple-reminderkit://", settings:"App-prefs:", shortcuts:"shortcuts://", instagram:"instagram://", youtube:"youtube://", spotify:"spotify://", whatsapp:"whatsapp://", facebook:"fb://" };
+      var u = (CFG.launchApp === "custom") ? (CFG.launchAppUrl || "") : (APP_LINK[CFG.launchApp] || "");
+      if (u) { try { window.location.href = u; } catch(_){} }
+    } else if (CFG.launchOpen === "link"){
+      if (CFG.launchLink) openShortcutInSafari(CFG.launchLink, !(CFG && CFG.linkOpenTarget === "aura"));
+    }
+  }
+  function advance(){
+    if (step === 0){ step = 1; if (CFG.launchSc && CFG.shortcutUrl) { openShortcutInSafari(CFG.shortcutUrl, window.getLinkSafariPref("shortcut")); } else { advance(); } return; }
+    if (step === 1){ step = 2; openLaunchTarget(); return; }
+  }
+  function startVolumeReveal(){
+    if (!window.AuraKit) return;
+    AuraKit.ready().then(function(){
+      if (!AuraKit.volumeButtons || !AuraKit.volumeButtons.watch) return;
+      var lastUp = 0, lastDown = 0, DBL = 450;
+      AuraKit.volumeButtons.watch(function(e){
+        var now = Date.now();
+        if (e && e.button === "up"){ if (now - lastUp < DBL){ lastUp = 0; revealLock(); } else lastUp = now; }
+        else if (e && e.button === "down"){ if (now - lastDown < DBL){ lastDown = 0; revealLock(); } else lastDown = now; }
+      }, { keepVolume: true }).catch(function(){});
+    }).catch(function(){});
+  }
+
+  if (CFG.launchSeq){
+    setTimeout(function(){ if (step === 0) advance(); }, 500);
+    document.addEventListener("pointerdown", function(){ if (step === 0) advance(); }, { capture: true, once: true });
+    startVolumeReveal();
+  } else {
+    if (document.readyState === "complete" || document.readyState === "interactive") present();
+    else window.addEventListener("load", present);
+  }
+
   document.addEventListener("pointerdown", function(e){
     if (document.body.classList.contains("open")) return;
+    if (CFG.launchSeq && !window.__lockRevealed) return;
     if (LockScreen.open || LockScreen._unlocking) return;
     if (e.target.closest("#lockPastePrompt") || e.target.closest("#customShotView")) return;
     present();
   });
   document.addEventListener("visibilitychange", function(){
-    if (document.visibilityState === "visible") present();
+    if (document.visibilityState !== "visible") return;
+    if (CFG.launchSeq && step < 2){ advance(); return; }
+    present();
   });
 })();
 </script>
@@ -1617,6 +1677,12 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
     { const e=S("sHomeSt"); if(e) e.textContent = CFG.homeScreenDataUrl ? "set" : "none"; }
     { const e=S("sKeyHint"); if(e) e.checked = CFG.keyHintDot!==false; }
     { const e=S("sLockPortrait"); if(e) e.checked = CFG.lockPortrait!==false; }
+    { const e=S("sLaunchOn"); if(e) e.checked = !!CFG.launchSeq; }
+    { const e=S("sLaunchSc"); if(e) e.checked = CFG.launchSc!==false; }
+    { const e=S("sLaunchOpen"); if(e) e.value = CFG.launchOpen||"none"; }
+    { const e=S("sLaunchApp"); if(e) e.value = CFG.launchApp||"photos"; }
+    { const e=S("sLaunchAppUrl"); if(e) e.value = CFG.launchAppUrl||""; }
+    { const e=S("sLaunchLink"); if(e) e.value = CFG.launchLink||""; }
     S("sFalKey").value = CFG.falKey||"";
     S("sFalModel").value = CFG.falModel||"";
     const wl = (function(){ try{ return !!localStorage.getItem("notes_lock_wallpaper"); }catch(_){ return false; } })();
@@ -1655,6 +1721,12 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   on("sFalModel","input", el=>CFG.falModel=el.value.trim());
   on("sKeyHint","change", el=>CFG.keyHintDot=el.checked);
   S("sLockPortrait") && S("sLockPortrait").addEventListener("change", ()=>{ CFG.lockPortrait=S("sLockPortrait").checked; saveCfg(); try{ applyOrientation(); }catch(_){} });
+  on("sLaunchOn","change", el=>CFG.launchSeq=el.checked);
+  on("sLaunchSc","change", el=>CFG.launchSc=el.checked);
+  on("sLaunchOpen","change", el=>CFG.launchOpen=el.value);
+  on("sLaunchApp","change", el=>CFG.launchApp=el.value);
+  on("sLaunchAppUrl","input", el=>CFG.launchAppUrl=el.value.trim());
+  on("sLaunchLink","input", el=>CFG.launchLink=el.value.trim());
 
   S("sScTest") && (S("sScTest").onclick=()=>{ if(CFG.shortcutUrl) openShortcutInSafari(CFG.shortcutUrl, window.getLinkSafariPref("shortcut")); });
   S("sInjTest") && (S("sInjTest").onclick=()=>{
