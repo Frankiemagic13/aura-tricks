@@ -5,8 +5,8 @@
 // Other app (GET)         -> GET  /api?key=KEY     -> {"text": "...", "<Value>": "..."}
 // Other app (POST)        -> POST /api?key=KEY     {"field": "typed value"}  saves into "inbox"
 // Notes page (any phone)  -> GET  /inbox           reads what the other app sent
-// Notifications: set NTFY_TOPIC (secret) -> each finished note goes to ntfy.sh/<topic> (iPhone ntfy app)
-//                NTFY_WAIT (text var, optional) = seconds with no new text before it notifies (default 4)
+// Notifications: set NTFY_TOPIC (secret). When the Notes page sends {text, done:true}
+//                (typing stopped for 4 s), the note goes to ntfy.sh/<topic> (iPhone ntfy app).
 // Your phone (admin)      -> GET  /admin           -> {url, key}      (header X-Admin-Password)
 //                            POST /admin/reset     -> new key, old URL stops at once
 //                            POST /admin/clear     -> clears saved note + inbox
@@ -61,9 +61,8 @@ export default {
       if (!fromPages) return json({ error: "origin not allowed" }, 403, cors);
       const body = await readBody(req);
       const text = String((body && body.text) || "").slice(0, 5000);
-      const at = Date.now();
-      await env.STORE.put("note", JSON.stringify({ text, at }));
-      if (env.NTFY_TOPIC && text.trim()) ctx.waitUntil(notifyWhenDone(env, text, at));
+      await env.STORE.put("note", JSON.stringify({ text, at: Date.now() }));
+      if (env.NTFY_TOPIC && body && body.done && text.trim()) ctx.waitUntil(notify(env, text));
       return json({ ok: true }, 200, cors);
     }
 
@@ -101,14 +100,7 @@ export default {
   },
 };
 
-// Waits, then notifies only if no newer text came in (so a spectator typing gives one notification)
-async function notifyWhenDone(env, text, at) {
-  const wait = Math.min(Math.max(Number(env.NTFY_WAIT) || 4, 0), 20) * 1000;
-  if (wait) {
-    await new Promise((r) => setTimeout(r, wait));
-    const now = await env.STORE.get("note", { type: "json", cacheTtl: 30 }).catch(() => null);
-    if (now && now.at !== at) return; // newer text came in: that one notifies
-  }
+async function notify(env, text) {
   await fetch("https://ntfy.sh/" + encodeURIComponent(env.NTFY_TOPIC), {
     method: "POST",
     headers: { Title: "Notes", Tags: "memo", Priority: "high" },

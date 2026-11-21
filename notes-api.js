@@ -11,16 +11,17 @@ const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}ca
 const base=()=>(ls.get('naWorker','')||DEFAULT_WORKER).replace(/\/+$/,'');
 const on=()=>ls.get('naOn','1')!=='0';
 
-let tm=null,last=null;
+let tm=null,tm2=null,last=null,told=null;
+function send(text,done){
+  fetch(base()+'/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,done:!!done}),keepalive:true}).catch(()=>{});
+}
 function push(text,opts){
   if(!on()||!base())return;
   if(opts&&opts.skip)return;
-  clearTimeout(tm);
-  tm=setTimeout(()=>{
-    text=String(text||'');
-    if(text===last)return;last=text;
-    fetch(base()+'/push',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text}),keepalive:true}).catch(()=>{});
-  },1500);   // waits 1.5 s after typing stops (free plan: 1,000 saves a day)
+  text=String(text||'');
+  clearTimeout(tm);clearTimeout(tm2);
+  tm=setTimeout(()=>{if(text===last)return;last=text;send(text,false)},1500);   // save 1.5 s after typing stops
+  tm2=setTimeout(()=>{if(!text.trim()||text===told)return;told=text;last=text;send(text,true)},4000);   // done: 4 s with no typing -> notification
 }
 async function inbox(){try{return await (await fetch(base()+'/inbox',{cache:'no-store'})).json()}catch(e){return{text:'',at:0}}}
 
@@ -52,7 +53,7 @@ function mount(){
   $('naCopy').onclick=async()=>{if(!url)return st('No URL yet');try{await navigator.clipboard.writeText(url);st('URL copied')}catch(e){st('Hold the URL to copy it')}};
   // One tap, no confirm (like Kill). The old URL stops at once.
   $('naReset').onclick=async()=>{try{const d=await admin('/admin/reset','POST');url=d.url;$('naUrl').textContent=url;st('New key. Paste the new URL in the other app.')}catch(e){st(e.message)}};
-  $('naClear').onclick=async()=>{try{await admin('/admin/clear','POST');last=null;st('Saved note cleared')}catch(e){st(e.message)}};
+  $('naClear').onclick=async()=>{try{await admin('/admin/clear','POST');last=null;told=null;st('Saved note cleared')}catch(e){st(e.message)}};
   load();
 }
 window.NotesAPI={push,inbox,mount};
