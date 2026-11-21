@@ -4,7 +4,7 @@
    Use: NotesAPI.push(text) on each input. NotesAPI.mount() after the settings exist. */
 (function(){
 // After the Worker is deployed, put its address here (spectator phones use this one).
-const DEFAULT_WORKER = "";
+const DEFAULT_WORKER = "https://notes-api.frankiemagic99.workers.dev";
 
 const ls={get:(k,d)=>{try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
           set:(k,v)=>{try{v===''||v==null?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}};
