@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v2.0 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v2.1 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v2.0</div>
+<div id="verTag">v2.1</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -1542,6 +1542,8 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
 (function(){
   const S = id => document.getElementById(id);
   const B = document.body;
+  try { const _sh=document.getElementById("sheet"); const _v=((document.getElementById("verTag")||{}).textContent||"").trim();
+        if(_sh&&_v){ const _c=JSON.parse(_sh.getAttribute("data-hui")||"{}"); _c.ver=_v; _sh.setAttribute("data-hui",JSON.stringify(_c)); } } catch(_){}
   function saveCfg(){ try { localStorage.setItem("lockpin_cfg2", JSON.stringify(CFG)); } catch(_){} }
   function applyCfg(){
     try { applyNotesTheme(); } catch(_){}
