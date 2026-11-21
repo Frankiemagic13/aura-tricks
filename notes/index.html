@@ -348,10 +348,10 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v9</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v10</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
-  <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
+  <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
   <h4>Open and close</h4>
   <p>Hold the <b>share</b> button for 1 second to open these settings. Hold <b>•••</b> (or the date) for 1 second to clear the note.</p>
   <h4>Notes API</h4>
@@ -1375,7 +1375,7 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
 <script>
 /* ---------- fake lock: the screen goes black (looks locked); hold the screen = peek of the note ----------
    Settings in P.fl (Volume tab, "Fake lock" card). The lock sound is made with Web Audio (no sound file). */
-P.fl=Object.assign({sound:true,sType:'synth',sVol:'med',what:'lines',lines:5,size:18,color:'gray',pos:'mid',align:'center',font:'sys',hold:450,buzz:true,exit3:true},P.fl||{});
+P.fl=Object.assign({sound:true,sType:'synth',sVol:'med',what:'lines',lines:5,size:18,color:'gray',pos:'mid',align:'center',font:'sys',hold:450,buzz:true,exit3:true,keep:true},P.fl||{});
 const FakeLock=(function(){
   let el=null,pk=null,on=false,t=null,sb=null,ac=null,taps=[];
   const COLORS={dim:'#2c2c2e',gray:'#6b6b70',light:'#aeaeb2',white:'#ffffff',red:'#7a2020',green:'#1f5f2e',blue:'#1f3f7a'};
@@ -1420,9 +1420,23 @@ const FakeLock=(function(){
     el.addEventListener('touchcancel',e=>{stop(e);clearTimeout(t);pk.style.opacity='0'},{passive:false});el.addEventListener('touchmove',stop,{passive:false});
     el.addEventListener('mousedown',down);el.addEventListener('mouseup',up);
     ['click','dblclick','contextmenu'].forEach(n=>el.addEventListener(n,stop))}
+  /* deleted text: keep the note as it was just before the spectator starts to delete.
+     MutationObserver also sees text that comes from the other phone (mirror). */
+  const norm=s=>String(s||'').replace(/\u00a0/g,' ').replace(/\s+$/,'');
+  let prevTxt='',memo='',dir='';
+  function track(){const c=norm(note.innerText);
+    if(c.length<prevTxt.length){if(dir!=='del'&&prevTxt.trim())memo=prevTxt;dir='del'}
+    else if(c.length>prevTxt.length)dir='add';
+    prevTxt=c}
+  try{prevTxt=norm(note.innerText);new MutationObserver(track).observe(note,{childList:true,subtree:true,characterData:true})}catch(e){}
+  note.addEventListener('input',track);
+  /* the text to peek: the note now, or the deleted text if the note is empty or only part of it is left */
+  function source(){const c=norm(note.innerText);
+    if(P.fl.keep&&memo&&(!c.trim()||(memo.startsWith(c)&&memo.length>c.length)))return memo;
+    return c}
   function textOf(){
-    const l=noteLines();if(!l.length)return '(empty note)';
-    if(P.fl.what==='word')return noteWords().pop()||'';
+    const src=source(),l=src.split('\n').map(s=>s.trim()).filter(Boolean);if(!l.length)return '(empty note)';
+    if(P.fl.what==='word')return src.split(/\s+/).filter(Boolean).pop()||'';
     if(P.fl.what==='line')return l[l.length-1];
     if(P.fl.what==='all')return l.join('\n');
     return l.slice(-(+P.fl.lines||5)).join('\n')}
@@ -1451,7 +1465,7 @@ const FakeLock=(function(){
     try{localStorage.setItem(SND_KEY+'Name',f.name)}catch(e){}return ''}
   function clearFile(){fileBuf=null;try{localStorage.removeItem(SND_KEY);localStorage.removeItem(SND_KEY+'Name')}catch(e){}}
   function fileInfo(){const d=fileData();if(!d)return 'No file';let n='';try{n=localStorage.getItem(SND_KEY+'Name')||''}catch(e){}return (n||'Sound file')+' ('+Math.round(d.length*.75/1024)+' KB)'}
-  return{toggle:()=>set(!on),set,lockSound,preview,setFile,clearFile,fileInfo,get on(){return on}}})();
+  return{toggle:()=>set(!on),set,forget:()=>{memo='';dir=''},lockSound,preview,setFile,clearFile,fileInfo,get on(){return on}}})();
 </script>
 <script>
 /* ---------- volume buttons (Aura 8): see ../vol.js ---------- */
@@ -1484,17 +1498,20 @@ FVTVol.setup({page:'notes',
     '<div class="r">Font<select id="flFont"><option value="sys">System</option><option value="round">Rounded</option><option value="mono">Monospace</option><option value="serif">Serif</option></select></div>'+
     '<div class="r">Hold time<select id="flHold"><option value="300">0.3 s</option><option value="450">0.5 s</option><option value="700">0.7 s</option><option value="1000">1 s</option><option value="1500">1.5 s</option></select></div>'+
     '<div class="r">Buzz on peek<input type="checkbox" id="flBuzz"></div>'+
-    '<div class="r">Triple tap = exit<input type="checkbox" id="flExit3"></div></div>'+
-    '<div class="snote">Fake lock: set a volume button to "Fake lock". Press it: the lock sound plays and the screen goes black. Hold the black screen: the peek shows while you hold. Press the button again (or triple tap, if on) to see the note again. The lock sound plays only after you touched the page one time, and not when the silent switch is on (the same as the real lock sound). My sound file: choose any short sound file on your phone (.m4a, .mp3 or .wav, max 400 KB). It is kept only on this phone, not on GitHub. The silence at the start is cut off.</div>',
+    '<div class="r">Triple tap = exit<input type="checkbox" id="flExit3"></div>'+
+    '<div class="r">Peek deleted text<input type="checkbox" id="flKeep"></div>'+
+    '<div class="r"><button class="sbtn" id="flForget">Forget deleted text</button></div></div>'+
+    '<div class="snote">Fake lock: set a volume button to "Fake lock". Press it: the lock sound plays and the screen goes black. Hold the black screen: the peek shows while you hold. Press the button again (or triple tap, if on) to see the note again. Peek deleted text (on): if the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it. Forget deleted text: clears it (for example, before a new spectator). The lock sound plays only after you touched the page one time, and not when the silent switch is on (the same as the real lock sound). My sound file: choose any short sound file on your phone (.m4a, .mp3 or .wav, max 400 KB). It is kept only on this phone, not on GitHub. The silence at the start is cut off.</div>',
   defaults:{up:'ps:lastWord',down:'lock'}});
 (function(){
   const $f=id=>document.getElementById(id),F=P.fl;
   const sel={flSType:'sType',flSVol:'sVol',flWhat:'what',flLines:'lines',flSize:'size',flColor:'color',flPos:'pos',flAlign:'align',flFont:'font',flHold:'hold'};
-  const chk={flSound:'sound',flBuzz:'buzz',flExit3:'exit3'};
+  const chk={flSound:'sound',flBuzz:'buzz',flExit3:'exit3',flKeep:'keep'};
   const num=new Set(['lines','size','hold']);
   function sync(){for(const id in sel)$f(id).value=String(F[sel[id]]);for(const id in chk)$f(id).checked=!!F[chk[id]];
     $f('flLinesRow').style.display=F.what==='lines'?'':'none';$f('flFileRow').style.display=F.sType==='file'?'':'none';$f('flFileInfo').textContent=FakeLock.fileInfo();FakeLock.preview($f('flPrev'))}
   $f('flPick').onclick=()=>$f('flFile').click();
+  $f('flForget').onclick=()=>{FakeLock.forget();sync()};
   $f('flDel').onclick=()=>{FakeLock.clearFile();sync()};
   $f('flFile').onchange=async e=>{const f=e.target.files&&e.target.files[0];e.target.value='';const err=await FakeLock.setFile(f);sync();if(err)$f('flFileInfo').textContent=err;else{const s=F.sound;F.sound=true;FakeLock.lockSound();F.sound=s}};
   for(const id in sel)$f(id).onchange=e=>{const k=sel[id];F[k]=num.has(k)?+e.target.value:e.target.value;saveP();sync()};
