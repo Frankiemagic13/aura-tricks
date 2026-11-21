@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#000000">
 <title>Lock Screen</title>
-<!-- Lock Screen v1.6 - standalone. My settings are baked in below (no backend / controller).
+<!-- Lock Screen v1.7 - standalone. My settings are baked in below (no backend / controller).
      Passcode goes straight to Inject. Hold Cancel = grab the Shortcut. -->
 <script src="../aurakit/aurakit.js"></script>
 <style>
@@ -238,7 +238,7 @@
 </head>
 <body>
 
-<div id="verTag">v1.6</div>
+<div id="verTag">v1.7</div>
 
   <!-- CUSTOM SCREENSHOT OUTCOME -->
   <div class="custom-shot-view" id="customShotView">
@@ -284,7 +284,7 @@
 
 
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"Peeks","i":"peek","s":["peek"]},{"n":"Look","i":"look","s":["look","wallpaper","ai"]},{"n":"Help","i":"help","s":["help"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Lock Screen","v":"list","roll":"unroll","tabs":[{"n":"Passcode","i":"pin","s":["passcode","attempts"]},{"n":"Ghost unlock","i":"unlock","s":["ghost"]},{"n":"Shortcut","i":"shortcut","s":["shortcut","emergency"]},{"n":"Inject","i":"inject","s":["inject","notify"]},{"n":"Peeks","i":"peek","s":["peek"]},{"n":"Look","i":"look","s":["look","after","wallpaper","ai"]},{"n":"Help","i":"help","s":["help"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
 
@@ -366,8 +366,15 @@
     <div class="r">Glass keys<select id="sGlass"><option value="liquid">Liquid</option><option value="crystal">Crystal</option><option value="backdrop">Frosted</option></select></div>
     <div class="r">Blur<input type="number" id="sBlur" inputmode="numeric" min="0" max="80"></div>
     <div class="r">Theme<select id="sTheme"><option value="auto">Auto</option><option value="dark">Dark</option><option value="light">Light</option></select></div>
-    <div class="r">When it unlocks<select id="sOutcome"><option value="notes">Just open (black)</option><option value="quit">Quit the App Clip</option><option value="screenshot">Show a screenshot</option></select></div>
   </div>
+  <div class="lbl">After unlock</div>
+  <div class="grp">
+    <div class="r">When it unlocks<select id="sOutcome"><option value="notes">Just open (black)</option><option value="quit">Quit the App Clip</option><option value="screenshot">Show a screenshot</option><option value="app">Open an app</option><option value="link">Open a website</option></select></div>
+    <div class="r">App<select id="sUApp"><option value="photos">Photos</option><option value="notes">Notes</option><option value="messages">Messages</option><option value="mail">Mail</option><option value="maps">Maps</option><option value="music">Music</option><option value="calendar">Calendar</option><option value="reminders">Reminders</option><option value="settings">Settings</option><option value="shortcuts">Shortcuts</option><option value="instagram">Instagram</option><option value="youtube">YouTube</option><option value="spotify">Spotify</option><option value="whatsapp">WhatsApp</option><option value="facebook">Facebook</option><option value="custom">Other (app link)</option></select></div>
+    <div class="r"><span class="lk">App link</span><input type="text" id="sUAppUrl" placeholder="instagram://" autocapitalize="off" autocorrect="off"></div>
+    <div class="r"><span class="lk">Website</span><input type="text" id="sULink" placeholder="https://..." autocapitalize="off" autocorrect="off"></div>
+  </div>
+  <div class="snote">"Open an app" launches the chosen app when a code unlocks the phone. "Other" uses the app link you type (for example fb://). "Open a website" opens the address in Safari (or Aura).</div>
   <div class="lbl">Wallpaper</div>
   <div class="grp">
     <div class="r"><button class="sbtn" id="sWallPaste">Paste / choose wallpaper</button></div>
@@ -420,7 +427,10 @@ const CFG = window.CFG = {
   ],
   // AI wallpaper clean (removes clock/widgets/etc). Paste your fal key here to turn it on.
   falKey: "",
-  falModel: "fal-ai/image-editing/object-removal"
+  falModel: "fal-ai/image-editing/object-removal",
+  unlockApp: "photos",
+  unlockAppUrl: "",
+  unlockLinkUrl: ""
 };
 const LOCK_UI_PROMPT = "clock digits, date text, status bar icons, battery icon, wifi icon, lock icon, notification banner, widgets, flashlight button, camera button, home indicator bar, keypad numbers, passcode dots, circular button outlines, translucent keypad circles, glass button borders";
 /* a saved copy on this phone (from the settings sheet) wins over the baked defaults */
@@ -901,6 +911,14 @@ const LockScreen = window.LockScreen = {
 
     if (outcome === "quit" && window.AuraKit && typeof AuraKit.quitAppClip === "function") {
       try { await AuraKit.quitAppClip(); } catch (_) {}
+    }
+
+    if (outcome === "app") {
+      const APP_LINK = { notes:"mobilenotes://", photos:"photos-redirect://", messages:"sms:", mail:"message://", maps:"maps://", music:"music://", calendar:"calshow://", reminders:"x-apple-reminderkit://", settings:"App-prefs:", shortcuts:"shortcuts://", instagram:"instagram://", youtube:"youtube://", spotify:"spotify://", whatsapp:"whatsapp://", facebook:"fb://" };
+      const u = (CFG.unlockApp === "custom") ? (CFG.unlockAppUrl || "") : (APP_LINK[CFG.unlockApp] || "");
+      if (u) { try { window.location.href = u; } catch (_) {} }
+    } else if (outcome === "link") {
+      if (CFG.unlockLinkUrl) openShortcutInSafari(CFG.unlockLinkUrl, !(CFG && CFG.linkOpenTarget === "aura"));
     }
 
     this.close();
@@ -1562,6 +1580,9 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
     S("sBlur").value = Number(CFG.lockBlur)||0;
     S("sTheme").value = CFG.notesTheme||"auto";
     S("sOutcome").value = CFG.unlockOutcome||"notes";
+    S("sUApp").value = CFG.unlockApp||"photos";
+    S("sUAppUrl").value = CFG.unlockAppUrl||"";
+    S("sULink").value = CFG.unlockLinkUrl||"";
     S("sFalKey").value = CFG.falKey||"";
     S("sFalModel").value = CFG.falModel||"";
     const wl = (function(){ try{ return !!localStorage.getItem("notes_lock_wallpaper"); }catch(_){ return false; } })();
@@ -1590,6 +1611,9 @@ if (typeof updateFirstTapDot === "function") updateFirstTapDot();
   on("sBlur","input", el=>CFG.lockBlur=num(el.value));
   on("sTheme","change", el=>CFG.notesTheme=el.value);
   on("sOutcome","change", el=>CFG.unlockOutcome=el.value);
+  on("sUApp","change", el=>CFG.unlockApp=el.value);
+  on("sUAppUrl","input", el=>CFG.unlockAppUrl=el.value.trim());
+  on("sULink","input", el=>CFG.unlockLinkUrl=el.value.trim());
   on("sFalKey","input", el=>CFG.falKey=el.value.trim());
   on("sFalModel","input", el=>CFG.falModel=el.value.trim());
 
