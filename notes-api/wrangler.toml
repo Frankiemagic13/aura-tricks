@@ -1,0 +1,15 @@
+name = "notes-api"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+
+# Make the store first:  npx wrangler kv namespace create STORE
+# Then paste the id it gives you here.
+[[kv_namespaces]]
+binding = "STORE"
+id = "PASTE_KV_ID_HERE"
+
+[vars]
+# Your GitHub Pages address (no slash at the end). Add more with commas.
+ALLOWED_ORIGINS = "https://frankiemagic13.github.io"
+
+# ADMIN_PASSWORD is a secret, NOT here:  npx wrangler secret put ADMIN_PASSWORD
