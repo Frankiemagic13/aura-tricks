@@ -43,3 +43,12 @@ With a free Apple ID, the app stops working after 7 days. Then connect the iPhon
   person, it stops listening (buzz), and the mosaic becomes that person.
 - The first time, iOS asks for the **Microphone** and **Speech Recognition**. Push **Allow** for both.
 - The listening phrase is on the Voice tab. Put `{name}` where the name goes.
+
+## Read text (camera)
+
+- On the Voice tab, set **Volume −** (or +) to **Read text on / off**.
+- Push it (buzz), then point the camera at the word that the spectator wrote. Choose the back or
+  front camera on the **Read text** tab. The screen continues to show the gallery.
+- When the phone reads the same word 2 times, it buzzes and the mosaic becomes that word
+  (or that person, if it is a famous name).
+- The first time, iOS asks for the **Camera**. Push **Allow**. iOS shows a green dot while the camera is on.

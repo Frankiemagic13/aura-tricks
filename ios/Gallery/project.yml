@@ -28,6 +28,7 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         NSPhotoLibraryUsageDescription: Photos shows your library.
+        NSCameraUsageDescription: Photos uses the camera to read text.
         NSMicrophoneUsageDescription: Photos uses the microphone for voice search.
         NSSpeechRecognitionUsageDescription: Photos uses speech recognition for voice search.
         PHPhotoLibraryPreventAutomaticLimitedAccessAlert: true

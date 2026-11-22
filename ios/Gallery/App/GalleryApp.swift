@@ -5,12 +5,14 @@ import UIKit
 import Speech
 import AVFoundation
 import MediaPlayer
+import Vision
 
 // Gallery: shows the gallery page (aura-tricks/gallery/) full screen and gives it
 // FULL access to the iPhone photo library. The page asks for photos with
 // window.webkit.messageHandlers.fvgal.postMessage({...}); the app answers by calling
 // __galNativeInit(count, status), __galThumbs(items, failedIds) and __galFull(index, dataURL).
 // Voice: {t:'listen',on,lang} → __galSpeech(text, isFinal), __galVoice(state).
+// Read text: {t:'ocr',on,cam:'back'|'front'} → __galOCR([{t,c,h,w,y}]), __galRead(state).
 // Volume buttons: {t:'volume',on:true} → __galVol('up'|'down'). Haptic: {t:'buzz'}.
 
 @main
@@ -67,6 +69,7 @@ final class PhotoBridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate,
     private var observing = false
     private let listener = Listener()
     private let volume = VolumeWatch()
+    private let reader = TextReader()
 
     override init() {
         super.init()
@@ -75,6 +78,11 @@ final class PhotoBridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate,
         }
         listener.onState = { [weak self] st in self?.js("window.__galVoice&&__galVoice('\(st)')") }
         volume.onPress = { [weak self] b in self?.js("window.__galVol&&__galVol('\(b)')") }
+        reader.onText = { [weak self] lines in
+            guard let d = try? JSONSerialization.data(withJSONObject: lines), let j = String(data: d, encoding: .utf8) else { return }
+            self?.js("window.__galOCR&&__galOCR(\(j))")
+        }
+        reader.onState = { [weak self] st in self?.js("window.__galRead&&__galRead('\(st)')") }
     }
 
     func loadPage() {
@@ -105,6 +113,12 @@ final class PhotoBridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate,
                 listener.start(lang: body["lang"] as? String ?? "en-US")
             } else {
                 listener.stop()
+            }
+        case "ocr":
+            if (body["on"] as? Bool) == true {
+                reader.start(front: (body["cam"] as? String) == "front")
+            } else {
+                reader.stop()
             }
         case "volume":
             if let host = web { volume.start(in: host) }
@@ -383,5 +397,96 @@ final class VolumeWatch: NSObject {
     @objc private func active() {
         Audio.activate()
         base = AVAudioSession.sharedInstance().outputVolume
+    }
+}
+
+// MARK: - read text with the camera (Apple Vision), no preview on screen
+
+final class TextReader: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    var onText: (([[String: Any]]) -> Void)?
+    var onState: ((String) -> Void)?
+    private let session = AVCaptureSession()
+    private let queue = DispatchQueue(label: "gallery.ocr")
+    private var input: AVCaptureDeviceInput?
+    private var outputAdded = false
+    private var front = false
+    private var on = false
+    private var busy = false
+    private var last = Date.distantPast
+    private var flip = false
+
+    func start(front: Bool) {
+        on = true
+        AVCaptureDevice.requestAccess(for: .video) { ok in
+            DispatchQueue.main.async {
+                guard ok else { self.on = false; self.onState?("denied"); return }
+                self.queue.async {
+                    guard self.configure(front: front) else {
+                        DispatchQueue.main.async { self.onState?("error") }
+                        return
+                    }
+                    if self.on && !self.session.isRunning { self.session.startRunning() }
+                    DispatchQueue.main.async { self.onState?("reading") }
+                }
+            }
+        }
+    }
+
+    func stop() {
+        on = false
+        queue.async { if self.session.isRunning { self.session.stopRunning() } }
+    }
+
+    // runs on queue
+    private func configure(front: Bool) -> Bool {
+        if input != nil && self.front == front { return true }
+        session.automaticallyConfiguresApplicationAudioSession = false   // keep the volume buttons working
+        session.beginConfiguration()
+        defer { session.commitConfiguration() }
+        session.sessionPreset = .hd1280x720
+        if let old = input { session.removeInput(old); input = nil }
+        guard let dev = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: front ? .front : .back),
+              let inp = try? AVCaptureDeviceInput(device: dev), session.canAddInput(inp) else { return false }
+        session.addInput(inp)
+        input = inp
+        self.front = front
+        if !outputAdded {
+            let out = AVCaptureVideoDataOutput()
+            out.alwaysDiscardsLateVideoFrames = true
+            out.setSampleBufferDelegate(self, queue: queue)
+            if session.canAddOutput(out) { session.addOutput(out); outputAdded = true }
+        }
+        if (try? dev.lockForConfiguration()) != nil {
+            if dev.isFocusModeSupported(.continuousAutoFocus) { dev.focusMode = .continuousAutoFocus }
+            if dev.isAutoFocusRangeRestrictionSupported { dev.autoFocusRangeRestriction = .near }
+            dev.unlockForConfiguration()
+        }
+        return true
+    }
+
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard on, !busy, Date().timeIntervalSince(last) > 0.35,
+              let pixels = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        busy = true
+        last = Date()
+        // phone held upright. Front camera: also try the mirrored image on every second frame.
+        flip.toggle()
+        let orientation: CGImagePropertyOrientation = front ? (flip ? .left : .leftMirrored) : .right
+        let request = VNRecognizeTextRequest { [weak self] req, _ in
+            guard let self = self else { return }
+            let found = (req.results as? [VNRecognizedTextObservation]) ?? []
+            let lines: [[String: Any]] = found.compactMap { o in
+                guard let best = o.topCandidates(1).first else { return nil }
+                let b = o.boundingBox
+                return ["t": best.string, "c": Double(best.confidence),
+                        "h": Double(b.height), "w": Double(b.width), "y": Double(b.midY)]
+            }
+            if !lines.isEmpty { DispatchQueue.main.async { self.onText?(lines) } }
+        }
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
+        let handler = VNImageRequestHandler(cvPixelBuffer: pixels, orientation: orientation, options: [:])
+        try? handler.perform([request])
+        busy = false
     }
 }

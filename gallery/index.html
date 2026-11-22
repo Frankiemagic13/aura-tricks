@@ -105,9 +105,9 @@ ol.note{padding-left:18px;margin:6px 0}
 
 <script>
 'use strict';
-const VER='1.6';
+const VER='1.7';
 const LS='fvgallery1';
-const D={id:'13297',inj:true,injMode:'last',cmax:48,str:0.85,layout:'auto',upper:true,lc:'#ffffff',bc:'#000000',celeb:true,src:'mine',asked:false,look:'auto',title:'Library',items:5760,start:3,lock:true,phrase:'you said {name}',vwords:3,vany:false,vkeep:false,vup:'voice',vdown:'none',vlang:'en-US',vdot:false};
+const D={id:'13297',inj:true,injMode:'last',cmax:48,str:0.85,layout:'auto',upper:true,lc:'#ffffff',bc:'#000000',celeb:true,src:'mine',asked:false,look:'auto',title:'Library',items:5760,start:3,lock:true,phrase:'you said {name}',vwords:3,vany:false,vkeep:false,vup:'voice',vdown:'none',vlang:'en-US',vdot:false,rpick:'big',rwords:'line',rkeep:false,rcount:2,rcam:'back'};
 let P=Object.assign({},D);
 try{Object.assign(P,JSON.parse(localStorage.getItem(LS)||'{}'))}catch(e){}
 function save(){try{localStorage.setItem(LS,JSON.stringify(P))}catch(e){}}
@@ -575,11 +575,40 @@ async function vProcess(rest){
   else if(P.vany){vSet('Word: '+key);buzz();if(!P.vkeep)voiceStop(true);applyWord(key)}
   else vSet('Heard "'+key+'": not a famous person. Still listening…');
 }
+/* ---------- read text with the back camera (Gallery app, Apple Vision) ---------- */
+let rOn=false,rStat='Off',rPrev='',rCount=0,rDone='';
+function rSet(t){rStat=t;const a=$('#rStat');if(a)a.textContent=t;const b=$('#rBtn');if(b)b.textContent=rOn?'Stop reading':'Start reading'}
+function readToggle(){rOn?readStop():readStart()}
+function readStart(){
+  if(rOn)return;
+  if(!NATIVE){rSet('Reading text works only in the Gallery app.');buzz();return}
+  rOn=true;rPrev='';rCount=0;rDone='';buzz();rSet('Reading… point the '+(P.rcam==='front'?'front':'back')+' camera at the word');nat({t:'ocr',on:true,cam:P.rcam});
+}
+function readStop(quiet){if(!rOn)return;rOn=false;if(!quiet)buzz();nat({t:'ocr',on:false});rSet(rStat.startsWith('Read:')?rStat:'Off')}
+function cleanText(t){return String(t||'').replace(/[^\p{L}\p{N}'’&.\- ]+/gu,' ').replace(/\s+/g,' ').replace(/^[.\-' ]+|[.\-' ]+$/g,'').trim()}
+window.__galOCR=lines=>{
+  if(!rOn||!Array.isArray(lines))return;
+  let L=lines.map(l=>({t:cleanText(l.t),c:+l.c||0,a:(+l.h||0)*(+l.w||0),h:+l.h||0,y:+l.y||0})).filter(l=>l.c>=0.35&&/\p{L}{2}/u.test(l.t));
+  if(!L.length)return;
+  let t;
+  if(P.rpick==='all'){L.sort((x,y)=>y.y-x.y);t=L.map(l=>l.t).join(' ')}   // all lines, top to bottom
+  else{L.sort((x,y)=>y.h-x.h||y.a-x.a);t=L[0].t}                          // the biggest text
+  const w=t.split(' ');
+  if(P.rwords==='first')t=w[0];else if(P.rwords==='3')t=w.slice(0,3).join(' ');else t=w.slice(0,6).join(' ');
+  const sn=$('#rSeen');if(sn)sn.textContent='Sees: '+t;
+  const k=t.toLowerCase();
+  if(k===rPrev)rCount++;else{rPrev=k;rCount=1}
+  if(rCount>=(+P.rcount||2)&&k!==rDone){   // the same text in 2 frames in a row: it is not a misread
+    rDone=k;rSet('Read: '+t);buzz();if(!P.rkeep)readStop(true);applyWord(t);
+  }
+};
+window.__galRead=st=>{if(st==='denied'){rOn=false;rSet('No camera permission. Allow the camera in iPhone Settings.')}else if(st==='error')rSet('The camera could not start.')};
+
 /* volume buttons */
 function onVol(b){
   if($('#set').classList.contains('on'))return;
   const a=b==='up'?P.vup:P.vdown;
-  if(a==='voice')voiceToggle();else if(a==='clear'){clearWord();buzz()}
+  if(a==='voice')voiceToggle();else if(a==='read')readToggle();else if(a==='clear'){clearWord();buzz()}
 }
 window.__galVol=b=>onVol(b);
 function volStart(){
@@ -636,13 +665,23 @@ const TABS=[
   <div class="stat" id="vHeard"></div>
   <div class="r"><span>Listening phrase</span><input type="text" data-k="phrase" autocapitalize="off" autocomplete="off"></div>
   <div class="r"><span>Words in the name (up to)</span>${sel('vwords',[[1,'1'],[2,'2'],[3,'3'],[4,'4']])}</div>
-  <div class="r"><span>Volume +</span>${sel('vup',[['voice','Voice on / off'],['clear','Clear mosaic'],['none','Nothing']])}</div>
-  <div class="r"><span>Volume −</span>${sel('vdown',[['voice','Voice on / off'],['clear','Clear mosaic'],['none','Nothing']])}</div>
+  <div class="r"><span>Volume +</span>${sel('vup',[['voice','Voice on / off'],['read','Read text on / off'],['clear','Clear mosaic'],['none','Nothing']])}</div>
+  <div class="r"><span>Volume −</span>${sel('vdown',[['voice','Voice on / off'],['read','Read text on / off'],['clear','Clear mosaic'],['none','Nothing']])}</div>
   <div class="r"><span>Use the word if not a famous person</span>${sw('vany')}</div>
   <div class="r"><span>Keep listening after a name</span>${sw('vkeep')}</div>
   <div class="r"><span>Language</span>${sel('vlang',[['en-US','English (US)'],['en-GB','English (UK)'],['es-ES','Spanish'],['fr-FR','French'],['it-IT','Italian'],['de-DE','German'],['pt-BR','Portuguese (Brazil)']])}</div>
   <div class="r"><span>Small dot while listening</span>${sw('vdot')}</div>
   <div class="note">Push the volume button to start listening (the phone buzzes). Say the phrase, for example "You said Taylor Swift". Put <b>{name}</b> where the name goes, for example "so your star is {name}" or "{name} is your pick". The page tries the longest name first (3 words, then 2, then 1), and uses the first one that is a famous person. Then it stops listening (buzz) and the mosaic becomes that person.<br>Volume buttons and voice work in the Gallery app. In Aura, the volume buttons work; voice works only if Aura gives speech recognition (Safari does).</div>`],
+ ['Read text',`
+  <div class="stat" id="rStat"></div>
+  <div class="r"><button class="nb sm" id="rBtn">Start reading</button></div>
+  <div class="stat" id="rSeen"></div>
+  <div class="r"><span>Camera</span>${sel('rcam',[['back','Back camera'],['front','Front camera']])}</div>
+  <div class="r"><span>Use</span>${sel('rpick',[['big','The biggest text'],['all','All the text']])}</div>
+  <div class="r"><span>Words</span>${sel('rwords',[['line','All words (up to 6)'],['3','Up to 3 words'],['first','First word only']])}</div>
+  <div class="r"><span>Frames that must agree</span>${sel('rcount',[[1,'1 (fast)'],[2,'2'],[3,'3 (safe)']])}</div>
+  <div class="r"><span>Keep reading after a word</span>${sw('rkeep')}</div>
+  <div class="note">Only in the Gallery app. Set Volume − (or +) to "Read text on / off" on the Voice tab. Push it (buzz), then point the camera at the word that the spectator wrote. With the front camera, the spectator can hold the paper in front of the screen. The screen continues to show the gallery. When the phone reads the same word 2 times, it buzzes, stops the camera and makes the mosaic of that word. If the word is a famous person, the mosaic is that person (Celebrity tab). Handwriting works if it is clear and big.<br>Note: iOS always shows a small green dot at the top of the screen while the camera is on.</div>`],
  ['Help',`
   <ol class="note">
    <li>Open this page in Aura or Safari. The gallery opens at the bottom (newest photos).</li>
@@ -650,6 +689,7 @@ const TABS=[
    <li>Give the phone to the spectator. Tell the spectator to pinch to zoom out.</li>
    <li>When the grid gets small, the photos start to make the word. At the smallest grid, the word is clear.</li>
    <li>If the word is the name of a famous person, the photos make the face of that person (Celebrity tab).</li>
+   <li>Read text (app only): set a volume button to "Read text", push it and point the camera (back or front) at the written word.</li>
    <li>Voice: push Volume +, then say "You said …" and a famous name. The photos make that person (Voice tab).</li>
   </ol>
   <div class="note"><b>Open settings:</b> touch and hold the title "Library" for 1 second.<br><b>Test:</b> type a word in "Test word" on the Mosaic tab and push Show.<br>Tap a photo to open it. Swipe down to close it.</div>`]
@@ -674,6 +714,7 @@ function buildSet(){
     $('#celRes').textContent='Found: '+r.name;const p=$('#cprev');p.src=r.urls[r.urls.length-1];p.style.display='block'};
   if(NATIVE){$('#natRow').style.display='flex';$('#natSet').onclick=()=>nat({t:'settings'})}
   $('#vBtn').onclick=()=>voiceToggle();
+  $('#rBtn').onclick=()=>readToggle();
   $('#pickBtn').onclick=()=>$('#pick').click();
   $('#pick').onchange=async e=>{const f=[...e.target.files];e.target.value='';if(f.length){P.src='mine';P.asked=true;save();document.querySelector('[data-k=src]').value='mine';await addFiles(f);$('#first').classList.remove('on');layout(true)}};
   $('#fPick').onclick=()=>$('#pick').click();
@@ -690,10 +731,12 @@ function onChange(k){
   else if(k==='inj'||k==='id'||k==='injMode'){clearTimeout(onChange.t);onChange.t=setTimeout(injStart,600)}
   else if(k==='celeb'){if(CUR)applyWord(CUR)}
   else if(k==='vdot'){dot()}
+  else if(k==='rcam'&&rOn){readStop(true);readStart()}
   else if(k==='vlang'&&vOn){voiceStop(true);voiceStart()}
   else if(k==='src'){if(MODE!=='native')loadPool()}
 }
 function ui(){
+  rSet(rStat);
   vSet(vStat);dot();
   const a=$('#curW');if(a)a.textContent=CUR?'Mosaic now: "'+CUR+'"'+(TSRC&&TSRC.img?' (picture)':''):'Mosaic now: none (plain gallery)';
   const b=$('#injStat');if(b)b.textContent=injStat;
