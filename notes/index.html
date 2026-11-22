@@ -199,7 +199,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 <div id="qtoast"></div>
 <div id="acroHint"></div>
 <div id="sheetBg"></div>
-<div id="sheet" data-hui='{"title":"Notes","v":"list","roll":"unroll","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Predictions","i":"magic","s":["predictions","acrostic","drawings"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Print","i":"print","s":["cosmos"]},{"n":"API","i":"link","s":["notes api"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
+<div id="sheet" data-hui='{"title":"Notes","v":"list","roll":"unroll","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Predictions","i":"magic","s":["predictions","acrostic","drawings"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Print","i":"print","s":["cosmos"]},{"n":"API","i":"link","s":["notes api"]},{"n":"Experimental","i":"lab","s":["text recognition"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
   <div class="grab"></div>
   <div class="shead"><span></span><b>Settings</b><button class="sbtn" id="sDone">Done</button></div>
   <div class="lbl">Cosmos printer</div>
@@ -348,10 +348,22 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
   <div class="snote" id="pxDbg">The sensor starts by itself. Cover the top of the screen: "Covered now" must change to Yes. The text goes to Inject one time; clearing the note makes it ready again.</div>
   <div class="snote">Hold the share button for 1 second to open this menu. Hold the ••• button or the date for 1 second to clear the note.</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v12</div>
+  <div class="lbl">Text recognition (camera test)</div>
+  <div class="grp">
+    <div class="r">Camera<select id="ocCam"><option value="user">Front</option><option value="environment">Back</option></select></div>
+    <div class="r">Read<select id="ocArea"><option value="box">Only the yellow box</option><option value="all">All the picture</option></select></div>
+    <div class="r" id="ocViewRow" style="display:none;padding:8px 18px"><div style="position:relative;width:100%;aspect-ratio:3/4;border-radius:14px;overflow:hidden;background:#000"><video id="ocVid" playsinline muted autoplay style="width:100%;height:100%;object-fit:cover"></video><div style="position:absolute;left:8%;right:8%;top:35%;height:30%;border:2px dashed rgba(255,214,10,.75);border-radius:10px;pointer-events:none" id="ocBox"></div></div></div>
+    <div class="r"><button class="sbtn" id="ocTest">Test</button><button class="sbtn" id="ocStop">Stop camera</button></div>
+    <div class="r">Status<span id="ocSt" class="dim">—</span></div>
+    <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
+  </div>
+  <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v13</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
+  <h4>Text recognition (experimental)</h4>
+  <p>Experimental tab: choose the camera (front or back) and tap <b>Test</b>. Hold the word in the yellow box. After 1.5 s the page reads it and shows the best word and all the text. Tap <b>Stop camera</b> when you are done (closing the settings stops it too).</p>
   <h4>Open and close</h4>
   <p>Hold the <b>share</b> button for 1 second to open these settings. Hold <b>•••</b> (or the date) for 1 second to clear the note.</p>
   <h4>Notes API</h4>
@@ -1537,6 +1549,52 @@ FVTVol.setup({page:'notes',
   new MutationObserver(()=>{const n=document.body.classList.contains('open');if(n&&!was)sync();was=n}).observe(document.body,{attributes:true,attributeFilter:['class']});
 })();
 </script>
-<script src="../hui.js"></script>
+<script>
+/* Text recognition test (Experimental tab) — Tesseract.js, loads on first Test */
+(function(){
+  const $o=id=>document.getElementById(id);let stream=null,worker=null,busy=false;
+  const st=t=>{$o('ocSt').textContent=t};
+  try{const c=localStorage.getItem('notes.ocCam');if(c)$o('ocCam').value=c;const a=localStorage.getItem('notes.ocArea');if(a)$o('ocArea').value=a}catch(e){}
+  const boxUI=()=>{$o('ocBox').style.display=$o('ocArea').value==='box'?'':'none'};boxUI();
+  $o('ocCam').onchange=e=>{try{localStorage.setItem('notes.ocCam',e.target.value)}catch(_){}if(stream)openCam()};
+  $o('ocArea').onchange=e=>{try{localStorage.setItem('notes.ocArea',e.target.value)}catch(_){}boxUI()};
+  function loadLib(){return window.Tesseract?Promise.resolve():new Promise((ok,no)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=ok;s.onerror=()=>no(new Error('Cannot load the text engine (internet?)'));document.head.appendChild(s)})}
+  async function getWorker(){if(worker)return worker;st('Loading the text engine…');await loadLib();worker=await Tesseract.createWorker('eng');await worker.setParameters({tessedit_pageseg_mode:'6'});return worker}
+  function stopCam(){if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}$o('ocVid').srcObject=null;$o('ocViewRow').style.display='none'}
+  async function openCam(){
+    stopCam();const f=$o('ocCam').value;
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:f},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    const v=$o('ocVid');v.srcObject=stream;v.style.transform=f==='user'?'scaleX(-1)':'';$o('ocViewRow').style.display='block';await v.play().catch(()=>{});
+    for(let i=0;i<40&&!v.videoWidth;i++)await new Promise(r=>setTimeout(r,50));
+  }
+  function grab(){
+    const v=$o('ocVid'),w=v.videoWidth,h=v.videoHeight;if(!w)return null;
+    const R=3/4;let sx=0,sy=0,sw=w,sh=h;if(w/h>R){sw=h*R;sx=(w-sw)/2}else{sh=w/R;sy=(h-sh)/2}
+    if($o('ocArea').value==='box'){sx+=sw*.08;sw*=.84;sy+=sh*.35;sh*=.30}
+    const c=document.createElement('canvas');c.width=Math.round(sw);c.height=Math.round(sh);const g=c.getContext('2d');
+    if($o('ocCam').value==='user'){g.translate(c.width,0);g.scale(-1,1)}
+    g.filter='grayscale(1) contrast(1.6)';g.drawImage(v,sx,sy,sw,sh,0,0,c.width,c.height);return c}
+  $o('ocTest').onclick=async()=>{
+    if(busy)return;busy=true;$o('ocWord').textContent='…';$o('ocRaw').textContent='';
+    try{
+      const wp=getWorker();                       // load the engine while the camera starts
+      if(!stream){st('Opening the camera…');await openCam()}
+      await wp;st('Hold still…');await new Promise(r=>setTimeout(r,1500));
+      const c=grab();if(!c)throw new Error('No camera picture');
+      st('Reading…');const t0=performance.now();const {data}=await worker.recognize(c);
+      const words=(data.words||[]).filter(x=>x.confidence>50&&/[A-Za-z0-9]{2,}/.test(x.text))
+        .sort((a,b)=>(b.bbox.y1-b.bbox.y0)*b.confidence-(a.bbox.y1-a.bbox.y0)*a.confidence);
+      const best=words[0]?words[0].text.replace(/[^\w'’-]/g,''):'';
+      $o('ocWord').textContent=best||'—';$o('ocRaw').textContent=(data.text||'').trim()||'(no text found)';
+      st((best?'Read "'+best+'" ('+Math.round(words[0].confidence)+'%)':'No word found')+' · '+(Math.round(performance.now()-t0)/1000).toFixed(1)+' s');
+      if(best&&navigator.vibrate)try{navigator.vibrate(30)}catch(_){}
+    }catch(e){st('Error: '+(e.name&&e.name!=='Error'?e.name+' ':'')+e.message);$o('ocWord').textContent='—'}
+    finally{busy=false}};
+  $o('ocStop').onclick=()=>{stopCam();st('Camera off')};
+  let was=document.body.classList.contains('open');
+  new MutationObserver(()=>{const n=document.body.classList.contains('open');if(was&&!n)stopCam();was=n}).observe(document.body,{attributes:true,attributeFilter:['class']});
+})();
+</script>
+<script src="../hui.js?v=13"></script>
 </body>
 </html>
