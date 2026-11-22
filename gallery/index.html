@@ -65,7 +65,7 @@ button.gl{font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
 #cprev{max-width:90px;border-radius:8px;display:none;margin-top:6px}
 #first{position:fixed;inset:0;z-index:60;background:#1d2025;color:#e6e8ec;display:none;align-items:center;justify-content:center;padding:24px}
 #first.on{display:flex}
-.fc{display:flex;flex-direction:column;gap:16px;max-width:340px;width:100%}.fc b{font-size:22px}
+.fc{display:flex;flex-direction:column;gap:16px;max-width:340px;width:100%}.fc>b{font-size:22px}
 ol.note{padding-left:18px;margin:6px 0}
 </style>
 </head><body>
@@ -103,7 +103,7 @@ ol.note{padding-left:18px;margin:6px 0}
 
 <script>
 'use strict';
-const VER='1.1';
+const VER='1.3';
 const LS='fvgallery1';
 const D={id:'13297',inj:true,injMode:'last',cmax:48,str:0.85,layout:'auto',upper:true,lc:'#ffffff',bc:'#000000',celeb:true,src:'mine',asked:false,look:'auto',title:'Library',items:5760,start:3,lock:true};
 let P=Object.assign({},D);
@@ -128,8 +128,8 @@ function layout(keepBottom){
   topPad=SAT+100;bottomPad=Math.max(SAB-6,14)+72;
   const oldC=LV[li];LV=levels();
   li=LV.indexOf(oldC);if(li<0){li=LV.indexOf(+P.start);if(li<0)li=1}
-  TOTAL=Math.max(P.cmax,Math.round((+P.items||5760)/P.cmax)*P.cmax);
-  $('#count').textContent=TOTAL.toLocaleString('en-US')+' Items';
+  TOTAL=MODE==='native'?PN:(NATIVE&&MODE==='wait'?0:Math.max(P.cmax,Math.round((+P.items||5760)/P.cmax)*P.cmax));
+  $('#count').textContent=TOTAL?TOTAL.toLocaleString('en-US')+' Items':'';
   $('#title').textContent=P.title||'Library';
   if(keepBottom)scrollY=maxScroll(LV[li]);
   scrollY=clamp(scrollY,0,maxScroll(LV[li]));
@@ -143,7 +143,11 @@ function theme(){
 }
 
 /* ---------- photo pool ---------- */
-let pool=[],PV=0,pvT=null;
+const NATIVE=!!(window.FVNative&&window.webkit&&window.webkit.messageHandlers&&window.webkit.messageHandlers.fvgal);
+let pool=[],PN=0,PV=0,pvT=null,MODE=NATIVE?'wait':'stock',FRAME=0,want=[],inflight=0,lastReply=0,loadedNP=0,natStat='',viewK=-1;
+const pending=new Set();
+let PIN=[];   // the photos that the mosaic is made from
+const newEntry=(k,pin)=>({k,ok:false,st:false,pin:!!pin,v:-1,used:0});
 function bumpPV(){if(pvT)return;pvT=setTimeout(()=>{pvT=null;PV++;AC.clear();dirty=true},500)}
 function cover(c,im){const x=c.getContext('2d'),w=im.naturalWidth||im.width,h=im.naturalHeight||im.height,m=Math.min(w,h);x.drawImage(im,(w-m)/2,(h-m)/2,m,m,0,0,c.width,c.height)}
 function loadEntry(e,src,noCors){
@@ -152,14 +156,48 @@ function loadEntry(e,src,noCors){
     const big=mk(160,160);cover(big,im);e.img=big;e.sm=mk(48,48);cover(e.sm,im);
     try{const t=mk(8,8);cover(t,im);const d=t.getContext('2d').getImageData(0,0,8,8).data;let r=0,g=0,b=0;
       for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2]}e.r=r/64;e.g=g/64;e.b=b/64;e.l=(.2126*e.r+.7152*e.g+.0722*e.b)/255;e.st=true}catch(err){}
-    e.ok=true;dirty=true;bumpPV()};
+    if(!e.ok&&!e.pin)loadedNP++;e.ok=true;dirty=true;if(e.pin)bumpPV()};
   im.onerror=()=>{if(!noCors&&!src.startsWith('blob:'))loadEntry(e,src,true)};
   im.src=src;
 }
 function loadStock(){
-  pool=[];
-  for(let i=0;i<200;i++){const e={ok:false,st:false,full:'https://picsum.photos/seed/fv'+i+'/1000/1250'};pool.push(e);loadEntry(e,'https://picsum.photos/seed/fv'+i+'/240/240')}
+  MODE='stock';pool=[];PIN=[];PN=200;
+  for(let i=0;i<PN;i++){const e=newEntry(i,true);e.full='https://picsum.photos/seed/fv'+i+'/1000/1250';pool.push(e);PIN.push(i);loadEntry(e,'https://picsum.photos/seed/fv'+i+'/240/240')}
   PV++;AC.clear();dirty=true;
+}
+/* native app (full gallery access) */
+function nat(m){try{window.webkit.messageHandlers.fvgal.postMessage(m)}catch(e){}}
+window.__galNativeInit=(n,st)=>{
+  natStat=st;
+  if(!n){MODE='stock';loadPool();layout(true);ui();return}
+  MODE='native';PN=n;pool=new Array(n);PIN=[];pending.clear();inflight=0;want=[];loadedNP=0;
+  const m=Math.min(n,400);for(let j=0;j<m;j++){const k=Math.floor((j+.5)*n/m);if(!pool[k]){pool[k]=newEntry(k,true);PIN.push(k)}}
+  PV++;AC.clear();layout(true);ui();
+};
+window.__galThumbs=(items,failed)=>{
+  inflight=Math.max(0,inflight-1);lastReply=performance.now();
+  for(const it of items||[]){pending.delete(it.k);const e=pool[it.k];if(!e)continue;e.v=it.v;loadEntry(e,it.d,true)}
+  for(const k of failed||[]){pending.delete(k);const e=pool[k];if(e)e.bad=true}
+};
+window.__galFull=(k,d)=>{if(k===viewK&&d)$('#vimg').src=d};
+function getE(k){
+  let e=pool[k];
+  if(!e){if(MODE!=='native')return null;e=pool[k]=newEntry(k,false)}
+  e.used=FRAME;
+  if(MODE==='native'&&!e.ok&&!e.bad&&!pending.has(k))want.push(k);
+  return e;
+}
+function flush(){
+  if(MODE!=='native')return;
+  const now=performance.now();
+  if(inflight&&now-lastReply>8000){inflight=0;pending.clear();lastReply=now}
+  if(!want.length)for(const k of PIN){const e=pool[k];if(e&&!e.ok&&!e.bad&&!pending.has(k)){want.push(k);if(want.length>=36)break}}
+  while(inflight<4&&want.length){const ids=[...new Set(want.splice(0,36))];ids.forEach(k=>pending.add(k));if(!inflight)lastReply=now;inflight++;nat({t:'thumbs',ids,s:200})}
+  want=[];
+  if(loadedNP>2500){
+    const arr=[];for(const k in pool){const e=pool[k];if(e&&e.ok&&!e.pin)arr.push(e)}
+    arr.sort((a,b)=>a.used-b.used);for(const e of arr.slice(0,700)){delete pool[e.k];loadedNP--}
+  }
 }
 /* my photos (IndexedDB) */
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('fvgallery',1);r.onupgradeneeded=()=>r.result.createObjectStore('ph',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -168,13 +206,14 @@ async function idbPut(o){const db=await idb();return new Promise(res=>{const t=d
 async function idbClear(){try{const db=await idb();await new Promise(res=>{const t=db.transaction('ph','readwrite');t.objectStore('ph').clear();t.oncomplete=res;t.onerror=res})}catch(e){}}
 let myCount=0;
 async function loadPool(){
+  if(MODE==='native'||MODE==='wait')return;
   const all=await idbAll();myCount=all.length;ui();
-  MINE=P.src==='mine'&&all.length>0;
-  if(MINE){
-    pool=all.map(o=>{const e={ok:false,st:false,full:URL.createObjectURL(o.full)};loadEntry(e,URL.createObjectURL(o.thumb),true);return e});
+  if(P.src==='mine'&&all.length>0){
+    MODE='mine';PIN=[];PN=all.length;
+    pool=all.map((o,i)=>{const e=newEntry(i,true);e.full=URL.createObjectURL(o.full);PIN.push(i);loadEntry(e,URL.createObjectURL(o.thumb),true);return e});
     PV++;AC.clear();dirty=true;
   }else loadStock();
-  if(!all.length&&!P.asked)$('#first').classList.add('on');
+  if(!all.length&&!P.asked&&!NATIVE)$('#first').classList.add('on');
 }
 function blobOf(c,q){return new Promise(r=>c.toBlob(b=>r(b),'image/jpeg',q))}
 async function addFiles(files){
@@ -198,15 +237,19 @@ function hex(h){h=(h||'#000').replace('#','');if(h.length===3)h=h.split('').map(
 const FONT=n=>'900 '+n+'px -apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif';
 function fitText(x,lines,aw,ah){x.font=FONT(100);const mw=Math.max(1,...lines.map(l=>x.measureText(l).width));const fs=Math.min(aw/mw*100,ah/lines.length);x.font=FONT(fs);lines.forEach((l,i)=>x.fillText(l,0,(i-(lines.length-1)/2)*fs*1.02))}
 function rebuildTarget(){
+  if(TG&&W&&LV.length&&tintA(W/LV[li]*s)>0.03)snap(700);   // a new word: fade the old mosaic into the new one
   TG=null;SATs=null;AC.clear();dirty=true;
   if(!TSRC||!W)return;
   TH=Math.max(50,Math.round(TW*H/W));
   const cn=mk(TW,TH),x=cn.getContext('2d');
-  const top=topPad/H*TH,bot=(H-bottomPad)/H*TH,cy=(top+bot)/2,rh=bot-top;
+  // the area that the grid covers at the smallest grid (a small library does not fill the screen)
+  const cm=+P.cmax,pm=W/cm,gb=topPad+rowsT(cm)*pm-maxScroll(cm),gt=Math.max(0,gb-rowsT(cm)*pm);
+  const top=Math.max(topPad,gt)/H*TH,bot=Math.max(Math.max(topPad,gt)+pm*4,Math.min(H-bottomPad,gb))/H*TH,cy=(top+bot)/2,rh=bot-top;
   let mode='word';
   if(TSRC.img){
-    mode='img';const im=TSRC.img,iw=im.naturalWidth,ih=im.naturalHeight,sc=Math.max(TW/iw,TH/ih);
-    x.drawImage(im,(TW-iw*sc)/2,(TH-ih*sc)*0.3,iw*sc,ih*sc);
+    mode='img';const im=TSRC.img,iw=im.naturalWidth,ih=im.naturalHeight,y0=gt/H*TH,gh=Math.max(4,(gb-gt)/H*TH),sc=Math.max(TW/iw,gh/ih);
+    x.fillStyle='#000';x.fillRect(0,0,TW,TH);
+    x.drawImage(im,(TW-iw*sc)/2,y0+(gh-ih*sc)*0.3,iw*sc,ih*sc);
   }else{
     x.fillStyle='#000';x.fillRect(0,0,TW,TH);x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
     const t=(P.upper?TSRC.word.toUpperCase():TSRC.word).trim();
@@ -236,16 +279,19 @@ function sampleRect(x0,y0,x1,y1){
   const W1=TW+1,a=(X1-X0)*(Y1-Y0);
   return SATs.map(S=>(S[Y1*W1+X1]-S[Y0*W1+X1]-S[Y1*W1+X0]+S[Y0*W1+X0])/a);
 }
-function tintA(P2){const ps=W/11,pf=W/P.cmax;return P.str*Math.pow(clamp((ps-P2)/(ps-pf),0,1),1.15)}
+function tintA(P2){const ps=W/7,pf=W/P.cmax,t=clamp((ps-P2)/(ps-pf),0,1);return P.str*t*t*(3-2*t)}   // smooth start, smooth end
+/* crossfade: a copy of the last frame fades out over the new one */
+const ghost=document.createElement('canvas'),gctx=ghost.getContext('2d');let gA=0,gT=0,gD=200;
+function snap(d){if(!cv.width)return;ghost.width=cv.width;ghost.height=cv.height;gctx.drawImage(cv,0,0);gA=1;gT=performance.now();gD=d;dirty=true}
 function assign(c){
   const key=c+'|'+TV+'|'+PV;
   if(AC.has(key))return AC.get(key);
-  const p=W/c,tr=rowsT(c),Rm=Math.ceil(H/p)+2,r0=Math.max(0,tr-Rm),start=r0*c,n=TOTAL-start;
+  const p=W/c,tr=rowsT(c),Rm=Math.ceil(H/p)+2,r0=Math.max(0,tr-Rm),start=r0*c,n=Math.max(0,TOTAL-start),ms=maxScroll(c);
   const idx=new Int16Array(n).fill(-1),col=new Array(n).fill(null);
-  const st=[];for(let i=0;i<pool.length;i++)if(pool[i].st)st.push(i);
+  const st=[];for(const k of PIN){const e=pool[k];if(e&&e.st)st.push(k)}
   const byL=st.slice().sort((a,b)=>pool[a].l-pool[b].l),sp=Math.max(1,Math.round(byL.length*.1));
   for(let j=0;j<n;j++){
-    const i=start+j,r=Math.floor(i/c),k=i%c,ys=H-bottomPad-(tr-r)*p,xs=k*p;
+    const i=start+j,r=Math.floor(i/c),k=i%c,ys=topPad+r*p-ms,xs=k*p;
     if(ys+p<=0||ys>=H)continue;
     const v=sampleRect(xs,ys,xs+p,ys+p);
     col[j]='rgb('+(v[0]|0)+','+(v[1]|0)+','+(v[2]|0)+')';
@@ -258,11 +304,11 @@ function assign(c){
   }
   const res={start,idx,col};AC.set(key,res);if(AC.size>10)AC.delete(AC.keys().next().value);return res;
 }
-let MINE=false;
 function photoAt(i,c,M){
   if(M&&i>=M.start&&M.idx[i-M.start]>=0)return M.idx[i-M.start];
-  const N=pool.length;if(!N)return -1;
-  if(MINE)return N-1-((TOTAL-1-i)%N);   // same order as your gallery: the last photo is at the bottom
+  const N=PN;if(!N)return -1;
+  if(MODE==='native')return i<N?i:-1;   // your real gallery, oldest at the top, newest at the bottom
+  if(MODE==='mine')return N-1-((TOTAL-1-i)%N);   // same order as your gallery: the last photo is at the bottom
   return hsh(i+7)%N;
 }
 
@@ -278,12 +324,16 @@ function draw(){
     for(let k=0;k<c;k++){
       const i=r*c+k;if(i>=TOTAL)break;
       const sx=fx+(k*p-fx)*S;if(sx>W||sx+sz<0)continue;
-      const pi=photoAt(i,c,M),e=pi>=0?pool[pi]:null;
-      if(e&&e.ok)ctx.drawImage(big?e.img:e.sm,sx,sy,sz,sz);else{ctx.fillStyle=PH;ctx.fillRect(sx,sy,sz,sz)}
+      const pi=photoAt(i,c,M),e=pi>=0?getE(pi):null;
+      if(e&&e.ok){ctx.drawImage(big?e.img:e.sm,sx,sy,sz,sz);
+        if(e.v>=0&&sz>56){ctx.font='600 12px -apple-system,sans-serif';ctx.textAlign='right';ctx.textBaseline='bottom';ctx.fillStyle='#fff';ctx.shadowColor='rgba(0,0,0,.55)';ctx.shadowBlur=3;
+          ctx.fillText(Math.floor(e.v/60)+':'+String(e.v%60).padStart(2,'0'),sx+sz-5,sy+sz-4);ctx.shadowBlur=0}}
+      else{ctx.fillStyle=PH;ctx.fillRect(sx,sy,sz,sz)}
       const tc=M&&i>=M.start?M.col[i-M.start]:null;
       if(tc){ctx.globalAlpha=a;ctx.fillStyle=tc;ctx.fillRect(sx,sy,sz,sz);ctx.globalAlpha=1}
     }
   }
+  if(gA>0){ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=gA;ctx.drawImage(ghost,0,0);ctx.globalAlpha=1}
 }
 
 /* ---------- gestures ---------- */
@@ -291,6 +341,7 @@ let mode=null,t0=null,vy=0,lastY=0,lastT=0,pin=null,settle=null,bottomAnchor=fal
 const T=new Map();
 function pts(){return[...T.values()]}
 function switchTo(n){
+  snap(220);
   const c=LV[li],p=W/c,cy=scrollY+fy-topPad,row=clamp(Math.floor(cy/p),0,rowsT(c)-1),fr=clamp(cy/p-row,0,1),col=clamp(Math.floor(fx/p),0,c-1);
   const idx=Math.min(TOTAL-1,row*c+col),P2=p*s;
   li=n;const c2=LV[n],p2=W/c2;s=P2/p2;
@@ -364,7 +415,9 @@ function tapAt(x,y){
   const c=LV[li],p=W/c,r=Math.floor((y+scrollY-topPad)/p),k=Math.floor(x/p),i=r*c+k;
   if(r<0||k<0||k>=c||i>=TOTAL)return;
   const M=TG&&tintA(p)>0.01?assign(c):null,pi=photoAt(i,c,M),e=pool[pi];if(!e)return;
-  const v=$('#vimg');v.src=e.full||'';$('#viewer').classList.add('on');
+  const v=$('#vimg');viewK=pi;
+  if(MODE==='native'){v.src=e.img?e.img.toDataURL('image/jpeg',.8):'';nat({t:'full',k:pi})}else v.src=e.full||'';
+  $('#viewer').classList.add('on');
 }
 $('#vback').onclick=()=>$('#viewer').classList.remove('on');
 (()=>{let sy=0;const v=$('#viewer');v.addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});
@@ -376,7 +429,7 @@ let lt=performance.now();
 function loop(now){
   const dt=Math.min(40,now-lt);lt=now;
   if(settle){
-    const k=clamp((now-settle.t)/260,0,1),e=1-Math.pow(1-k,3);
+    const k=clamp((now-settle.t)/320,0,1),e=1-Math.pow(1-k,3);
     s=settle.from+(1-settle.from)*e;dirty=true;
     if(k>=1){s=1;settle=null;if(bottomAnchor)scrollY=maxScroll(LV[li])}
   }else if(mode!=='drag'&&mode!=='pinch'){
@@ -384,7 +437,9 @@ function loop(now){
     if(scrollY<0||scrollY>ms){const b=scrollY<0?0:ms;vy*=.6;scrollY+=(b-scrollY)*Math.min(1,dt*.016);if(Math.abs(b-scrollY)<.3)scrollY=b;dirty=true}
     if(Math.abs(vy)>.02){scrollY+=vy*dt;vy*=Math.pow(.9975,dt);dirty=true}else vy=0;
   }
+  if(gA>0){const k=clamp((now-gT)/gD,0,1);gA=1-k*k*(3-2*k);dirty=true}
   if(dirty)draw();
+  flush();FRAME++;
   requestAnimationFrame(loop);
 }
 
@@ -475,12 +530,13 @@ const TABS=[
   <div class="stat" id="celRes"></div><img id="cprev" alt="">
   <div class="note">The page looks for the word on Wikipedia. If the page is a real person with a photo, the photos make that person's face. Names must be complete (for example "Taylor Swift", "Rihanna").</div>`],
  ['Photos',`
+  <div class="r" id="natRow" style="display:none"><span id="natSt"></span><button class="nb sm" id="natSet">iPhone Settings</button></div>
   <div class="r"><span>Photos</span>${sel('src',[['stock','Stock photos'],['mine','My photos']])}</div>
   <div class="r"><button class="nb sm" id="pickBtn">Add photos</button><button class="nb sm" id="clrMine">Remove my photos</button></div>
   <div class="stat" id="myStat"></div>
   <div class="r"><span>Number of items shown</span><input type="number" inputmode="numeric" data-k="items"></div>
   <div class="r"><span>Start grid (columns)</span>${sel('start',[[1,'1'],[3,'3'],[5,'5'],[9,'9']])}</div>
-  <div class="note">iOS does not let a web page read your gallery by itself, so you choose the photos one time. They stay on this phone only (not online). "Add photos" adds more to the photos that you have. In the picker, push Select and drag across the photos to select many. Your last photo shows at the bottom, as in the real Photos app. Add 300 or more photos for the best look.</div>`],
+  <div class="note">In the Gallery app, the page uses your full gallery and these choices have no effect.<br>iOS does not let a web page read your gallery by itself, so you choose the photos one time. They stay on this phone only (not online). "Add photos" adds more to the photos that you have. In the picker, push Select and drag across the photos to select many. Your last photo shows at the bottom, as in the real Photos app. Add 300 or more photos for the best look.</div>`],
  ['Look',`
   <div class="r"><span>Appearance</span>${sel('look',[['auto','Same as phone'],['dark','Dark'],['light','Light']])}</div>
   <div class="r"><span>Title</span><input type="text" data-k="title"></div>
@@ -518,6 +574,7 @@ function buildSet(){
   $('#celGo').onclick=async()=>{const q=$('#celT').value.trim();if(!q)return;$('#celRes').textContent='Looking…';$('#cprev').style.display='none';
     const r=await celebLookup(q);if(!r){$('#celRes').textContent='Not a famous person: the page will make a word mosaic.';return}
     $('#celRes').textContent='Found: '+r.name;const p=$('#cprev');p.src=r.urls[r.urls.length-1];p.style.display='block'};
+  if(NATIVE){$('#natRow').style.display='flex';$('#natSet').onclick=()=>nat({t:'settings'})}
   $('#pickBtn').onclick=()=>$('#pick').click();
   $('#pick').onchange=async e=>{const f=[...e.target.files];e.target.value='';if(f.length){P.src='mine';P.asked=true;save();document.querySelector('[data-k=src]').value='mine';await addFiles(f);$('#first').classList.remove('on');layout(true)}};
   $('#fPick').onclick=()=>$('#pick').click();
@@ -533,13 +590,14 @@ function onChange(k){
   else if(k==='str'){dirty=true}
   else if(k==='inj'||k==='id'||k==='injMode'){clearTimeout(onChange.t);onChange.t=setTimeout(injStart,600)}
   else if(k==='celeb'){if(CUR)applyWord(CUR)}
-  else if(k==='src'){loadPool()}
+  else if(k==='src'){if(MODE!=='native')loadPool()}
 }
 function ui(){
   const a=$('#curW');if(a)a.textContent=CUR?'Mosaic now: "'+CUR+'"'+(TSRC&&TSRC.img?' (picture)':''):'Mosaic now: none (plain gallery)';
   const b=$('#injStat');if(b)b.textContent=injStat;
   const c=$('#celStat');if(c)c.textContent=lastCeleb||'';
   const m=$('#myStat');if(m)m.textContent='My photos on this phone: '+myCount;
+  const ns=$('#natSt');if(ns)ns.textContent=natStat==='full'?'Full access: '+PN.toLocaleString('en-US')+' photos and videos':natStat==='limited'?'Limited access ('+PN+' items). Choose Full Access in iPhone Settings.':natStat==='denied'?'No access. Allow Photos in iPhone Settings.':'Waiting for access…';
 }
 let lpT=null;
 $('#ttl').addEventListener('touchstart',e=>{lpT=setTimeout(()=>{lpT=null;$('#set').classList.add('on');ui()},900)},{passive:true});
@@ -551,7 +609,7 @@ $('#selBtn').onclick=()=>{const b=$('#selBtn');b.textContent=b.textContent==='Se
 /* ---------- start ---------- */
 window.addEventListener('resize',()=>{const atB=scrollY>=maxScroll(LV[li])-2;layout(atB)});
 matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',theme);
-buildSet();theme();layout(true);loadPool();injStart();requestAnimationFrame(loop);
+buildSet();theme();layout(true);if(NATIVE)nat({t:'init'});else loadPool();injStart();requestAnimationFrame(loop);
 window.__gal={applyWord,clearWord,get state(){return{li,cols:LV[li],s,scrollY,TOTAL,pool:pool.length,TV}}};
 </script>
 </body></html>
