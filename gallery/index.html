@@ -7,6 +7,7 @@
 <meta name="theme-color" content="#000000">
 <title>Photos</title>
 <script src="../kill.js"></script>
+<script src="../aurakit/aurakit.js"></script>
 <style>
 :root{--bg:#000;--fg:#fff;--sub:rgba(235,235,245,.6);--glass:rgba(38,38,40,.42);--gb:rgba(255,255,255,.16);--hl:rgba(255,255,255,.22);--acc:#0a84ff;--seltab:rgba(255,255,255,.14)}
 .light{--bg:#fff;--fg:#000;--sub:rgba(60,60,67,.6);--glass:rgba(255,255,255,.55);--gb:rgba(0,0,0,.07);--hl:rgba(255,255,255,.9);--acc:#007aff;--seltab:rgba(0,0,0,.07)}
@@ -20,6 +21,7 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hid
 #ttl{pointer-events:auto;padding-top:6px}
 #title{font-size:34px;font-weight:700;letter-spacing:.2px;line-height:41px}
 #count{font-size:15px;color:var(--sub);margin-top:1px;font-weight:500}
+#vdot{display:none;width:5px;height:5px;border-radius:3px;background:var(--sub);align-self:center;opacity:.6}
 #tr{display:flex;gap:8px;pointer-events:auto;padding-top:8px}
 .gl{background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);border:.5px solid var(--gb);box-shadow:inset 0 1px 0 var(--hl),0 4px 18px rgba(0,0,0,.18);color:var(--fg)}
 button.gl{font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
@@ -74,7 +76,7 @@ ol.note{padding-left:18px;margin:6px 0}
 <div id="topblur"></div><div id="topfade"></div><div id="botfade"></div>
 <div id="hdr">
   <div id="ttl"><div id="title">Library</div><div id="count"></div></div>
-  <div id="tr">
+  <div id="tr"><div id="vdot"></div>
     <button class="gl pill" id="selBtn">Select</button>
     <button class="gl circ" id="moreBtn" aria-label="More"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
   </div>
@@ -103,9 +105,9 @@ ol.note{padding-left:18px;margin:6px 0}
 
 <script>
 'use strict';
-const VER='1.5';
+const VER='1.6';
 const LS='fvgallery1';
-const D={id:'13297',inj:true,injMode:'last',cmax:48,str:0.85,layout:'auto',upper:true,lc:'#ffffff',bc:'#000000',celeb:true,src:'mine',asked:false,look:'auto',title:'Library',items:5760,start:3,lock:true};
+const D={id:'13297',inj:true,injMode:'last',cmax:48,str:0.85,layout:'auto',upper:true,lc:'#ffffff',bc:'#000000',celeb:true,src:'mine',asked:false,look:'auto',title:'Library',items:5760,start:3,lock:true,phrase:'you said {name}',vwords:3,vany:false,vkeep:false,vup:'voice',vdown:'none',vlang:'en-US',vdot:false};
 let P=Object.assign({},D);
 try{Object.assign(P,JSON.parse(localStorage.getItem(LS)||'{}'))}catch(e){}
 function save(){try{localStorage.setItem(LS,JSON.stringify(P))}catch(e){}}
@@ -504,9 +506,9 @@ function loadImg(urls){
 }
 const within=(pr,ms)=>Promise.race([pr,new Promise(r=>setTimeout(()=>r(null),ms))]);
 let AT=0,lastCeleb='';
-async function applyWord(w){
+async function applyWord(w,force){
   w=String(w||'').trim();if(!w)return;const tok=++AT;CUR=w;lastCeleb='Checking…';ui();
-  if(P.celeb){
+  if(P.celeb||force){
     const r=await within(celebLookup(w),6000);if(tok!==AT)return;
     if(r){const im=await within(loadImg(r.urls),8000);if(tok!==AT)return;
       if(im){TSRC={word:w,img:im};lastCeleb='Person: '+r.name;rebuildTarget();ui();return}}
@@ -515,6 +517,75 @@ async function applyWord(w){
   TSRC={word:w};rebuildTarget();ui();
 }
 function clearWord(){AT++;CUR='';TSRC=null;rebuildTarget();lastCeleb='';ui()}
+
+/* ---------- voice: "you said (name)" ---------- */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+let vOn=false,vRec=null,vStat='Off',vHeard='',vLast='',vTimer=null,vBusy=false;
+function buzz(){try{if(NATIVE)nat({t:'buzz'});else if(window.AuraKit&&AuraKit.haptics)AuraKit.haptics.impact('medium')}catch(e){}}
+function dot(){const d=$('#vdot');if(d)d.style.display=vOn&&P.vdot?'block':'none'}
+function vSet(t){vStat=t;const a=$('#vStat');if(a)a.textContent=t;const b=$('#vBtn');if(b)b.textContent=vOn?'Stop listening':'Start listening'}
+function voiceToggle(){vOn?voiceStop():voiceStart()}
+function voiceStart(){
+  if(vOn)return;
+  if(!NATIVE&&!SR){vSet('Voice is not available here. Use the Gallery app (or Safari).');buzz();return}
+  vOn=true;vLast='';vBusy=false;vHeard='';buzz();vSet('Listening…');dot();
+  if(NATIVE){nat({t:'listen',on:true,lang:P.vlang});return}
+  try{
+    vRec=new SR();vRec.continuous=true;vRec.interimResults=true;vRec.lang=P.vlang||'en-US';
+    vRec.onresult=e=>{let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript+' ';heard(t,e.results[e.results.length-1].isFinal)};
+    vRec.onerror=e=>{if(e.error==='not-allowed'){vOn=false;vSet('No microphone permission');dot()}};
+    vRec.onend=()=>{if(vOn)try{vRec.start()}catch(e){}};
+    vRec.start();
+  }catch(e){vOn=false;vSet('Voice could not start');dot()}
+}
+function voiceStop(quiet){
+  if(!vOn)return;vOn=false;clearTimeout(vTimer);if(!quiet)buzz();
+  if(NATIVE)nat({t:'listen',on:false});else{try{vRec&&vRec.stop()}catch(e){}vRec=null}
+  vSet(vStat.startsWith('Person')?vStat:'Off');dot();
+}
+window.__galSpeech=(t,fin)=>{if(vOn)heard(String(t||''),!!fin)};
+window.__galVoice=st=>{if(st==='denied'){vOn=false;vSet('No microphone or speech permission. Allow them in iPhone Settings.');dot()}else if(st==='error'){vSet('Voice error. Trying again…')}};
+// the text after the listening phrase ("you said" … ), or null
+function afterPhrase(t){
+  const ph=(P.phrase||'you said {name}').toLowerCase();const parts=ph.split('{name}');
+  const esc=x=>x.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,"[\\s,.'’]+");
+  const pre=esc(parts[0]||''),post=esc(parts[1]||'');
+  const low=t.toLowerCase();let rest=null;
+  if(pre){const re=new RegExp('(?:^|[^\\p{L}])'+pre+'(?=[^\\p{L}]|$)','giu');let m,last=-1;while((m=re.exec(low)))last=m.index+m[0].length;if(last<0)return null;rest=low.slice(last)}
+  else rest=low;
+  if(post){const m=new RegExp('[\\s,.]*'+post,'iu').exec(rest);if(!m)return null;rest=rest.slice(0,m.index)}
+  rest=rest.replace(/[^\p{L}\p{N}'’.\- ]+/gu,' ').replace(/[.\-]+(\s|$)/g,'$1').trim();
+  return rest||null;
+}
+function heard(t,fin){
+  vHeard=t.trim();const h=$('#vHeard');if(h)h.textContent=vHeard?'Heard: '+vHeard.slice(-90):'';
+  const rest=afterPhrase(vHeard);if(!rest)return;
+  clearTimeout(vTimer);
+  if(fin)vProcess(rest);else vTimer=setTimeout(()=>vProcess(rest),1100);   // the name is complete when the words stop for 1.1 s
+}
+async function vProcess(rest){
+  const N=Math.max(1,+P.vwords||3),all=rest.split(/\s+/).filter(Boolean);
+  const nameFirst=/^\s*\{name\}/i.test(P.phrase||'');   // "{name} is your pick": the name is the last words before the phrase
+  const words=nameFirst?all.slice(-N):all.slice(0,N);if(!words.length)return;
+  const key=words.join(' ');if(key===vLast||vBusy)return;vLast=key;vBusy=true;vSet('Heard "'+key+'" · checking…');
+  let hit=null;
+  for(let n=words.length;n>=1&&!hit;n--){const q=(nameFirst?words.slice(-n):words.slice(0,n)).join(' ');if(await within(celebLookup(q),5000))hit=q}
+  vBusy=false;if(!vOn)return;
+  if(hit){vSet('Person: '+hit);buzz();if(!P.vkeep)voiceStop(true);applyWord(hit,true)}
+  else if(P.vany){vSet('Word: '+key);buzz();if(!P.vkeep)voiceStop(true);applyWord(key)}
+  else vSet('Heard "'+key+'": not a famous person. Still listening…');
+}
+/* volume buttons */
+function onVol(b){
+  if($('#set').classList.contains('on'))return;
+  const a=b==='up'?P.vup:P.vdown;
+  if(a==='voice')voiceToggle();else if(a==='clear'){clearWord();buzz()}
+}
+window.__galVol=b=>onVol(b);
+function volStart(){
+  if(NATIVE){nat({t:'volume',on:true});return}
+  try{if(window.AuraKit)AuraKit.ready().then(env=>{if(env.available&&env.caps&&env.caps.volumeButtons)AuraKit.volumeButtons.watch(({button})=>onVol(button)).catch(()=>{})}).catch(()=>{})}catch(e){}
+}
 
 /* ---------- settings ---------- */
 const sel=(k,opts)=>'<select data-k="'+k+'">'+opts.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('')+'</select>';
@@ -559,6 +630,19 @@ const TABS=[
   <div class="r"><span>Status</span><span id="ksSt" style="opacity:.6">—</span></div>
   <div class="r"><button class="nb sm" id="ksBtn">Kill this show</button></div>
   <div class="note">Push after the show. Past spectators cannot open this trick again. New spectators at the next show get the trick.</div>`],
+ ['Voice',`
+  <div class="stat" id="vStat"></div>
+  <div class="r"><button class="nb sm" id="vBtn">Start listening</button></div>
+  <div class="stat" id="vHeard"></div>
+  <div class="r"><span>Listening phrase</span><input type="text" data-k="phrase" autocapitalize="off" autocomplete="off"></div>
+  <div class="r"><span>Words in the name (up to)</span>${sel('vwords',[[1,'1'],[2,'2'],[3,'3'],[4,'4']])}</div>
+  <div class="r"><span>Volume +</span>${sel('vup',[['voice','Voice on / off'],['clear','Clear mosaic'],['none','Nothing']])}</div>
+  <div class="r"><span>Volume −</span>${sel('vdown',[['voice','Voice on / off'],['clear','Clear mosaic'],['none','Nothing']])}</div>
+  <div class="r"><span>Use the word if not a famous person</span>${sw('vany')}</div>
+  <div class="r"><span>Keep listening after a name</span>${sw('vkeep')}</div>
+  <div class="r"><span>Language</span>${sel('vlang',[['en-US','English (US)'],['en-GB','English (UK)'],['es-ES','Spanish'],['fr-FR','French'],['it-IT','Italian'],['de-DE','German'],['pt-BR','Portuguese (Brazil)']])}</div>
+  <div class="r"><span>Small dot while listening</span>${sw('vdot')}</div>
+  <div class="note">Push the volume button to start listening (the phone buzzes). Say the phrase, for example "You said Taylor Swift". Put <b>{name}</b> where the name goes, for example "so your star is {name}" or "{name} is your pick". The page tries the longest name first (3 words, then 2, then 1), and uses the first one that is a famous person. Then it stops listening (buzz) and the mosaic becomes that person.<br>Volume buttons and voice work in the Gallery app. In Aura, the volume buttons work; voice works only if Aura gives speech recognition (Safari does).</div>`],
  ['Help',`
   <ol class="note">
    <li>Open this page in Aura or Safari. The gallery opens at the bottom (newest photos).</li>
@@ -566,6 +650,7 @@ const TABS=[
    <li>Give the phone to the spectator. Tell the spectator to pinch to zoom out.</li>
    <li>When the grid gets small, the photos start to make the word. At the smallest grid, the word is clear.</li>
    <li>If the word is the name of a famous person, the photos make the face of that person (Celebrity tab).</li>
+   <li>Voice: push Volume +, then say "You said …" and a famous name. The photos make that person (Voice tab).</li>
   </ol>
   <div class="note"><b>Open settings:</b> touch and hold the title "Library" for 1 second.<br><b>Test:</b> type a word in "Test word" on the Mosaic tab and push Show.<br>Tap a photo to open it. Swipe down to close it.</div>`]
 ];
@@ -588,6 +673,7 @@ function buildSet(){
     const r=await celebLookup(q);if(!r){$('#celRes').textContent='Not a famous person: the page will make a word mosaic.';return}
     $('#celRes').textContent='Found: '+r.name;const p=$('#cprev');p.src=r.urls[r.urls.length-1];p.style.display='block'};
   if(NATIVE){$('#natRow').style.display='flex';$('#natSet').onclick=()=>nat({t:'settings'})}
+  $('#vBtn').onclick=()=>voiceToggle();
   $('#pickBtn').onclick=()=>$('#pick').click();
   $('#pick').onchange=async e=>{const f=[...e.target.files];e.target.value='';if(f.length){P.src='mine';P.asked=true;save();document.querySelector('[data-k=src]').value='mine';await addFiles(f);$('#first').classList.remove('on');layout(true)}};
   $('#fPick').onclick=()=>$('#pick').click();
@@ -603,9 +689,12 @@ function onChange(k){
   else if(k==='str'){dirty=true}
   else if(k==='inj'||k==='id'||k==='injMode'){clearTimeout(onChange.t);onChange.t=setTimeout(injStart,600)}
   else if(k==='celeb'){if(CUR)applyWord(CUR)}
+  else if(k==='vdot'){dot()}
+  else if(k==='vlang'&&vOn){voiceStop(true);voiceStart()}
   else if(k==='src'){if(MODE!=='native')loadPool()}
 }
 function ui(){
+  vSet(vStat);dot();
   const a=$('#curW');if(a)a.textContent=CUR?'Mosaic now: "'+CUR+'"'+(TSRC&&TSRC.img?' (picture)':''):'Mosaic now: none (plain gallery)';
   const b=$('#injStat');if(b)b.textContent=injStat;
   const c=$('#celStat');if(c)c.textContent=lastCeleb||'';
@@ -622,7 +711,7 @@ $('#selBtn').onclick=()=>{const b=$('#selBtn');b.textContent=b.textContent==='Se
 /* ---------- start ---------- */
 window.addEventListener('resize',()=>{const atB=scrollY>=maxScroll(LV[li])-2;layout(atB)});
 matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',theme);
-buildSet();theme();loadDark();layout(true);if(NATIVE)nat({t:'init'});else loadPool();injStart();requestAnimationFrame(loop);
+buildSet();theme();loadDark();layout(true);if(NATIVE)nat({t:'init'});else loadPool();injStart();requestAnimationFrame(loop);volStart();
 window.__gal={applyWord,clearWord,get state(){return{li,cols:LV[li],s,scrollY,TOTAL,pool:pool.length,TV}}};
 </script>
 </body></html>

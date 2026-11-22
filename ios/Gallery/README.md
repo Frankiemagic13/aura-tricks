@@ -35,3 +35,11 @@ With a free Apple ID, the app stops working after 7 days. Then connect the iPhon
 - New photos that you take while the app is open show at the bottom.
 - The mosaic uses 400 photos from all parts of your library.
 - The app needs the internet for the page, Inject and the celebrity look-up. Your photos are not sent online.
+
+## Voice and volume buttons
+
+- **Volume +** starts and stops listening (the phone buzzes). You can change this on the Voice tab.
+- Say the listening phrase, for example "You said Taylor Swift". When the page finds a famous
+  person, it stops listening (buzz), and the mosaic becomes that person.
+- The first time, iOS asks for the **Microphone** and **Speech Recognition**. Push **Allow** for both.
+- The listening phrase is on the Voice tab. Put `{name}` where the name goes.
