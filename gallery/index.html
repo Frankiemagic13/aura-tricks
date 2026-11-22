@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Photos</title>
+<script src="../kill.js"></script>
+<style>
+:root{--bg:#000;--fg:#fff;--sub:rgba(235,235,245,.6);--glass:rgba(38,38,40,.42);--gb:rgba(255,255,255,.16);--hl:rgba(255,255,255,.22);--acc:#0a84ff;--seltab:rgba(255,255,255,.14)}
+.light{--bg:#fff;--fg:#000;--sub:rgba(60,60,67,.6);--glass:rgba(255,255,255,.55);--gb:rgba(0,0,0,.07);--hl:rgba(255,255,255,.9);--acc:#007aff;--seltab:rgba(0,0,0,.07)}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",sans-serif;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+#cv{position:fixed;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#probe{position:fixed;top:0;left:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);visibility:hidden;pointer-events:none}
+#topblur{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 118px);pointer-events:none;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);-webkit-mask:linear-gradient(#000 40%,transparent);mask:linear-gradient(#000 40%,transparent)}
+#topfade{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 130px);pointer-events:none;background:linear-gradient(var(--bg) 0%,color-mix(in srgb,var(--bg) 72%,transparent) 42%,transparent 100%)}
+#botfade{position:fixed;left:0;right:0;bottom:0;height:calc(env(safe-area-inset-bottom) + 90px);pointer-events:none;background:linear-gradient(transparent,color-mix(in srgb,var(--bg) 55%,transparent))}
+#hdr{position:fixed;left:0;right:0;top:calc(env(safe-area-inset-top) + 4px);padding:0 16px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
+#ttl{pointer-events:auto;padding-top:6px}
+#title{font-size:34px;font-weight:700;letter-spacing:.2px;line-height:41px}
+#count{font-size:15px;color:var(--sub);margin-top:1px;font-weight:500}
+#tr{display:flex;gap:8px;pointer-events:auto;padding-top:8px}
+.gl{background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(180%);backdrop-filter:blur(18px) saturate(180%);border:.5px solid var(--gb);box-shadow:inset 0 1px 0 var(--hl),0 4px 18px rgba(0,0,0,.18);color:var(--fg)}
+button.gl{font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none}
+.pill{height:44px;border-radius:22px;padding:0 17px;font-size:17px;font-weight:600}
+.circ{width:44px;height:44px;border-radius:22px;padding:0;display:flex;align-items:center;justify-content:center}
+.circ svg{width:22px;height:22px}
+#bar{position:fixed;left:0;right:0;bottom:max(calc(env(safe-area-inset-bottom) - 6px),14px);display:flex;justify-content:center;align-items:center;gap:10px;pointer-events:none}
+#tabs{pointer-events:auto;height:62px;border-radius:31px;display:flex;align-items:center;padding:0 5px;gap:2px}
+.tab{width:108px;height:52px;border-radius:26px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10.5px;font-weight:600}
+.tab svg{width:26px;height:22px}
+.tab.on{background:var(--seltab);color:var(--acc)}
+#srch{pointer-events:auto;width:62px;height:62px;border-radius:31px}
+#srch svg{width:24px;height:24px}
+#viewer{position:fixed;inset:0;background:var(--bg);z-index:30;display:none;align-items:center;justify-content:center;touch-action:none}
+#viewer.on{display:flex}
+#viewer img{max-width:100%;max-height:100%;object-fit:contain;transition:transform .2s}
+#vback{position:fixed;left:16px;top:calc(env(safe-area-inset-top) + 8px);z-index:31}
+/* settings: soft dark */
+#set{position:fixed;inset:0;background:#1d2025;color:#e6e8ec;z-index:50;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 40px);font-size:15px;display:none;-webkit-user-select:auto;user-select:auto}
+#set.on{display:block}
+.sh{display:flex;justify-content:space-between;align-items:center;padding:6px 2px 4px}
+.sh b{font-size:24px}.ver{font-size:12px;color:#8b929c;margin-left:8px}
+.nb{background:#1d2025;border:0;color:#e6e8ec;border-radius:14px;padding:10px 16px;box-shadow:5px 5px 10px #14161a,-5px -5px 10px #272b31;font:inherit;font-weight:600}
+.nb:active{box-shadow:inset 4px 4px 8px #14161a,inset -4px -4px 8px #272b31}
+.nb.sm{padding:8px 12px;font-size:14px}
+.tb{margin:16px 0;border-radius:18px;box-shadow:6px 6px 14px #14161a,-6px -6px 14px #272b31}
+.th{padding:16px 18px;display:flex;justify-content:space-between;align-items:center;font-weight:600;cursor:pointer}
+.th i{font-style:normal;color:#8b929c;transition:transform .2s}
+.tb.open .th i{transform:rotate(90deg)}
+.tc{display:none;padding:0 18px 16px}
+.tb.open .tc{display:block}
+.r{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0}
+.r>span{flex:1}
+#set input[type=text],#set input[type=number],#set select{background:#1d2025;color:#e6e8ec;border:0;border-radius:10px;padding:9px 10px;font:inherit;box-shadow:inset 3px 3px 6px #14161a,inset -3px -3px 6px #272b31;max-width:55%;-webkit-appearance:none}
+#set input[type=text]{width:150px}#set input[type=number]{width:90px}
+#set input[type=color]{width:46px;height:32px;border:0;background:none;padding:0}
+#set input[type=range]{width:140px;accent-color:#5aa0ff}
+.sw{-webkit-appearance:none;appearance:none;width:50px;height:30px;border-radius:15px;background:#1d2025;box-shadow:inset 3px 3px 6px #14161a,inset -3px -3px 6px #272b31;position:relative;flex:none;margin:0}
+.sw:after{content:"";position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:11px;background:#5b616b;transition:.2s}
+.sw:checked:after{left:24px;background:#5aa0ff}
+.note{font-size:13px;color:#9aa1ab;line-height:1.45}
+.stat{font-size:13px;color:#b9d3ff;padding:4px 0;word-break:break-word}
+#cprev{max-width:90px;border-radius:8px;display:none;margin-top:6px}
+ol.note{padding-left:18px;margin:6px 0}
+</style>
+</head><body>
+<div id="probe"></div>
+<canvas id="cv"></canvas>
+<div id="topblur"></div><div id="topfade"></div><div id="botfade"></div>
+<div id="hdr">
+  <div id="ttl"><div id="title">Library</div><div id="count"></div></div>
+  <div id="tr">
+    <button class="gl pill" id="selBtn">Select</button>
+    <button class="gl circ" id="moreBtn" aria-label="More"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg></button>
+  </div>
+</div>
+<div id="bar">
+  <div class="gl" id="tabs">
+    <div class="tab on"><svg viewBox="0 0 26 22" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="1.5" y="4.5" width="19" height="15" rx="3"/><path d="M5.5 2h14a5 5 0 0 1 5 5v9" stroke-linecap="round"/><path d="M3 17l5-5 4 4 3-3 5 5" stroke-linejoin="round"/><circle cx="15" cy="9" r="1.6" fill="currentColor" stroke="none"/></svg><span>Library</span></div>
+    <div class="tab"><svg viewBox="0 0 26 22" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2" y="7" width="22" height="13.5" rx="3"/><path d="M4.5 4h17M7 1.3h12" stroke-linecap="round"/></svg><span>Collections</span></div>
+  </div>
+  <button class="gl circ" id="srch" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="7"/><path d="M16 16l5.5 5.5"/></svg></button>
+</div>
+<div id="viewer"><button class="gl circ" id="vback" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l-8 8 8 8"/></svg></button><img id="vimg" alt=""></div>
+<input type="file" id="pick" accept="image/*" multiple hidden>
+
+<div id="set">
+  <div class="sh"><div><b>Gallery</b><span class="ver" id="ver"></span></div><button class="nb" id="done">Done</button></div>
+  <div id="tablist"></div>
+</div>
+
+<script>
+'use strict';
+const VER='1.0';
+const LS='fvgallery1';
+const D={id:'13297',inj:true,injMode:'last',cmax:48,str:0.85,layout:'auto',upper:true,lc:'#ffffff',bc:'#000000',celeb:true,src:'stock',look:'auto',title:'Library',items:5760,start:3,lock:true};
+let P=Object.assign({},D);
+try{Object.assign(P,JSON.parse(localStorage.getItem(LS)||'{}'))}catch(e){}
+function save(){try{localStorage.setItem(LS,JSON.stringify(P))}catch(e){}}
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const hsh=i=>{i=Math.imul(i^0x9e3779b9,0x85ebca6b);i^=i>>>13;i=Math.imul(i,0xc2b2ae35);i^=i>>>16;return i>>>0};
+const mk=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c};
+
+/* ---------- layout ---------- */
+const cv=$('#cv'),ctx=cv.getContext('2d');
+let W=0,H=0,dpr=1,SAT=0,SAB=0,topPad=0,bottomPad=0,LV=[],li=0,TOTAL=0,scrollY=0,s=1,fx=0,fy=0,dirty=true,BG='#000',PH='#1c1c1e';
+function levels(){const a=[1,3,5,9,15,24,+P.cmax];return a.filter((v,i)=>a.indexOf(v)===i&&v<=P.cmax).sort((x,y)=>x-y)}
+const rowsT=c=>Math.ceil(TOTAL/c);
+const maxScroll=c=>Math.max(0,topPad+rowsT(c)*(W/c)+bottomPad-H);
+function layout(keepBottom){
+  const pr=getComputedStyle($('#probe'));
+  SAT=parseFloat(pr.paddingTop)||0;SAB=parseFloat(pr.paddingBottom)||0;
+  dpr=Math.min(3,window.devicePixelRatio||1);W=innerWidth;H=innerHeight;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+  topPad=SAT+100;bottomPad=Math.max(SAB-6,14)+72;
+  const oldC=LV[li];LV=levels();
+  li=LV.indexOf(oldC);if(li<0){li=LV.indexOf(+P.start);if(li<0)li=1}
+  TOTAL=Math.max(P.cmax,Math.round((+P.items||5760)/P.cmax)*P.cmax);
+  $('#count').textContent=TOTAL.toLocaleString('en-US')+' Items';
+  $('#title').textContent=P.title||'Library';
+  if(keepBottom)scrollY=maxScroll(LV[li]);
+  scrollY=clamp(scrollY,0,maxScroll(LV[li]));
+  AC.clear();rebuildTarget();dirty=true;
+}
+function theme(){
+  const light=P.look==='light'||(P.look==='auto'&&matchMedia('(prefers-color-scheme: light)').matches);
+  document.documentElement.classList.toggle('light',light);
+  BG=light?'#ffffff':'#000000';PH=light?'#e5e5ea':'#1c1c1e';
+  document.querySelector('meta[name=theme-color]').content=BG;dirty=true;
+}
+
+/* ---------- photo pool ---------- */
+let pool=[],PV=0,pvT=null;
+function bumpPV(){if(pvT)return;pvT=setTimeout(()=>{pvT=null;PV++;AC.clear();dirty=true},500)}
+function cover(c,im){const x=c.getContext('2d'),w=im.naturalWidth||im.width,h=im.naturalHeight||im.height,m=Math.min(w,h);x.drawImage(im,(w-m)/2,(h-m)/2,m,m,0,0,c.width,c.height)}
+function loadEntry(e,src,noCors){
+  const im=new Image();if(!noCors)im.crossOrigin='anonymous';
+  im.onload=()=>{
+    const big=mk(200,200);cover(big,im);e.img=big;e.sm=mk(48,48);cover(e.sm,im);
+    try{const t=mk(8,8);cover(t,im);const d=t.getContext('2d').getImageData(0,0,8,8).data;let r=0,g=0,b=0;
+      for(let i=0;i<d.length;i+=4){r+=d[i];g+=d[i+1];b+=d[i+2]}e.r=r/64;e.g=g/64;e.b=b/64;e.l=(.2126*e.r+.7152*e.g+.0722*e.b)/255;e.st=true}catch(err){}
+    e.ok=true;dirty=true;bumpPV()};
+  im.onerror=()=>{if(!noCors&&!src.startsWith('blob:'))loadEntry(e,src,true)};
+  im.src=src;
+}
+function loadStock(){
+  pool=[];
+  for(let i=0;i<200;i++){const e={ok:false,st:false,full:'https://picsum.photos/seed/fv'+i+'/1000/1250'};pool.push(e);loadEntry(e,'https://picsum.photos/seed/fv'+i+'/240/240')}
+  PV++;AC.clear();dirty=true;
+}
+/* my photos (IndexedDB) */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('fvgallery',1);r.onupgradeneeded=()=>r.result.createObjectStore('ph',{keyPath:'id',autoIncrement:true});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbAll(){try{const db=await idb();return await new Promise(res=>{const q=db.transaction('ph').objectStore('ph').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>res([])})}catch(e){return[]}}
+async function idbPut(o){const db=await idb();return new Promise(res=>{const t=db.transaction('ph','readwrite');t.objectStore('ph').put(o);t.oncomplete=res;t.onerror=res})}
+async function idbClear(){try{const db=await idb();await new Promise(res=>{const t=db.transaction('ph','readwrite');t.objectStore('ph').clear();t.oncomplete=res;t.onerror=res})}catch(e){}}
+let myCount=0;
+async function loadPool(){
+  const all=await idbAll();myCount=all.length;ui();
+  if(P.src==='mine'&&all.length){
+    pool=all.map(o=>{const e={ok:false,st:false,full:URL.createObjectURL(o.full)};loadEntry(e,URL.createObjectURL(o.thumb),true);return e});
+    PV++;AC.clear();dirty=true;
+  }else loadStock();
+}
+function blobOf(c,q){return new Promise(r=>c.toBlob(b=>r(b),'image/jpeg',q))}
+async function addFiles(files){
+  let n=0;
+  for(const f of files){
+    try{
+      const url=URL.createObjectURL(f);const im=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url});
+      const t=mk(240,240);cover(t,im);
+      const k=Math.min(1,1400/Math.max(im.naturalWidth,im.naturalHeight));const fu=mk(Math.round(im.naturalWidth*k),Math.round(im.naturalHeight*k));fu.getContext('2d').drawImage(im,0,0,fu.width,fu.height);
+      await idbPut({thumb:await blobOf(t,.82),full:await blobOf(fu,.85)});URL.revokeObjectURL(url);n++;
+      $('#myStat').textContent='Adding photos… '+n+' of '+files.length;
+    }catch(e){}
+  }
+  await loadPool();
+}
+
+/* ---------- target (word or face) ---------- */
+let TW=144,TH=300,TG=null,TV=0,TSRC=null,SATs=null;
+const AC=new Map();
+function hex(h){h=(h||'#000').replace('#','');if(h.length===3)h=h.split('').map(x=>x+x).join('');const n=parseInt(h,16)||0;return[n>>16&255,n>>8&255,n&255]}
+const FONT=n=>'900 '+n+'px -apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif';
+function fitText(x,lines,aw,ah){x.font=FONT(100);const mw=Math.max(1,...lines.map(l=>x.measureText(l).width));const fs=Math.min(aw/mw*100,ah/lines.length);x.font=FONT(fs);lines.forEach((l,i)=>x.fillText(l,0,(i-(lines.length-1)/2)*fs*1.02))}
+function rebuildTarget(){
+  TG=null;SATs=null;AC.clear();dirty=true;
+  if(!TSRC||!W)return;
+  TH=Math.max(50,Math.round(TW*H/W));
+  const cn=mk(TW,TH),x=cn.getContext('2d');
+  const top=topPad/H*TH,bot=(H-bottomPad)/H*TH,cy=(top+bot)/2,rh=bot-top;
+  let mode='word';
+  if(TSRC.img){
+    mode='img';const im=TSRC.img,iw=im.naturalWidth,ih=im.naturalHeight,sc=Math.max(TW/iw,TH/ih);
+    x.drawImage(im,(TW-iw*sc)/2,(TH-ih*sc)*0.3,iw*sc,ih*sc);
+  }else{
+    x.fillStyle='#000';x.fillRect(0,0,TW,TH);x.fillStyle='#fff';x.textAlign='center';x.textBaseline='middle';
+    const t=(P.upper?TSRC.word.toUpperCase():TSRC.word).trim();
+    const lines=P.layout==='line'||P.layout==='side'?[t]:t.split(/\s+/);
+    x.save();
+    if(P.layout==='side'){x.translate(TW/2,cy);x.rotate(-Math.PI/2);fitText(x,lines,rh*0.94,TW*0.9)}
+    else{x.translate(TW/2,cy);fitText(x,lines,TW*0.92,rh*0.8)}
+    x.restore();
+  }
+  let d;try{d=x.getImageData(0,0,TW,TH).data}catch(e){TSRC={word:TSRC.word};return rebuildTarget()}
+  const n=TW*TH,R=new Float32Array(n),G=new Float32Array(n),B=new Float32Array(n),T=new Float32Array(n);
+  if(mode==='word'){
+    const lc=hex(P.lc),bc=hex(P.bc);
+    for(let i=0;i<n;i++){const t=d[i*4]/255;T[i]=t;R[i]=bc[0]+(lc[0]-bc[0])*t;G[i]=bc[1]+(lc[1]-bc[1])*t;B[i]=bc[2]+(lc[2]-bc[2])*t}
+  }else{
+    const hist=new Uint32Array(256);for(let i=0;i<n;i++)hist[Math.round(.2126*d[i*4]+.7152*d[i*4+1]+.0722*d[i*4+2])]++;
+    let lo=0,hi=255,acc=0;for(let v=0;v<256;v++){acc+=hist[v];if(acc>n*.02){lo=v;break}}acc=0;for(let v=255;v>=0;v--){acc+=hist[v];if(acc>n*.02){hi=v;break}}
+    const k=255/Math.max(20,hi-lo);
+    for(let i=0;i<n;i++){R[i]=clamp((d[i*4]-lo)*k,0,255);G[i]=clamp((d[i*4+1]-lo)*k,0,255);B[i]=clamp((d[i*4+2]-lo)*k,0,255);T[i]=(.2126*R[i]+.7152*G[i]+.0722*B[i])/255}
+  }
+  const W1=TW+1;SATs=[R,G,B,T].map(ch=>{const S=new Float32Array(W1*(TH+1));for(let y=0;y<TH;y++){let row=0;for(let xx=0;xx<TW;xx++){row+=ch[y*TW+xx];S[(y+1)*W1+xx+1]=S[y*W1+xx+1]+row}}return S});
+  TG={mode};TV++;
+}
+function sampleRect(x0,y0,x1,y1){
+  let X0=Math.floor(x0/W*TW),X1=Math.ceil(x1/W*TW),Y0=Math.floor(y0/H*TH),Y1=Math.ceil(y1/H*TH);
+  X0=clamp(X0,0,TW-1);Y0=clamp(Y0,0,TH-1);X1=clamp(X1,X0+1,TW);Y1=clamp(Y1,Y0+1,TH);
+  const W1=TW+1,a=(X1-X0)*(Y1-Y0);
+  return SATs.map(S=>(S[Y1*W1+X1]-S[Y0*W1+X1]-S[Y1*W1+X0]+S[Y0*W1+X0])/a);
+}
+function tintA(P2){const ps=W/11,pf=W/P.cmax;return P.str*Math.pow(clamp((ps-P2)/(ps-pf),0,1),1.15)}
+function assign(c){
+  const key=c+'|'+TV+'|'+PV;
+  if(AC.has(key))return AC.get(key);
+  const p=W/c,tr=rowsT(c),Rm=Math.ceil(H/p)+2,r0=Math.max(0,tr-Rm),start=r0*c,n=TOTAL-start;
+  const idx=new Int16Array(n).fill(-1),col=new Array(n).fill(null);
+  const st=[];for(let i=0;i<pool.length;i++)if(pool[i].st)st.push(i);
+  const byL=st.slice().sort((a,b)=>pool[a].l-pool[b].l),sp=Math.max(1,Math.round(byL.length*.1));
+  for(let j=0;j<n;j++){
+    const i=start+j,r=Math.floor(i/c),k=i%c,ys=H-bottomPad-(tr-r)*p,xs=k*p;
+    if(ys+p<=0||ys>=H)continue;
+    const v=sampleRect(xs,ys,xs+p,ys+p);
+    col[j]='rgb('+(v[0]|0)+','+(v[1]|0)+','+(v[2]|0)+')';
+    if(!st.length)continue;
+    if(TG.mode==='word'){const q=Math.round(v[3]*(byL.length-1));idx[j]=byL[clamp(q+(hsh(i)%(2*sp+1))-sp,0,byL.length-1)]}
+    else{let b1=-1,d1=1e12,b2=-1,d2=1e12,b3=-1,d3=1e12;
+      for(const m of st){const e=pool[m],dd=(e.r-v[0])**2+(e.g-v[1])**2+(e.b-v[2])**2;
+        if(dd<d1){b3=b2;d3=d2;b2=b1;d2=d1;b1=m;d1=dd}else if(dd<d2){b3=b2;d3=d2;b2=m;d2=dd}else if(dd<d3){b3=m;d3=dd}}
+      const ch=hsh(i)%3;idx[j]=ch===0||b2<0?b1:(ch===1||b3<0?b2:b3)}
+  }
+  const res={start,idx,col};AC.set(key,res);if(AC.size>10)AC.delete(AC.keys().next().value);return res;
+}
+function photoAt(i,c,M){
+  if(M&&i>=M.start&&M.idx[i-M.start]>=0)return M.idx[i-M.start];
+  return pool.length?hsh(i+7)%pool.length:-1;
+}
+
+/* ---------- draw ---------- */
+function draw(){
+  dirty=false;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle=BG;ctx.fillRect(0,0,W,H);
+  const c=LV[li],p=W/c,S=s,P2=p*S,g=P2>=20?1.5:P2>=10?1:0.6,sz=P2-g;
+  const a=TG?tintA(P2):0,M=a>0.01?assign(c):null,tr=rowsT(c),big=sz*dpr>60;
+  const ya=fy-fy/S,yb=fy+(H-fy)/S;
+  const r0=Math.max(0,Math.floor((ya+scrollY-topPad)/p)),r1=Math.min(tr-1,Math.floor((yb+scrollY-topPad)/p));
+  for(let r=r0;r<=r1;r++){
+    const sy=fy+(topPad+r*p-scrollY-fy)*S;
+    for(let k=0;k<c;k++){
+      const i=r*c+k;if(i>=TOTAL)break;
+      const sx=fx+(k*p-fx)*S;if(sx>W||sx+sz<0)continue;
+      const pi=photoAt(i,c,M),e=pi>=0?pool[pi]:null;
+      if(e&&e.ok)ctx.drawImage(big?e.img:e.sm,sx,sy,sz,sz);else{ctx.fillStyle=PH;ctx.fillRect(sx,sy,sz,sz)}
+      const tc=M&&i>=M.start?M.col[i-M.start]:null;
+      if(tc){ctx.globalAlpha=a;ctx.fillStyle=tc;ctx.fillRect(sx,sy,sz,sz);ctx.globalAlpha=1}
+    }
+  }
+}
+
+/* ---------- gestures ---------- */
+let mode=null,t0=null,vy=0,lastY=0,lastT=0,pin=null,settle=null,bottomAnchor=false;
+const T=new Map();
+function pts(){return[...T.values()]}
+function switchTo(n){
+  const c=LV[li],p=W/c,cy=scrollY+fy-topPad,row=clamp(Math.floor(cy/p),0,rowsT(c)-1),fr=clamp(cy/p-row,0,1),col=clamp(Math.floor(fx/p),0,c-1);
+  const idx=Math.min(TOTAL-1,row*c+col),P2=p*s;
+  li=n;const c2=LV[n],p2=W/c2;s=P2/p2;
+  scrollY=bottomAnchor?topPad+rowsT(c2)*p2-fy:topPad+(Math.floor(idx/c2)+fr)*p2-fy;
+}
+function checkSwitch(){
+  const p=W/LV[li],P2=p*s;
+  if(li<LV.length-1&&P2<Math.sqrt(p*(W/LV[li+1]))){switchTo(li+1);return true}
+  if(li>0&&P2>Math.sqrt(p*(W/LV[li-1]))){switchTo(li-1);return true}
+  return false;
+}
+cv.addEventListener('touchstart',e=>{
+  e.preventDefault();settle=null;
+  for(const t of e.changedTouches)T.set(t.identifier,{x:t.clientX,y:t.clientY});
+  const a=pts();
+  if(a.length>=2){
+    mode='pinch';const[p1,p2]=a;
+    const ms=maxScroll(LV[li]);bottomAnchor=P.lock&&scrollY>=ms-W/LV[li]*1.5&&ms>0;
+    if(bottomAnchor){scrollY=ms}
+    fx=(p1.x+p2.x)/2;fy=bottomAnchor?H-bottomPad:(p1.y+p2.y)/2;
+    pin={d0:Math.hypot(p1.x-p2.x,p1.y-p2.y)||1,s0:s,li0:li};vy=0;
+  }else if(a.length===1){
+    mode='drag';vy=0;lastY=a[0].y;lastT=performance.now();t0={x:a[0].x,y:a[0].y,t:lastT,moved:false};
+  }
+},{passive:false});
+cv.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  for(const t of e.changedTouches)if(T.has(t.identifier))T.set(t.identifier,{x:t.clientX,y:t.clientY});
+  const a=pts();
+  if(mode==='pinch'&&a.length>=2){
+    const[p1,p2]=a,d=Math.hypot(p1.x-p2.x,p1.y-p2.y);
+    // rescale relative to the level where the pinch began
+    let sNew=pin.s0*d/pin.d0*(W/LV[pin.li0])/(W/LV[li]);
+    if(li===0)sNew=sNew>1?1+(sNew-1)*.35:sNew;
+    if(li===LV.length-1&&sNew<1)sNew=1-(1-sNew)*.3;
+    s=sNew;let guard=0;while(checkSwitch()&&guard++<6){}
+    dirty=true;
+  }else if(mode==='drag'&&a.length===1){
+    const y=a[0].y,now=performance.now(),dy=y-lastY;
+    if(Math.abs(y-t0.y)>8||Math.abs(a[0].x-t0.x)>8)t0.moved=true;
+    const ms=maxScroll(LV[li]),out=scrollY<0||scrollY>ms;
+    scrollY-=out?dy*.4:dy;
+    const dt=Math.max(1,now-lastT);vy=.8*(-dy/dt)+.2*vy;lastY=y;lastT=now;dirty=true;
+  }
+},{passive:false});
+function endTouch(e){
+  e.preventDefault();
+  for(const t of e.changedTouches)T.delete(t.identifier);
+  const a=pts();
+  if(mode==='pinch'&&a.length<2){
+    mode=a.length===1?'none':null;
+    settle={from:s,t:performance.now()};
+    if(a.length===1){lastY=a[0].y}
+  }else if(mode==='drag'&&a.length===0){
+    mode=null;
+    if(!t0.moved&&performance.now()-t0.t<350){tapAt(t0.x,t0.y);vy=0}
+    if(performance.now()-lastT>80)vy=0;
+  }else if(a.length===0)mode=null;
+}
+cv.addEventListener('touchend',endTouch,{passive:false});
+cv.addEventListener('touchcancel',endTouch,{passive:false});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('dblclick',e=>e.preventDefault());
+/* mouse wheel / trackpad (desktop test) */
+cv.addEventListener('wheel',e=>{e.preventDefault();
+  if(e.ctrlKey){const ms=maxScroll(LV[li]);bottomAnchor=P.lock&&scrollY>=ms-W/LV[li]*1.5;fx=e.clientX;fy=bottomAnchor?H-bottomPad:e.clientY;if(bottomAnchor)scrollY=ms;
+    s*=Math.exp(-e.deltaY*.01);let g=0;while(checkSwitch()&&g++<6){}settle={from:s,t:performance.now()+120}}
+  else scrollY+=e.deltaY;dirty=true},{passive:false});
+
+function tapAt(x,y){
+  const c=LV[li],p=W/c,r=Math.floor((y+scrollY-topPad)/p),k=Math.floor(x/p),i=r*c+k;
+  if(r<0||k<0||k>=c||i>=TOTAL)return;
+  const M=TG&&tintA(p)>0.01?assign(c):null,pi=photoAt(i,c,M),e=pool[pi];if(!e)return;
+  const v=$('#vimg');v.src=e.full||'';$('#viewer').classList.add('on');
+}
+$('#vback').onclick=()=>$('#viewer').classList.remove('on');
+(()=>{let sy=0;const v=$('#viewer');v.addEventListener('touchstart',e=>{sy=e.touches[0].clientY},{passive:true});
+  v.addEventListener('touchmove',e=>{e.preventDefault();const d=e.touches[0].clientY-sy;$('#vimg').style.transform='translateY('+Math.max(0,d)+'px)'},{passive:false});
+  v.addEventListener('touchend',e=>{const d=(e.changedTouches[0]||{}).clientY-sy;$('#vimg').style.transform='';if(d>110)v.classList.remove('on')})})();
+
+/* ---------- loop ---------- */
+let lt=performance.now();
+function loop(now){
+  const dt=Math.min(40,now-lt);lt=now;
+  if(settle){
+    const k=clamp((now-settle.t)/260,0,1),e=1-Math.pow(1-k,3);
+    s=settle.from+(1-settle.from)*e;dirty=true;
+    if(k>=1){s=1;settle=null;if(bottomAnchor)scrollY=maxScroll(LV[li])}
+  }else if(mode!=='drag'&&mode!=='pinch'){
+    const ms=maxScroll(LV[li]);
+    if(scrollY<0||scrollY>ms){const b=scrollY<0?0:ms;vy*=.6;scrollY+=(b-scrollY)*Math.min(1,dt*.016);if(Math.abs(b-scrollY)<.3)scrollY=b;dirty=true}
+    if(Math.abs(vy)>.02){scrollY+=vy*dt;vy*=Math.pow(.9975,dt);dirty=true}else vy=0;
+  }
+  if(dirty)draw();
+  requestAnimationFrame(loop);
+}
+
+/* ---------- Inject ---------- */
+let IK=null,IT=null,ibusy=false,injStat='Off',CUR='',CURK='';
+function injStart(){clearInterval(IT);IK=null;injStat=P.inj?'Waiting…':'Off';ui();if(!P.inj)return;IT=setInterval(injTick,1500);injTick()}
+async function injTick(){
+  if(ibusy)return;ibusy=true;
+  try{
+    const id=String(P.id||'').replace(/\D/g,'');if(!id){injStat='No Inject ID';return}
+    const r=await fetch('https://11z.co/_w/'+id+'/selection?t='+Date.now(),{cache:'no-store'});const j=await r.json();
+    const v=String(j.value??'').trim(),k=String(j.count??'')+'|'+v;
+    injStat='Connected · Inject has: '+(v?'"'+v+'"':'(empty)');
+    if(IK===null){IK=k;if(P.injMode==='last'&&v)applyWord(v)}
+    else if(k!==IK){IK=k;if(v)applyWord(v)}
+  }catch(e){injStat='No answer from Inject'}
+  finally{ibusy=false;const el=$('#injStat');if(el)el.textContent=injStat}
+}
+
+/* ---------- celebrity ---------- */
+const CC=new Map();
+const norm=t=>t.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replace(/\s*\(.*?\)\s*/g,' ').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+async function jget(u){const r=await fetch(u);if(!r.ok)throw new Error(r.status);return r.json()}
+async function celebLookup(q){
+  const key=norm(q);if(!key)return null;if(CC.has(key))return CC.get(key);
+  let res=null;
+  try{
+    const o=await jget('https://en.wikipedia.org/w/api.php?action=opensearch&format=json&origin=*&namespace=0&limit=8&search='+encodeURIComponent(q));
+    const cands=(o[1]||[]).filter(t=>norm(t)===key).slice(0,3);
+    for(const t of cands){
+      const sm=await jget('https://en.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(t.replace(/ /g,'_')));
+      if(sm.type==='disambiguation'||!sm.wikibase_item||!(sm.thumbnail||sm.originalimage))continue;
+      const w=await jget('https://www.wikidata.org/w/api.php?action=wbgetclaims&format=json&origin=*&property=P31&entity='+sm.wikibase_item);
+      const human=((w.claims&&w.claims.P31)||[]).some(c=>c.mainsnak&&c.mainsnak.datavalue&&c.mainsnak.datavalue.value&&c.mainsnak.datavalue.value.id==='Q5');
+      if(!human)continue;
+      const th=sm.thumbnail&&sm.thumbnail.source,urls=[];
+      if(th)urls.push(th.replace(/\/\d+px-/,'/500px-'));
+      if(sm.originalimage&&sm.originalimage.width<=2000)urls.push(sm.originalimage.source);
+      if(th)urls.push(th);
+      res={name:sm.title,urls};break;
+    }
+  }catch(e){}
+  CC.set(key,res);return res;
+}
+function loadImg(urls){
+  return new Promise(res=>{let i=0;const next=()=>{if(i>=urls.length)return res(null);const u=urls[i++],im=new Image();im.crossOrigin='anonymous';
+    const to=setTimeout(()=>{im.src='';next()},6000);
+    im.onload=()=>{clearTimeout(to);res(im)};im.onerror=()=>{clearTimeout(to);next()};im.src=u};next()});
+}
+const within=(pr,ms)=>Promise.race([pr,new Promise(r=>setTimeout(()=>r(null),ms))]);
+let AT=0,lastCeleb='';
+async function applyWord(w){
+  w=String(w||'').trim();if(!w)return;const tok=++AT;CUR=w;lastCeleb='Checking…';ui();
+  if(P.celeb){
+    const r=await within(celebLookup(w),6000);if(tok!==AT)return;
+    if(r){const im=await within(loadImg(r.urls),8000);if(tok!==AT)return;
+      if(im){TSRC={word:w,img:im};lastCeleb='Person: '+r.name;rebuildTarget();ui();return}}
+  }
+  lastCeleb=P.celeb?'Not a person: word mosaic':'Off: word mosaic';
+  TSRC={word:w};rebuildTarget();ui();
+}
+function clearWord(){AT++;CUR='';TSRC=null;rebuildTarget();lastCeleb='';ui()}
+
+/* ---------- settings ---------- */
+const sel=(k,opts)=>'<select data-k="'+k+'">'+opts.map(o=>'<option value="'+o[0]+'">'+o[1]+'</option>').join('')+'</select>';
+const sw=k=>'<input type="checkbox" class="sw" data-k="'+k+'">';
+const TABS=[
+ ['Mosaic',`
+  <div class="stat" id="curW"></div>
+  <div class="r"><input type="text" id="testW" placeholder="Test word" autocomplete="off" autocapitalize="off"><button class="nb sm" id="testGo">Show</button><button class="nb sm" id="testClr">Clear</button></div>
+  <div class="r"><span>Smallest grid (columns)</span>${sel('cmax',[[32,'32'],[40,'40'],[48,'48'],[60,'60']])}</div>
+  <div class="r"><span>Mosaic strength</span><input type="range" min="0.4" max="1" step="0.05" data-k="str"></div>
+  <div class="r"><span>Word layout</span>${sel('layout',[['auto','Auto (one word per line)'],['line','One line'],['side','Sideways']])}</div>
+  <div class="r"><span>Capital letters</span>${sw('upper')}</div>
+  <div class="r"><span>Letter color</span><input type="color" data-k="lc"></div>
+  <div class="r"><span>Background color</span><input type="color" data-k="bc"></div>
+  <div class="note">More columns make a clearer word. "Sideways" makes the word bigger, but the spectator must turn the phone to read it.</div>`],
+ ['Inject',`
+  <div class="r"><span>Get word from Inject</span>${sw('inj')}</div>
+  <div class="r"><span>Inject ID</span><input type="number" inputmode="numeric" data-k="id"></div>
+  <div class="r"><span>Word</span>${sel('injMode',[['last','Last word sent'],['new','Wait for a new one']])}</div>
+  <div class="stat" id="injStat"></div>
+  <div class="note">"Last word sent" uses the word that is in Inject when the page opens, and each new word after it. "Wait for a new one" ignores the word that is in Inject when the page opens.</div>`],
+ ['Celebrity',`
+  <div class="r"><span>Famous person = picture mosaic</span>${sw('celeb')}</div>
+  <div class="stat" id="celStat"></div>
+  <div class="r"><input type="text" id="celT" placeholder="Test a name" autocomplete="off"><button class="nb sm" id="celGo">Test</button></div>
+  <div class="stat" id="celRes"></div><img id="cprev" alt="">
+  <div class="note">The page looks for the word on Wikipedia. If the page is a real person with a photo, the photos make that person's face. Names must be complete (for example "Taylor Swift", "Rihanna").</div>`],
+ ['Photos',`
+  <div class="r"><span>Photos</span>${sel('src',[['stock','Stock photos'],['mine','My photos']])}</div>
+  <div class="r"><button class="nb sm" id="pickBtn">Add my photos</button><button class="nb sm" id="clrMine">Remove my photos</button></div>
+  <div class="stat" id="myStat"></div>
+  <div class="r"><span>Number of items shown</span><input type="number" inputmode="numeric" data-k="items"></div>
+  <div class="r"><span>Start grid (columns)</span>${sel('start',[[1,'1'],[3,'3'],[5,'5'],[9,'9']])}</div>
+  <div class="note">Your photos stay on this phone only. Add 100 or more photos for the best look. Dark and bright photos make a better mosaic.</div>`],
+ ['Look',`
+  <div class="r"><span>Appearance</span>${sel('look',[['auto','Same as phone'],['dark','Dark'],['light','Light']])}</div>
+  <div class="r"><span>Title</span><input type="text" data-k="title"></div>
+  <div class="r"><span>Keep bottom when zooming</span>${sw('lock')}</div>
+  <div class="note">"Keep bottom" holds the newest photos at the bottom of the screen during the pinch. Then the mosaic always fills the screen.</div>`],
+ ['Kill',`
+  <div class="r"><span>Status</span><span id="ksSt" style="opacity:.6">—</span></div>
+  <div class="r"><button class="nb sm" id="ksBtn">Kill this show</button></div>
+  <div class="note">Push after the show. Past spectators cannot open this trick again. New spectators at the next show get the trick.</div>`],
+ ['Help',`
+  <ol class="note">
+   <li>Open this page in Aura or Safari. The gallery opens at the bottom (newest photos).</li>
+   <li>The page gets the word from Inject (Inject tab). It checks Inject each 1.5 seconds.</li>
+   <li>Give the phone to the spectator. Tell the spectator to pinch to zoom out.</li>
+   <li>When the grid gets small, the photos start to make the word. At the smallest grid, the word is clear.</li>
+   <li>If the word is the name of a famous person, the photos make the face of that person (Celebrity tab).</li>
+  </ol>
+  <div class="note"><b>Open settings:</b> touch and hold the title "Library" for 1 second.<br><b>Test:</b> type a word in "Test word" on the Mosaic tab and push Show.<br>Tap a photo to open it. Swipe down to close it.</div>`]
+];
+function buildSet(){
+  $('#ver').textContent='v'+VER;
+  $('#tablist').innerHTML=TABS.map((t,i)=>'<div class="tb'+(i===0?' open':'')+'"><div class="th">'+t[0]+'<i>›</i></div><div class="tc">'+t[1]+'</div></div>').join('');
+  document.querySelectorAll('.th').forEach(h=>h.onclick=()=>{const b=h.parentNode,o=b.classList.contains('open');document.querySelectorAll('.tb').forEach(x=>x.classList.remove('open'));if(!o)b.classList.add('open')});
+  document.querySelectorAll('#set [data-k]').forEach(el=>{
+    const k=el.dataset.k;
+    if(el.type==='checkbox')el.checked=!!P[k];else el.value=P[k];
+    el.addEventListener(el.type==='text'||el.type==='number'||el.type==='range'||el.type==='color'?'input':'change',()=>{
+      let v=el.type==='checkbox'?el.checked:el.value;
+      if(['cmax','start','items','str'].includes(k))v=+v;
+      P[k]=v;save();onChange(k);
+    });
+  });
+  $('#testGo').onclick=()=>{const w=$('#testW').value.trim();if(w)applyWord(w)};
+  $('#testClr').onclick=clearWord;
+  $('#celGo').onclick=async()=>{const q=$('#celT').value.trim();if(!q)return;$('#celRes').textContent='Looking…';$('#cprev').style.display='none';
+    const r=await celebLookup(q);if(!r){$('#celRes').textContent='Not a famous person: the page will make a word mosaic.';return}
+    $('#celRes').textContent='Found: '+r.name;const p=$('#cprev');p.src=r.urls[r.urls.length-1];p.style.display='block'};
+  $('#pickBtn').onclick=()=>$('#pick').click();
+  $('#pick').onchange=e=>{const f=[...e.target.files];e.target.value='';if(f.length){P.src='mine';save();document.querySelector('[data-k=src]').value='mine';addFiles(f)}};
+  $('#clrMine').onclick=async()=>{await idbClear();P.src='stock';save();document.querySelector('[data-k=src]').value='stock';await loadPool()};
+}
+function onChange(k){
+  if(k==='cmax'||k==='items'){layout(true)}
+  else if(k==='start'){const n=LV.indexOf(+P.start);if(n>=0){li=n;scrollY=maxScroll(LV[li])}dirty=true}
+  else if(k==='title'){$('#title').textContent=P.title||'Library'}
+  else if(k==='look'){theme()}
+  else if(['layout','upper','lc','bc'].includes(k)){rebuildTarget()}
+  else if(k==='str'){dirty=true}
+  else if(k==='inj'||k==='id'||k==='injMode'){clearTimeout(onChange.t);onChange.t=setTimeout(injStart,600)}
+  else if(k==='celeb'){if(CUR)applyWord(CUR)}
+  else if(k==='src'){loadPool()}
+}
+function ui(){
+  const a=$('#curW');if(a)a.textContent=CUR?'Mosaic now: "'+CUR+'"'+(TSRC&&TSRC.img?' (picture)':''):'Mosaic now: none (plain gallery)';
+  const b=$('#injStat');if(b)b.textContent=injStat;
+  const c=$('#celStat');if(c)c.textContent=lastCeleb||'';
+  const m=$('#myStat');if(m)m.textContent='My photos on this phone: '+myCount;
+}
+let lpT=null;
+$('#ttl').addEventListener('touchstart',e=>{lpT=setTimeout(()=>{lpT=null;$('#set').classList.add('on');ui()},900)},{passive:true});
+['touchend','touchcancel','touchmove'].forEach(ev=>$('#ttl').addEventListener(ev,()=>{clearTimeout(lpT)},{passive:true}));
+$('#ttl').addEventListener('contextmenu',e=>{e.preventDefault();$('#set').classList.add('on');ui()});
+$('#done').onclick=()=>{$('#set').classList.remove('on');scrollY=maxScroll(LV[li]);dirty=true};
+$('#selBtn').onclick=()=>{const b=$('#selBtn');b.textContent=b.textContent==='Select'?'Cancel':'Select'};
+
+/* ---------- start ---------- */
+window.addEventListener('resize',()=>{const atB=scrollY>=maxScroll(LV[li])-2;layout(atB)});
+matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',theme);
+buildSet();theme();layout(true);loadPool();injStart();requestAnimationFrame(loop);
+window.__gal={applyWord,clearWord,get state(){return{li,cols:LV[li],s,scrollY,TOTAL,pool:pool.length,TV}}};
+</script>
+</body></html>
