@@ -16,7 +16,7 @@
 <img id="ph" alt="">
 <div id="msg"></div>
 <script>
-/* Cube Mirror viewer v1.1 – shows the photo of the mix in the link.
+/* Cube Mirror viewer v1.2 – shows the photo of the mix in the link.
    ?m = 54 letters (U R F D L B faces, each letter = the colour of that face), t = y (yellow on top) / w, b = wood / dark / white */
 const q = new URLSearchParams(location.search);
 const MIX = (q.get('m') || '').toUpperCase();
@@ -54,7 +54,21 @@ if (q.get('live')){
   /* printed card: load the mix that the cube page saved, and follow changes */
   const DB = 'https://peek-island-default-rtdb.firebaseio.com/peeks/fvt-cube.json';
   let cur = {};
-  const use = d => { cur = d && typeof d === 'object' ? d : {}; showMix(String(cur.m || '').toUpperCase(), cur.t || 'y', cur.b || 'wood'); };
+  const KEY = 'fvtCubeKeep';
+  const ls = { get(){ try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch(e){ return null; } },
+               set(v){ try { localStorage.setItem(KEY, JSON.stringify(v)); } catch(e){} },
+               del(){ try { localStorage.removeItem(KEY); } catch(e){} } };
+  if (q.get('reset') === '1') ls.del();
+  const permanent = k => { try { history.replaceState(null, '', location.pathname + '?m=' + k.m + '&t=' + k.t + '&b=' + k.b); } catch(e){} };
+  const kept = ls.get();
+  const use = d => {
+    if (ls.get()) return;                                 // this phone keeps its own photo
+    cur = d && typeof d === 'object' ? d : {};
+    const m = String(cur.m || '').toUpperCase(), t = cur.t || 'y', b = cur.b || 'wood';
+    showMix(m, t, b);
+    if (cur.k && stateFromMix(m)){ const k = { m, t, b }; ls.set(k); permanent(k); }
+  };
+  if (kept && stateFromMix(kept.m)){ showMix(kept.m, kept.t, kept.b); permanent(kept); }
   fetch(DB, { cache:'no-store' }).then(r => r.json()).then(use).catch(() => {});
   try {
     const es = new EventSource(DB);
