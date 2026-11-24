@@ -29,7 +29,8 @@
   .face{position:absolute;width:var(--S);height:var(--S);left:calc(var(--S) / -2);top:calc(var(--S) / -2);
     background:#08090a;border-radius:6px;padding:4px;backface-visibility:hidden}
   .face i{display:block;width:100%;height:100%;border-radius:7px}
-  .bar{display:flex;gap:10px;padding:10px 0}
+  .bar{display:flex;gap:7px;padding:10px 0}
+  .bar button{padding:12px 4px;font-size:13px;white-space:nowrap}
   button{flex:1;border:0;border-radius:14px;padding:13px 10px;font:600 14px inherit;font-family:inherit;color:var(--text);
     background:var(--panel);box-shadow:4px 4px 9px var(--lo),-4px -4px 9px var(--hi);cursor:pointer}
   button:active{box-shadow:inset 3px 3px 7px var(--lo),inset -3px -3px 7px var(--hi)}
@@ -81,7 +82,7 @@
 <body>
 <div class="app">
   <header>
-    <h1 id="title">Cube Mirror <span class="ver">v1.25</span></h1>
+    <h1 id="title">Cube Mirror <span class="ver">v1.26</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -91,7 +92,8 @@
     <button class="primary" id="btnConnect">Connect cube</button>
     <button id="btnSolved">Set as solved</button>
     <button id="btnCal">Calibrate</button>
-    <button id="btnHelp" style="flex:0 0 52px">?</button>
+    <button id="btnSet">Settings</button>
+    <button id="btnHelp" style="flex:0 0 44px">?</button>
   </div>
 
   <div class="info">
@@ -103,9 +105,9 @@
 </div>
 
 <div id="cal"><div class="sheet">
-  <div class="sheet-head"><h2>Calibration</h2><button id="btnCalClose">Done</button></div>
+  <div class="sheet-head"><h2 id="sheetTitle">Calibration</h2><button id="btnCalClose">Done</button></div>
 
-  <div class="sec open" id="secWiz"><div class="tab">Guided calibration</div><div class="body">
+  <div class="sec open" data-grp="cal" id="secWiz"><div class="tab">Guided calibration</div><div class="body">
     <div class="wiz">
       <div class="step" id="wizStep">Hold the cube with white on top and green in front.</div>
       <div class="chip" id="wizChip" style="background:#333"></div>
@@ -120,7 +122,7 @@
     <div class="note">Start with a solved cube. For each face: turn it one quarter turn clockwise (as you look straight at that face), then turn it back. At the end the cube is solved again and the page syncs it. The cube on the screen does not move during calibration.</div>
   </div></div>
 
-  <div class="sec" id="secMap"><div class="tab">Face map</div><div class="body">
+  <div class="sec" data-grp="cal" id="secMap"><div class="tab">Face map</div><div class="body">
     <table>
       <thead><tr><th>Cube code</th><th>Virtual face</th><th>Invert</th></tr></thead>
       <tbody id="mapBody"></tbody>
@@ -129,11 +131,11 @@
     <div class="note">Use Invert if a face turns the wrong way. Your changes are saved in this browser.</div>
   </div></div>
 
-  <div class="sec" id="secLive"><div class="tab">Live raw data</div><div class="body">
+  <div class="sec" data-grp="cal" id="secLive"><div class="tab">Live raw data</div><div class="body">
     <div class="live" id="live">No data yet. Connect the cube and turn a face.</div>
   </div></div>
 
-  <div class="sec" id="secConn"><div class="tab">Connection</div><div class="body">
+  <div class="sec" data-grp="set" id="secConn"><div class="tab">Connection</div><div class="body">
     <table>
       <tr><td>Auto connect</td><td><input type="checkbox" class="sw" id="autoSw"></td></tr>
       <tr><td>Read the mix on connect</td><td><input type="checkbox" class="sw" id="syncSw"></td></tr>
@@ -145,7 +147,7 @@
     <div class="note">On: the page connects to the cube when it opens, tries again every 10 seconds, and reconnects if the cube disconnects. Tap Disconnect to stop it until you tap Connect cube again.<br><br>In Aura it finds the cube by itself. In Chrome you must tap Connect cube one time first.</div>
   </div></div>
 
-  <div class="sec" id="secPhoto"><div class="tab">Photo prediction</div><div class="body">
+  <div class="sec" data-grp="set" id="secPhoto"><div class="tab">Photo prediction</div><div class="body">
     <table>
       <tr><td><b>Reveal</b></td><td><select id="revSel"><option value="lock">Lock screen (Shortcut)</option><option value="qr">QR code</option></select></td></tr>
       <tr><td>Photo on volume button</td><td><input type="checkbox" class="sw" id="phOn"></td></tr>
@@ -179,7 +181,7 @@
       Needs Aura 8 for the volume buttons. The photo has today's date and time.</div>
   </div></div>
 
-  <div class="sec" id="secView"><div class="tab">View</div><div class="body">
+  <div class="sec" data-grp="set" id="secView"><div class="tab">View</div><div class="body">
     <table>
       <tr><td>Top color</td><td><select id="topSel"><option value="yellow">Yellow on top</option><option value="white">White on top</option></select></td></tr>
       <tr><td>Animation speed</td><td><select id="speed"><option value="1.6">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option><option value="0.01">Instant</option></select></td></tr>
@@ -198,9 +200,9 @@
     <li>Turn the real cube. The virtual cube turns the same way.</li>
   </ol>
   <p><b>Reveal:</b> double-tap the title "Cube Mirror" to switch between Lock screen and QR code (1 buzz = Lock screen, 2 buzzes = QR code).</p>
-  <p><b>Photo prediction:</b> mix the cube and stop: after a few seconds with no turns the photo is made by itself (Calibrate → Photo prediction). Or press the volume button (Aura 8) and a photo of the cube as it is now goes to your Photos app through an iOS Shortcut. Set it up in Calibrate → Photo prediction.</p>
+  <p><b>Photo prediction:</b> mix the cube and stop: after a few seconds with no turns the photo is made by itself (Settings → Photo prediction). Or press the volume button (Aura 8) and a photo of the cube as it is now goes to your Photos app through an iOS Shortcut. Set it up in Settings → Photo prediction.</p>
   <p>Drag the cube to turn the view. Test with no cube: press <kbd>U</kbd> <kbd>D</kbd> <kbd>L</kbd> <kbd>R</kbd> <kbd>F</kbd> <kbd>B</kbd> (hold <kbd>Shift</kbd> for a counter-clockwise turn).</p>
-  <p>Hold the cube the way you set in Calibrate → View → Top color (default: yellow on top, green in front). If the cube does not show in the list, disconnect it in LightBlue first.</p>
+  <p>Hold the cube the way you set in Settings → View → Top color (default: yellow on top, green in front). If the cube does not show in the list, disconnect it in LightBlue first.</p>
   <p>Works in Aura Browser, Chrome or Edge on Mac, and Bluefy on iPhone. Safari does not have Bluetooth.</p>
   <button id="btnCloseHelp">Close</button>
 </div></div>
@@ -692,7 +694,19 @@ document.querySelectorAll('#cal .sec>.tab').forEach(tab=>tab.onclick = ()=>{
   if (!was) sec.classList.add('open');
 });
 const calEl = document.getElementById('cal');
-document.getElementById('btnCal').onclick = ()=>{ drawMap(); calEl.style.display = 'block'; };
+function openSheet(grp){
+  document.getElementById('sheetTitle').textContent = grp === 'cal' ? 'Calibration' : 'Settings';
+  document.querySelectorAll('#cal .sec').forEach(sec => {
+    const mine = sec.dataset.grp === grp;
+    sec.style.display = mine ? '' : 'none';
+    sec.classList.remove('open');
+  });
+  const first = document.getElementById(grp === 'set' ? 'secPhoto' : 'secWiz'); if (first) first.classList.add('open');
+  if (grp === 'cal') drawMap();
+  calEl.style.display = 'block';
+}
+document.getElementById('btnCal').onclick = ()=>openSheet('cal');
+document.getElementById('btnSet').onclick = ()=>openSheet('set');
 document.getElementById('btnCalClose').onclick = ()=>{ if (wiz.active) wizStop(); calEl.style.display = 'none'; };
 calEl.addEventListener('click', e=>{ if (e.target === calEl){ if (wiz.active) wizStop(); calEl.style.display = 'none'; } });
 
