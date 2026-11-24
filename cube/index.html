@@ -82,7 +82,7 @@
 <body>
 <div class="app">
   <header>
-    <h1 id="title">Cube Mirror <span class="ver">v1.27</span></h1>
+    <h1 id="title">Cube Mirror <span class="ver">v1.28</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -398,7 +398,7 @@ function onData(dv, src = 'notify'){
   mixTurn();
 }
 
-let connected = false, connecting = false, userOff = false;
+let connected = false, connecting = false, userOff = false, connectedAt = 0;
 const btnConnect = document.getElementById('btnConnect');
 function buzzTwice(){
   const one = () => { try { if (window.Aura && Aura.haptic) Aura.haptic('impact', { style:'heavy' }); } catch(e){} };
@@ -406,7 +406,7 @@ function buzzTwice(){
   try { if (navigator.vibrate) navigator.vibrate([90, 110, 90]); } catch(e){}
 }
 function setConnected(on){
-  if (on && !connected) buzzTwice();
+  if (on && !connected){ buzzTwice(); connectedAt = Date.now(); try { mixReset(); } catch(e){} }
   connected = on;
   btnConnect.textContent = on ? 'Disconnect' : 'Connect cube';
   if (!on){ cmdWrite = null; dataRead = null; dataChr = null; }
@@ -845,7 +845,22 @@ function blackOff(){
 function runShortcut(b64){
   const name = (cal.photoShortcut || 'Cube Photo').trim();
   const url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(name) + '&input=text&text=' + encodeURIComponent(b64);
-  location.href = url;
+  openOutside(url);
+}
+/* open a shortcuts:// link WITHOUT changing this page's address (else Aura can open it again on the next launch) */
+const PAGE_URL = location.href.split('#')[0];
+function openOutside(url){
+  let left = false;
+  const vis = () => {
+    if (document.visibilityState === 'hidden') left = true;
+    else { try { history.replaceState(null, '', PAGE_URL); } catch(e){} document.removeEventListener('visibilitychange', vis); }
+  };
+  document.addEventListener('visibilitychange', vis);
+  const f = document.createElement('iframe');
+  f.style.cssText = 'display:none;width:0;height:0;border:0';
+  f.src = url; document.body.appendChild(f);
+  setTimeout(() => f.remove(), 4000);
+  setTimeout(() => { if (!left && document.visibilityState === 'visible') { try { location.href = url; } catch(e){} } }, 1500);   // fallback
 }
 let photoBusy = false;
 function photoState(){                        // each sticker: its real colour as a face letter (U D F B R L)
@@ -986,6 +1001,7 @@ function screenSolved(){
   return true;
 }
 function mixTurn(){
+  if (Date.now() - connectedAt < 4000) return;   // no auto photo right after the cube connects
   mixCount++;
   clearTimeout(mixTimer);
   if (!cal.autoPhoto) return;
