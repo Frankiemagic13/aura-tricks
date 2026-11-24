@@ -16,7 +16,7 @@
 <img id="ph" alt="">
 <div id="msg"></div>
 <script>
-/* Cube Mirror viewer v1.0 – shows the photo of the mix in the link.
+/* Cube Mirror viewer v1.1 – shows the photo of the mix in the link.
    ?m = 54 letters (U R F D L B faces, each letter = the colour of that face), t = y (yellow on top) / w, b = wood / dark / white */
 const q = new URLSearchParams(location.search);
 const MIX = (q.get('m') || '').toUpperCase();
@@ -36,17 +36,36 @@ function stateFromMix(m){
   return Object.values(cub);
 }
 const msg = document.getElementById('msg');
-async function go(){
-  const st = stateFromMix(MIX);
-  if (!st){ msg.textContent = 'No photo'; return; }
-  for (let i=0; i<100 && !window.CubePhotoGL; i++) await new Promise(r => setTimeout(r, 100));
-  if (!window.CubePhotoGL){ msg.textContent = 'Could not load the photo. Check the internet connection.'; return; }
-  const cv = await CubePhotoGL.render(st, BG);
-  const img = document.getElementById('ph');
+const img = document.getElementById('ph');
+async function waitGL(){ for (let i=0; i<100 && !window.CubePhotoGL; i++) await new Promise(r => setTimeout(r, 100)); return !!window.CubePhotoGL; }
+let shown = '';
+async function showMix(m, top, bg){
+  const st = stateFromMix(m);
+  if (!st){ img.classList.remove('on'); shown = ''; return; }          // no mix yet: black screen
+  if (m + top + bg === shown) return; shown = m + top + bg;
+  if (!(await waitGL())){ msg.textContent = 'Could not load the photo. Check the internet connection.'; return; }
+  window.__cubeYellowTop = () => top !== 'w';
+  const cv = await CubePhotoGL.render(st, ['wood','dark','white'].includes(bg) ? bg : 'wood');
+  img.classList.remove('on');
   img.onload = () => img.classList.add('on');
   img.src = cv.toDataURL('image/jpeg', 0.9);
 }
-go();
+if (q.get('live')){
+  /* printed card: load the mix that the cube page saved, and follow changes */
+  const DB = 'https://peek-island-default-rtdb.firebaseio.com/peeks/fvt-cube.json';
+  let cur = {};
+  const use = d => { cur = d && typeof d === 'object' ? d : {}; showMix(String(cur.m || '').toUpperCase(), cur.t || 'y', cur.b || 'wood'); };
+  fetch(DB, { cache:'no-store' }).then(r => r.json()).then(use).catch(() => {});
+  try {
+    const es = new EventSource(DB);
+    const on = ev => { try { const m = JSON.parse(ev.data); if (!m) return;
+      if (m.path === '/') use(m.data); else { const k = m.path.slice(1); use(Object.assign({}, cur, { [k]: m.data })); } } catch(e){} };
+    es.addEventListener('put', on); es.addEventListener('patch', on);
+  } catch(e){}
+} else {
+  if (!stateFromMix(MIX)) msg.textContent = 'No photo';
+  else showMix(MIX, q.get('t') || 'y', BG);
+}
 </script>
 <script type="module" src="../photo3d.js"></script>
 </body>

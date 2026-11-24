@@ -81,7 +81,7 @@
 <body>
 <div class="app">
   <header>
-    <h1 id="title">Cube Mirror <span class="ver">v1.24</span></h1>
+    <h1 id="title">Cube Mirror <span class="ver">v1.25</span></h1>
     <div class="pill"><span class="dot" id="dot"></span><span id="status">Not connected</span></div>
   </header>
 
@@ -163,7 +163,10 @@
       <tr><td>QR code</td><td><button id="qrShow" style="padding:8px 14px">Show QR</button></td></tr>
       <tr><td>Lock QR when the photo is made</td><td><input type="checkbox" class="sw" id="qrAuto"></td></tr>
       <tr><td>Volume + shows QR</td><td><input type="checkbox" class="sw" id="qrVol"></td></tr>
+      <tr><td>Printed QR (online)</td><td><input type="checkbox" class="sw" id="qrOn"></td></tr>
+      <tr><td>Printed QR status</td><td id="qrOnSt" style="font-size:13px">—</td></tr>
     </table>
+    <div class="row"><button id="qrPrint">Show printed QR</button><button id="qrClear">Clear printed QR</button></div>
     <div class="note">The spectator scans the QR code and sees the photo of the mix on their phone (press and hold to save it). Lock freezes the QR on the mix of that moment. Volume + works when Button is set to Volume −.</div>
     <div class="note" id="photoMsg">Press the button: the page makes a photo of the cube as it is now and the Shortcut saves it in Photos.</div>
     <img id="photoPrev" style="display:block;width:100%;border-radius:12px;margin-top:10px" alt="">
@@ -534,7 +537,7 @@ async function setSolved(){
 const DEFAULT_MAP = {1:'B',2:'D',3:'L',4:'U',5:'R',6:'F'};
 const FACE_NAMES = {U:'White (top)',D:'Yellow (bottom)',F:'Green (front)',B:'Blue (back)',R:'Red (right)',L:'Orange (left)'};
 const STORE = 'cubeMirror.cal.v1';
-let cal = { map:{...DEFAULT_MAP}, inv:{}, speed:1, auto:true, photoOn:true, photoBtn:'down', photoShortcut:'Cube Photo', photoBg:'wood', photoSize:'large', top:'yellow', photoBlack:true, qrAutoLock:true, reveal:'lock', qrVolUp:false, autoPhoto:true, autoWait:3, autoMin:10, syncOnConnect:true, autoFix:false };
+let cal = { map:{...DEFAULT_MAP}, inv:{}, speed:1, auto:true, photoOn:true, photoBtn:'down', photoShortcut:'Cube Photo', photoBg:'wood', photoSize:'large', top:'yellow', photoBlack:true, qrAutoLock:true, qrOnline:true, reveal:'lock', qrVolUp:false, autoPhoto:true, autoWait:3, autoMin:10, syncOnConnect:true, autoFix:false };
 try { const s = JSON.parse(localStorage.getItem(STORE)); if (s && s.map) cal = Object.assign(cal, s); } catch(e){}
 function saveCal(){ try { localStorage.setItem(STORE, JSON.stringify(cal)); } catch(e){} }
 
@@ -652,6 +655,10 @@ const qrAuto = document.getElementById('qrAuto'), qrVol = document.getElementByI
 qrAuto.checked = cal.qrAutoLock !== false; qrVol.checked = !!cal.qrVolUp;
 qrAuto.onchange = ()=>{ cal.qrAutoLock = qrAuto.checked; saveCal(); };
 qrVol.onchange = ()=>{ cal.qrVolUp = qrVol.checked; saveCal(); };
+const qrOn = document.getElementById('qrOn'); qrOn.checked = cal.qrOnline !== false;
+qrOn.onchange = ()=>{ cal.qrOnline = qrOn.checked; saveCal(); };
+document.getElementById('qrPrint').onclick = ()=>{ calEl.style.display = 'none'; showPrintQR(); };
+document.getElementById('qrClear').onclick = ()=>qrPublish('');
 document.getElementById('qrShow').onclick = ()=>{ calEl.style.display = 'none'; showQR(); };
 document.getElementById('phTiny').onclick = ()=>{
   const c = document.createElement('canvas'); c.width = 64; c.height = 64;
@@ -1018,7 +1025,7 @@ function qrBuild(){
   return qrEl;
 }
 async function qrDraw(){
-  if (!qrEl || qrEl.style.display === 'none') return;
+  if (!qrEl || qrEl.style.display === 'none' || qrEl.dataset.mode === 'print') return;
   const mix = qrLocked ? qrMix : mixText();
   const box = qrEl.querySelector('#qrBox');
   try {
@@ -1032,10 +1039,33 @@ async function qrDraw(){
 }
 function qrSetLock(on, mix){
   qrLocked = on;
-  if (on) qrMix = mix || mixText();
+  if (on){ qrMix = mix || mixText(); qrPublish(qrMix); }
   qrDraw();
 }
-function showQR(){ qrBuild().style.display = 'flex'; qrDraw(); }
+/* printed QR: a fixed link (view/?live=1). The locked mix is saved online; the viewer loads it. */
+const CUBE_DB = 'https://peek-island-default-rtdb.firebaseio.com/peeks/fvt-cube.json';
+const printUrl = () => new URL('view/?live=1', location.href).toString();
+function qrOnSt(t){ const e = document.getElementById('qrOnSt'); if (e) e.textContent = t; }
+async function qrPublish(mix){
+  if (mix && cal.qrOnline === false) return;
+  try {
+    const r = await fetch(CUBE_DB, { method:'PUT', body: JSON.stringify({ m: mix, t: yellowTop() ? 'y' : 'w', b: cal.photoBg || 'wood', ts: Date.now() }) });
+    if (!r.ok) throw new Error(r.status);
+    qrOnSt(mix ? 'Mix saved ' + new Date().toLocaleTimeString([], { hour:'numeric', minute:'2-digit' }) : 'Cleared – the card shows black');
+  } catch(e){ qrOnSt('Not saved – no internet?'); }
+}
+async function showPrintQR(){
+  qrBuild().style.display = 'flex'; qrEl.dataset.mode = 'print';
+  const box = qrEl.querySelector('#qrBox');
+  try {
+    const qr = (await loadQrLib())(0, 'M'); qr.addData(printUrl()); qr.make();
+    box.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+    const svg = box.querySelector('svg'); if (svg){ svg.style.width = '100%'; svg.style.height = '100%'; }
+  } catch(e){ box.innerHTML = '<div style="color:#000;font-size:14px;text-align:center">Could not load the QR maker.</div>'; }
+  qrEl.querySelector('#qrState').textContent = 'Printed QR – take a screenshot and print it. It never changes.';
+  qrEl.querySelector('#qrLockBtn').style.display = 'none';
+}
+function showQR(){ qrBuild().style.display = 'flex'; qrEl.dataset.mode = 'mix'; qrEl.querySelector('#qrLockBtn').style.display = ''; qrDraw(); }
 function qrAfterMoves(){ if (!qrLocked) qrDraw(); }
 
 /* ---------- reveal: lock screen (Shortcut) or QR code ---------- */
