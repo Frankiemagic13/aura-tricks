@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Photo</title>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  img{position:fixed;inset:0;margin:auto;max-width:100%;max-height:100%;opacity:0;transition:opacity .6s;-webkit-touch-callout:default}
+  img.on{opacity:1}
+  #msg{position:fixed;left:0;right:0;bottom:calc(20px + env(safe-area-inset-bottom));text-align:center;color:#666;font:13px -apple-system,Helvetica,Arial,sans-serif}
+</style>
+</head>
+<body>
+<img id="ph" alt="">
+<div id="msg"></div>
+<script>
+/* Cube Mirror viewer v1.0 – shows the photo of the mix in the link.
+   ?m = 54 letters (U R F D L B faces, each letter = the colour of that face), t = y (yellow on top) / w, b = wood / dark / white */
+const q = new URLSearchParams(location.search);
+const MIX = (q.get('m') || '').toUpperCase();
+window.__cubeYellowTop = () => q.get('t') !== 'w';
+const BG = ['wood','dark','white'].includes(q.get('b')) ? q.get('b') : 'wood';
+const LN = { U:[0,-1,0], D:[0,1,0], F:[0,0,1], B:[0,0,-1], R:[1,0,0], L:[-1,0,0] };
+function faceletPos(i){
+  const F = 'URFDLB'[Math.floor(i/9)], k = i % 9, r = Math.floor(k/3), c = k % 3;
+  const P = { U:[c-1,-1,r-1], R:[1,r-1,1-c], F:[c-1,r-1,1], D:[c-1,1,1-r], L:[-1,r-1,c-1], B:[1-c,r-1,-1] }[F];
+  return [P, F];
+}
+function stateFromMix(m){
+  if (!/^[URFDLB]{54}$/.test(m)) return null;
+  const cub = {};
+  for (let x=-1;x<=1;x++) for (let y=-1;y<=1;y++) for (let z=-1;z<=1;z++) cub[[x,y,z]] = { p:[x,y,z], R:[[1,0,0],[0,1,0],[0,0,1]], cols:{} };
+  for (let i=0;i<54;i++){ const [p, F] = faceletPos(i); cub[p].cols[F] = m[i]; }
+  return Object.values(cub);
+}
+const msg = document.getElementById('msg');
+async function go(){
+  const st = stateFromMix(MIX);
+  if (!st){ msg.textContent = 'No photo'; return; }
+  for (let i=0; i<100 && !window.CubePhotoGL; i++) await new Promise(r => setTimeout(r, 100));
+  if (!window.CubePhotoGL){ msg.textContent = 'Could not load the photo. Check the internet connection.'; return; }
+  const cv = await CubePhotoGL.render(st, BG);
+  const img = document.getElementById('ph');
+  img.onload = () => img.classList.add('on');
+  img.src = cv.toDataURL('image/jpeg', 0.9);
+}
+go();
+</script>
+<script type="module" src="../photo3d.js"></script>
+</body>
+</html>
