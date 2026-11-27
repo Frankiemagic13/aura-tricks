@@ -111,6 +111,8 @@ body:not(.drawing) #colorPop{display:none}
 .dis{opacity:.35;pointer-events:none}
 .drawing.w2p #note{visibility:hidden}   /* Magician on the drawing page: their words become pictures, not text */
 /* secret settings sheet (hold the share button) */
+#cglyph{position:fixed;right:24px;top:calc(max(env(safe-area-inset-top),12px) + 60px);width:26px;height:26px;z-index:21;opacity:0;pointer-events:none;transition:opacity .3s}
+#cglyph svg{display:block;width:100%;height:100%}
 #qtoast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%) scale(.9);opacity:0;pointer-events:none;z-index:20;
   padding:9px 18px;border-radius:999px;background:#212121;color:#fff;font:600 16px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.09);transition:opacity .25s,transform .25s}
 #qtoast.on{opacity:1;transform:translateX(-50%) scale(1)}
@@ -197,6 +199,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   </div>
 </div>
 <div id="qtoast"></div>
+<div id="cglyph" aria-hidden="true"></div>
 <div id="acroHint"></div>
 <div id="sheetBg"></div>
 <div id="sheet" data-hui='{"title":"Notes","v":"list","roll":"unroll","tabs":[{"n":"Peeks","i":"peek","s":["peeksmith","online","aura peer"]},{"n":"Predictions","i":"magic","s":["predictions","acrostic","drawings"]},{"n":"Inject","i":"inject","s":["send to inject","proximity"]},{"n":"Print","i":"print","s":["cosmos"]},{"n":"API","i":"link","s":["notes api"]},{"n":"Experimental","i":"lab","s":["text recognition"]},{"n":"Help","i":"help","x":true},{"n":"Kill","i":"power","s":["kill switch"],"x":true}]}'>
@@ -219,6 +222,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
       <optgroup label="PeekSmith button"><option value="ps:1.click">Left – tap</option><option value="ps:1.longpress">Left – hold</option><option value="ps:2.click">Right – tap</option><option value="ps:2.longpress">Right – hold</option><option value="ps:0.click">Side – tap</option><option value="ps:0.longpress">Side – hold</option></optgroup>
     </select></div>
     <div class="r">Auto connect<input type="checkbox" class="sw" id="czAuto"></div>
+    <div class="r">Connect glyph (PeekSmith + Cosmos)<input type="checkbox" class="sw" id="czGlyph"></div>
     <div class="r">Cosmos log<button class="sbtn" id="czLogBtn">Show</button></div>
     <pre id="czLog" style="display:none;margin:0 18px 12px;white-space:pre-wrap;font:12px ui-monospace,Menlo,monospace;color:#8d919c;max-height:220px;overflow:auto"></pre>
   </div>
@@ -375,7 +379,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v23</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v24</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -539,7 +543,7 @@ async function bleSearch(){
     if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');
     bleBtnText()});
-  aps.on('connect',()=>{qbuzzN(3);aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
+  aps.on('connect',()=>{qbuzzN(3);glyphShow('ps');aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
@@ -1346,6 +1350,20 @@ peerUI();
 let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
 /* Aura haptic: the same call as the PIN page (impact, with a style: light, medium or heavy) */
+/* small corner glyph when a device connects (under the share button, about 2.5 s).
+   PeekSmith = blue device, the screen lights up. Cosmos = orange printer, a slip comes out. Setting P.glyph (Print tab). */
+const GLY={
+ ps:'<svg viewBox="0 0 40 40" fill="none" stroke="#0A84FF" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="10" width="30" height="20" rx="5"/><rect class="g1" x="9" y="14" width="22" height="12" rx="2" fill="#0A84FF" stroke="none" opacity=".25" style="transition:opacity .4s .3s"/><path class="g2" d="M12 20h10" stroke="var(--page)" stroke-width="2.6" opacity="0" style="transition:opacity .4s .3s"/><path d="M12 7v3M28 7v3M36.5 17v6"/></svg>',
+ cos:'<svg viewBox="0 0 40 40" fill="none" stroke="#FF9F0A" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"><g class="g1" style="transform:translateY(10px);transition:transform .9s cubic-bezier(.2,.8,.3,1) .2s"><path d="M13 6h14v12H13z" fill="var(--label)" stroke="none"/><path d="M16 10h8M16 13.5h6" stroke="var(--page)" stroke-width="1.6"/></g><rect x="7" y="15" width="26" height="19" rx="5" fill="var(--page)"/><path d="M11 18.5h18"/><circle cx="28" cy="29" r="1.6" fill="#FF9F0A" stroke="none"/></svg>'};
+let glyT=null,glyQ=[];
+function glyphShow(k){
+  try{if(typeof P!=='undefined'&&P.glyph===false)return}catch(e){}
+  const el=document.getElementById('cglyph');if(!el)return;
+  if(el.dataset.on){glyQ.push(k);return}   /* one at a time: the second device waits */
+  el.dataset.on='1';el.innerHTML=GLY[k];el.style.opacity=1;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{const a=el.querySelector('.g1'),b=el.querySelector('.g2');
+    if(k==='ps'){a.setAttribute('opacity','1');if(b)b.setAttribute('opacity','1')}else a.style.transform='translateY(0)'}));
+  clearTimeout(glyT);glyT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>{delete el.dataset.on;el.innerHTML='';if(glyQ.length)glyphShow(glyQ.shift())},350)},2200)}
 /* n haptics in a row: 2 = Cosmos connected, 3 = PeekSmith connected */
 function qbuzzN(n){for(let i=0;i<n;i++)setTimeout(()=>qbuzz('heavy'),i*220)}
 function qbuzz(st){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('impact',{style:st||'medium'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
@@ -1675,6 +1693,7 @@ FVTVol.setup({page:'notes',
   function clog(t){if(t===lastClog)return;lastClog=t;LOG.push(new Date().toTimeString().slice(0,8)+'  '+t);if(LOG.length>40)LOG.shift();if(logEl.style.display!=='none')logEl.textContent=LOG.join('\n')}
   C.on('log',t=>clog(t));C.on('status',t=>clog('status: '+t));
   $('czLogBtn').onclick=()=>{const on=logEl.style.display==='none';logEl.style.display=on?'block':'none';$('czLogBtn').textContent=on?'Hide':'Show';if(on)logEl.textContent=LOG.join('\n')||'(empty)'};if(P.czAuto===undefined)P.czAuto=true;au.checked=!!P.czAuto;
+  {const g=$('czGlyph');g.checked=P.glyph!==false;g.onchange=()=>{P.glyph=g.checked;saveP();if(g.checked)glyphShow('cos')}}
   au.onchange=()=>{P.czAuto=au.checked;saveP();if(P.czAuto){czOff=false;lastTry=0;tick()}};
   let czOff=false,lastTry=0,was=false;
   /* tapping Disconnect stops auto connect until you tap Connect Cosmos */
@@ -1692,7 +1711,7 @@ FVTVol.setup({page:'notes',
     trying=false;window.czWantScan=false;lastTry=Date.now()}
   setTimeout(tick,1500);setInterval(tick,4000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lastTry=0;setTimeout(tick,600)}});
-  C.on('change',()=>{if(!was&&C.connected)qbuzzN(2);if(was&&!C.connected&&!czOff){lastTry=Date.now()-17000}was=C.connected});
+  C.on('change',()=>{if(!was&&C.connected){qbuzzN(2);glyphShow('cos')}if(was&&!C.connected&&!czOff){lastTry=Date.now()-17000}was=C.connected});
 })();
 </script>
 <script src="../hui.js?v=13"></script>
