@@ -111,8 +111,9 @@ body:not(.drawing) #colorPop{display:none}
 .dis{opacity:.35;pointer-events:none}
 .drawing.w2p #note{visibility:hidden}   /* Magician on the drawing page: their words become pictures, not text */
 /* secret settings sheet (hold the share button) */
-#cglyph{position:fixed;right:24px;top:calc(max(env(safe-area-inset-top),12px) + 60px);width:26px;height:26px;z-index:21;opacity:0;pointer-events:none;transition:opacity .3s}
-#cglyph svg{display:block;width:100%;height:100%}
+#cglyph{position:fixed;left:78px;top:calc(max(env(safe-area-inset-top),12px) + 9px);height:26px;display:flex;align-items:center;gap:5px;z-index:21;opacity:0;pointer-events:none;transition:opacity .3s}
+#cglyph svg{display:block;width:26px;height:26px;flex:none}
+#cglyph .gp{font:600 13px -apple-system,system-ui,sans-serif;letter-spacing:-.2px;font-variant-numeric:tabular-nums;opacity:0;transition:opacity .3s}
 #qtoast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 64px);transform:translateX(-50%) scale(.9);opacity:0;pointer-events:none;z-index:20;
   padding:9px 18px;border-radius:999px;background:#212121;color:#fff;font:600 16px/1 -apple-system,system-ui;box-shadow:inset 0 0 0 .6px rgba(255,255,255,.09);transition:opacity .25s,transform .25s}
 #qtoast.on{opacity:1;transform:translateX(-50%) scale(1)}
@@ -373,7 +374,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v27</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v28</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -1354,10 +1355,20 @@ function glyphShow(k){
   try{if(typeof P!=='undefined'&&P.glyph===false)return}catch(e){}
   const el=document.getElementById('cglyph');if(!el)return;
   if(el.dataset.on){glyQ.push(k);return}   /* one at a time: the second device waits */
-  el.dataset.on='1';el.innerHTML=GLY[k];el.style.opacity=1;
+  el.dataset.on='1';const id=Date.now();el.dataset.id=id;el.innerHTML='<span class="gp"></span>'+GLY[k];el.style.opacity=1;
+  /* battery percentage next to the glyph (colored like the glyph, red under 20 %) */
+  glyBatt(k).then(p=>{if(el.dataset.id!=String(id)||p==null||!Number.isFinite(+p))return;const g=el.querySelector('.gp');if(!g)return;
+    p=Math.round(+p);g.textContent=p+'%';g.style.color=p<20?'#FF453A':(k==='ps'?'#0A84FF':'#FF9F0A');g.style.opacity=1});
   requestAnimationFrame(()=>requestAnimationFrame(()=>{const a=el.querySelector('.g1'),b=el.querySelector('.g2');
     if(k==='ps'){a.setAttribute('opacity','1');if(b)b.setAttribute('opacity','1')}else a.style.transform='translateY(0)'}));
-  clearTimeout(glyT);glyT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>{delete el.dataset.on;el.innerHTML='';if(glyQ.length)glyphShow(glyQ.shift())},350)},2200)}
+  clearTimeout(glyT);glyT=setTimeout(()=>{el.style.opacity=0;setTimeout(()=>{delete el.dataset.on;delete el.dataset.id;el.innerHTML='';if(glyQ.length)glyphShow(glyQ.shift())},350)},2800)}
+async function glyBatt(k){
+  const lim=(p,ms)=>Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]);
+  try{
+    if(k==='ps'){if(typeof aps==='undefined'||!aps||!aps.connected||!aps.battery)return null;await new Promise(r=>setTimeout(r,350));return await lim(aps.battery(),1500)}
+    const C=window.Cosmos;if(!C||!C.connected)return null;
+    for(let i=0;i<10&&C.battery==null;i++)await new Promise(r=>setTimeout(r,150));   /* the page asks for it 0.8 s after connect */
+    return C.battery!=null?C.battery:await lim(C.readBattery(),1500)}catch(e){return null}}
 /* n haptics in a row: 2 = Cosmos connected, 3 = PeekSmith connected */
 function qbuzzN(n){for(let i=0;i<n;i++)setTimeout(()=>qbuzz('heavy'),i*220)}
 function qbuzz(st){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('impact',{style:st||'medium'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
