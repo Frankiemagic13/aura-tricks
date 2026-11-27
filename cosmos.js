@@ -638,7 +638,8 @@ C.panel = function(opts){
   C.loadFonts();
   if (!$('czTpl')) return null;
   const cur = () => { try { return C.tpl(JSON.parse(localStorage.getItem('fvtCosmosCur') || 'null')); } catch(e){ return C.tpl(); } };
-  const chosen = () => { if (!S.tpl) return cur(); const pr = presets.find(x => x.id === S.tpl); if (pr) return C.tpl(pr.tpl); const o = C.templates.get(S.tpl); return o ? C.tpl(o.tpl) : cur(); };
+  const NEW = '_new';
+  const chosen = () => { if (S.tpl === NEW || C.templates.get(S.tpl)) return edTpl(); if (!S.tpl) return cur(); const pr = presets.find(x => x.id === S.tpl); return pr ? C.tpl(pr.tpl) : cur(); };
   const withSrc = t => Object.assign({}, t, { source: C.sources[S.src] ? S.src : (C.sources[t.source] ? t.source : 'inject') });
   function status(){ $('czSt').textContent = C.connected ? ('Connected' + (C.battery != null ? ' · ' + C.battery + '%' : '')) : C.scanning ? 'Searching…' : (C.lastError ? 'Not connected – ' + C.lastError : 'Not connected'); $('czCon').textContent = C.connected ? 'Disconnect' : 'Connect Cosmos'; }
   C.on('change', status); C.on('scan', status); C.on('status', t => { if (!C.connected) return; if (/Print|Wait|Sent/.test(t)) $('czSt').textContent = t; });
@@ -646,50 +647,76 @@ C.panel = function(opts){
   $('czFeed').onclick = () => C.connected ? C.feed(80) : C.connect();
   function preview(cv, t, word){ C.fontsReady(t).then(() => { const r = C.render(Object.assign({}, t, { flip: false, mirror: false }), word); C.paint(cv, r);
     const w = 150, h = r.h * w / C.W; cv.style.width = (h > 190 ? w * 190 / h : w) + 'px'; cv.style.height = Math.min(190, h) + 'px'; cv.style.background = '#f7f6f1'; cv.style.borderRadius = '2px'; cv.style.margin = '8px auto'; cv.style.display = 'block'; }); }
+  /* One section: pick a template, change it, save it. "+ New template" makes a new one.
+     Built-in ones (Cosmos page current setup, page presets) print but do not change here. */
+  let draft = null, posChanged = false;
+  const fs = $('czFont');
+  const edRows = () => document.querySelectorAll('#sheet .czEd, .czEd');
+  const base = () => { const o = S.tpl !== NEW && C.templates.get(S.tpl); return o ? C.tpl(o.tpl) : C.tpl({ px: 0.5, py: 0.5, yAuto: 24 }); };
+  const edTpl = () => { const d = draft || S.ed, t = base();
+    Object.assign(t, { text: d.text, font: d.font, size: +d.size, mode: d.len === 'auto' ? 'auto' : 'fixed', len: d.len === 'auto' ? (t.len || 61) : +d.len });
+    if (S.tpl === NEW || posChanged) { t.px = 0.5; t.py = d.pos === 't' ? 0.08 : d.pos === 'b' ? 0.92 : 0.5; }
+    return t; };
+  const edFrom = o => { const t = C.tpl(o.tpl); return { name: o.name, text: t.text, font: t.font, size: +t.size, len: t.mode === 'auto' ? 'auto' : +t.len, pos: t.py < 0.3 ? 't' : t.py > 0.7 ? 'b' : 'c' }; };
+  const setSel = (el, v, label) => { v = String(v); if (![...el.options].some(o => o.value === v)) { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); } el.value = v; };
+  function fillFonts(){ const v = fs.value || (draft || S.ed).font; fs.innerHTML = '';
+    C.FONTS.forEach(([f, n, mine]) => { const o = document.createElement('option'); o.value = f; o.textContent = mine ? '✍️ ' + n + ' (my font)' : f + ' (' + n + ')'; fs.appendChild(o); });
+    fs.value = C.FONTS.some(x => x[0] === v) ? v : 'Caveat'; }
+  fillFonts();
+  function showPrev(){ const t = chosen(); preview($('czPrev'), t, t.sample || 'Cosmos System'); }
+  function loadEditor(){
+    const o = S.tpl !== NEW && C.templates.get(S.tpl), can = S.tpl === NEW || !!o;
+    edRows().forEach(r => { r.style.display = can ? '' : 'none'; });
+    $('czLockRow').style.display = can ? 'none' : '';
+    posChanged = false;
+    if (can) {
+      draft = o ? edFrom(o) : Object.assign({}, S.ed, { name: '' });
+      $('czName').value = draft.name || ''; $('czName').placeholder = o ? o.name : 'My template';
+      $('czText').value = draft.text; setSel(fs, draft.font, draft.font);
+      setSel($('czSize'), draft.size, (draft.size / 8).toFixed(1) + ' mm');
+      setSel($('czLen'), draft.len, draft.len + ' mm'); $('czPos').value = draft.pos;
+      $('czSave').textContent = o ? 'Save changes' : 'Save template';
+      $('czDel').style.display = o ? '' : 'none';
+    } else draft = null;
+    showPrev();
+  }
   function fillTpl(){
     const sel = $('czTpl'); sel.innerHTML = '';
     const add = (v, n) => { const o = document.createElement('option'); o.value = v; o.textContent = n; sel.appendChild(o); };
     add('', '★ Cosmos page (current setup)');
     presets.forEach(x => add(x.id, x.name));
-    C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name + (x.scope !== 'cosmos' && x.scope !== page ? ' (' + x.scope.charAt(0).toUpperCase() + x.scope.slice(1) + ')' : '')));
-    if (S.tpl && !C.templates.get(S.tpl) && !presets.some(x => x.id === S.tpl)) S.tpl = '';
+    C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name));
+    add(NEW, '+ New template');
+    if (S.tpl && S.tpl !== NEW && !C.templates.get(S.tpl) && !presets.some(x => x.id === S.tpl)) S.tpl = '';
     sel.value = S.tpl;
-    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o ? '' : 'none'; if ($('czRenRow')) { $('czRenRow').style.display = o ? '' : 'none'; if (o && document.activeElement !== $('czRen')) $('czRen').value = o.name; } if (o) $('czDel').textContent = 'Delete this template (from all pages)';
-    preview($('czPrev'), chosen(), chosen().sample);
+    loadEditor();
   }
   $('czTpl').onchange = () => { S.tpl = $('czTpl').value; save(); fillTpl(); };
-  C.on('templates', fillTpl); addEventListener('storage', e => { if (e.key === 'fvtCosmosCur' && !S.tpl) fillTpl(); });
+  C.on('templates', () => { if (document.activeElement && /^cz(Name|Text)$/.test(document.activeElement.id)) return; fillTpl(); });
+  addEventListener('storage', e => { if (e.key === 'fvtCosmosCur' && !S.tpl) fillTpl(); });
+  C.on('fonts', () => { fillFonts(); showPrev(); });
   function fillSrc(){ const sel = $('czSrc'); sel.innerHTML = ''; { const o = document.createElement('option'); o.value = ''; o.textContent = 'Template setting'; sel.appendChild(o); } Object.entries(C.sources).forEach(([id, s]) => { const o = document.createElement('option'); o.value = id; o.textContent = s.name; sel.appendChild(o); }); sel.value = C.sources[S.src] ? S.src : ''; }
   $('czSrc').onchange = () => { S.src = $('czSrc').value; save(); };
   $('czNew').checked = !!S.waitNew; $('czNew').onchange = () => { S.waitNew = $('czNew').checked; save(); };
   if ($('czEq')) { $('czEq').checked = !!S.eq; $('czEq').onchange = () => { S.eq = $('czEq').checked; save(); }; }
   if ($('czAcro')) { $('czAcro').checked = !!S.acro; $('czAcro').onchange = () => { S.acro = $('czAcro').checked; save(); }; }
-  /* rename the selected template: type the new name, then tap Done on the keyboard (or tap outside) */
-  if ($('czRen')) {
-    const ren = () => { const o = S.tpl && C.templates.get(S.tpl); if (!o) return; const n = $('czRen').value.trim();
-      if (!n) { $('czRen').value = o.name; return; } if (n === o.name) return;
-      C.templates.update(o.id, { name: n }); fillTpl(); psShow('Renamed ' + n); };
-    $('czRen').addEventListener('change', ren);
-    $('czRen').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('czRen').blur(); } });
-  }
-  $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o) return; if (!C.tap2($('czDel'))) return; C.templates.remove(o.id); emit('toast', 'Deleted ' + o.name); S.tpl = ''; save(); fillTpl(); };
-  /* new template (this page only) */
-  const fs = $('czFont');
-  function fillFonts(){ const v = fs.value || S.ed.font; fs.innerHTML = '';
-    C.FONTS.forEach(([f, n, mine]) => { const o = document.createElement('option'); o.value = f; o.textContent = mine ? '✍️ ' + n + ' (my font)' : f + ' (' + n + ')'; fs.appendChild(o); });
-    fs.value = C.FONTS.some(x => x[0] === v) ? v : 'Caveat'; }
-  fillFonts();
-  C.on('fonts', () => { fillFonts(); if (S.ed.font !== fs.value) { S.ed.font = fs.value; save(); } fillTpl(); preview($('czEdPrev'), edTpl(), 'Cosmos System'); });
-  const edTpl = () => { const e = S.ed, posY = e.pos === 't' ? 0.08 : e.pos === 'b' ? 0.92 : 0.5;
-    return C.tpl({ text: e.text, font: e.font, size: +e.size, mode: e.len === 'auto' ? 'auto' : 'fixed', len: e.len === 'auto' ? 61 : +e.len, px: 0.5, py: posY, yAuto: 24 }); };
-  function fillEd(){ const e = S.ed; $('czName').value = e.name || ''; $('czText').value = e.text; fs.value = e.font; $('czSize').value = String(e.size); $('czLen').value = String(e.len); $('czPos').value = e.pos; preview($('czEdPrev'), edTpl(), 'Cosmos System'); }
-  const edChange = () => { S.ed = { name: $('czName').value, text: $('czText').value, font: fs.value, size: +$('czSize').value, len: $('czLen').value === 'auto' ? 'auto' : +$('czLen').value, pos: $('czPos').value }; save(); preview($('czEdPrev'), edTpl(), 'Cosmos System'); };
-  ['czName','czText'].forEach(id => $(id).oninput = edChange); ['czFont','czSize','czLen','czPos'].forEach(id => $(id).onchange = edChange);
+  const edChange = () => { if (!draft) return;
+    draft = { name: $('czName').value, text: $('czText').value, font: fs.value, size: +$('czSize').value, len: $('czLen').value === 'auto' ? 'auto' : +$('czLen').value, pos: $('czPos').value };
+    if (S.tpl === NEW) { S.ed = Object.assign({}, draft, { name: '' }); save(); }
+    showPrev(); };
+  ['czName','czText'].forEach(id => $(id).oninput = edChange); ['czFont','czSize','czLen'].forEach(id => $(id).onchange = edChange);
+  $('czPos').onchange = () => { posChanged = true; edChange(); };
+  $('czName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('czName').blur(); } });
   const ins = tag => () => { const ta = $('czText'), a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a; ta.value = ta.value.slice(0, a) + tag + ta.value.slice(b); edChange(); };
   $('czIns').onclick = ins('{prediction}');
   document.querySelectorAll('[data-czins]').forEach(b => { b.onclick = ins('{' + b.dataset.czins + '}'); });
-  $('czSave').onclick = () => { const n = ($('czName').value || '').trim() || ('My template ' + (C.templates.all().filter(x => x.scope === page).length + 1));
-    const o = C.templates.add(n, page, edTpl()); S.tpl = o.id; S.ed.name = ''; save(); fillEd(); fillTpl(); psShow('Saved ' + n); };
+  $('czSave').onclick = () => {
+    if (!draft) return; const o = S.tpl !== NEW && C.templates.get(S.tpl), t = edTpl();
+    if (o) { const n = (draft.name || '').trim() || o.name; C.templates.update(o.id, { name: n, tpl: t }); emit('toast', 'Saved ' + n); psShow('Saved ' + n); }
+    else { const n = (draft.name || '').trim() || ('My template ' + (C.templates.all().filter(x => x.scope === page).length + 1));
+      const no = C.templates.add(n, page, t); S.tpl = no.id; save(); emit('toast', 'Saved ' + n); psShow('Saved ' + n); }
+    fillTpl(); };
+  $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o) return; if (!C.tap2($('czDel'))) return; C.templates.remove(o.id); emit('toast', 'Deleted ' + o.name); S.tpl = ''; save(); fillTpl(); };
   /* printing */
   async function printNow(){
     if (!C.connected) { psShow('Cosmos not connected'); return false; }
@@ -702,7 +729,7 @@ C.panel = function(opts){
   }
   $('czPrint').onclick = printNow;
   $('czTest').onclick = () => { if (!C.connected) { C.connect(); return; } const t = chosen(); C.print(t, t.sample); };
-  fillSrc(); fillTpl(); fillEd(); status();
+  fillSrc(); fillTpl(); status();
   return { print: printNow, autoEq: () => !!S.eq, autoAcro: () => !!S.acro, settings: S,
     /* print a preset or template by id, whatever is selected (used by the page's own buttons) */
     printId: async id => { const keep = S.tpl; S.tpl = id; try { return await printNow(); } finally { S.tpl = keep; } } };
