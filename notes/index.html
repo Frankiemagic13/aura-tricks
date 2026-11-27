@@ -219,6 +219,8 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
       <optgroup label="PeekSmith button"><option value="ps:1.click">Left – tap</option><option value="ps:1.longpress">Left – hold</option><option value="ps:2.click">Right – tap</option><option value="ps:2.longpress">Right – hold</option><option value="ps:0.click">Side – tap</option><option value="ps:0.longpress">Side – hold</option></optgroup>
     </select></div>
     <div class="r">Auto connect<input type="checkbox" class="sw" id="czAuto"></div>
+    <div class="r">Cosmos log<button class="sbtn" id="czLogBtn">Show</button></div>
+    <pre id="czLog" style="display:none;margin:0 18px 12px;white-space:pre-wrap;font:12px ui-monospace,Menlo,monospace;color:#8d919c;max-height:220px;overflow:auto"></pre>
   </div>
   <div class="note">Auto connect: the page connects to the Cosmos when it opens and connects again if the connection is lost (it tries every 20 s). If you tap Disconnect, it waits until you tap Connect Cosmos. Close the Cosmos app first. Works in Aura Browser.<br>Print when typing stops: the Cosmos prints when the spectator stops typing for that time. It prints each note one time; it prints again only if the note changes.<br>Feed trigger: pushes the paper out (the same as the Feed button).<br>Print trigger: prints the template you select under Cosmos template. A volume or PeekSmith trigger replaces what that button did before (you also see it in the Volume and Peeks tabs). Volume buttons do nothing while the settings are open.</div>
   <div class="lbl">Cosmos template</div>
@@ -371,7 +373,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v19</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v20</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -526,7 +528,7 @@ function bleStatus(t){$('bleSt').textContent=t}
 const bleOn=()=>!!(aps&&aps.connected);
 function bleBtnText(){$('bleBtn').textContent=bleOn()?'Disconnect':'Connect PeekSmith'}
 async function bleSearch(){
-  if(!AURA||bleBusy||bleOn()||(window.Cosmos&&Cosmos.scanning))return;bleBusy=true;
+  if(!AURA||bleBusy||bleOn()||(window.Cosmos&&Cosmos.scanning)||(window.czWantScan&&!bleManual))return;bleBusy=true;
   aps=new AuraPeekSmith({lang:'en',timeout:bleScanT()});
   aps.on('status',({state,name,attempt})=>{
     if(state==='scanning')bleStatus('Searching…');
@@ -1664,15 +1666,27 @@ FVTVol.setup({page:'notes',
 
   /* auto connect */
   if(!window.Cosmos)return;
-  const C=Cosmos,au=$('czAuto');if(P.czAuto===undefined)P.czAuto=true;au.checked=!!P.czAuto;
+  const C=Cosmos,au=$('czAuto');
+  /* log in the Print tab (last 40 lines), to see why the Cosmos does not connect */
+  const LOG=[],logEl=$('czLog');let lastClog='';
+  function clog(t){if(t===lastClog)return;lastClog=t;LOG.push(new Date().toTimeString().slice(0,8)+'  '+t);if(LOG.length>40)LOG.shift();if(logEl.style.display!=='none')logEl.textContent=LOG.join('\n')}
+  C.on('log',t=>clog(t));C.on('status',t=>clog('status: '+t));
+  $('czLogBtn').onclick=()=>{const on=logEl.style.display==='none';logEl.style.display=on?'block':'none';$('czLogBtn').textContent=on?'Hide':'Show';if(on)logEl.textContent=LOG.join('\n')||'(empty)'};if(P.czAuto===undefined)P.czAuto=true;au.checked=!!P.czAuto;
   au.onchange=()=>{P.czAuto=au.checked;saveP();if(P.czAuto){czOff=false;lastTry=0;tick()}};
   let czOff=false,lastTry=0,was=false;
   /* tapping Disconnect stops auto connect until you tap Connect Cosmos */
   $('czCon').addEventListener('click',()=>{czOff=C.connected},true);
-  function tick(){
-    if(!P.czAuto||czOff||C.connected||C.scanning||C.busy||!C.hasAura()||document.visibilityState!=='visible')return;
+  /* Aura can do one Bluetooth search at a time. Auto connect does not stop a PeekSmith search:
+     it waits for it to end (window.czWantScan stops the next PeekSmith search), then searches for the Cosmos. */
+  let trying=false;
+  async function tick(){
+    if(trying||!P.czAuto||czOff||C.connected||C.scanning||C.busy||!C.hasAura()||document.visibilityState!=='visible'){if(!trying)window.czWantScan=false;return}
     if(Date.now()-lastTry<20000)return;
-    lastTry=Date.now();C.connect({quiet:true})}
+    window.czWantScan=true;
+    if(bleBusy){clog('auto: waiting for the PeekSmith search to end');return}
+    trying=true;lastTry=Date.now();clog('auto: searching for the Cosmos');
+    try{await C.connect({quiet:true})}catch(e){}
+    trying=false;window.czWantScan=false;lastTry=Date.now()}
   setTimeout(tick,1500);setInterval(tick,4000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lastTry=0;setTimeout(tick,600)}});
   C.on('change',()=>{if(!was&&C.connected)qbuzzN(2);if(was&&!C.connected&&!czOff){lastTry=Date.now()-17000}was=C.connected});
