@@ -279,7 +279,7 @@ if (!localStorage.getItem('fvtCosmosFeedMig')) { if (+T.feed === 160) T.feed = -
   ['font','size','ink','mess','lh','dens','feed','flip','mirror','align','bold','slant','seed'].forEach(k => { if (o[k] !== undefined) T[k] = o[k]; });
   ['size','ink','mess','lh','dens','feed','seed'].forEach(k => T[k] = +T[k]);
 })();
-if (!C.FONTS.some(f => f[0] === T.font)) T.font = 'Caveat';
+if (!C.FONTS.some(f => f[0] === T.font)) { T.font = 'Kalam'; T.ink = 0; }
 let curId = loadJSON('fvtCosmosCurId', null);
 const P = Object.assign({ autoP: false, cosAuto: true, auto: true, vib: false, con: 'COSMOS', feed: '80', injNew: false, showAll: false, btns: {} }, loadJSON('cosmosPS', {}));
 if (P.injId && !localStorage.getItem('fvtInjId')) { try { localStorage.setItem('fvtInjId', P.injId); } catch(e){} }
@@ -388,7 +388,7 @@ function buildMyFonts(){
     r.onclick = async ev => { const b = ev.target.closest('button'); if (!b) return;
       if (b.dataset.a === 'use') { T.font = o.fam; syncMain(); redraw(); toast(o.name); }
       if (b.dataset.a === 'ren') { const v = prompt('Font name', o.name); if (v && v.trim()) C.myFonts.rename(o.fam, v); }
-      if (b.dataset.a === 'del') { if (!C.tap2(b)) return; await C.myFonts.remove(o.fam); if (T.font === o.fam) { T.font = 'Caveat'; } syncMain(); redraw(); } };
+      if (b.dataset.a === 'del') { if (!C.tap2(b)) return; await C.myFonts.remove(o.fam); if (T.font === o.fam) { T.font = 'Kalam'; } syncMain(); redraw(); } };
     box.appendChild(r);
   });
 }

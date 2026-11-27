@@ -1675,7 +1675,7 @@ addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.det
   if(window.NotesAPI&&NotesAPI.cosmosMute)NotesAPI.cosmosMute(Cosmos);
   window.czPanel=Cosmos.panel({page:'calculator',presets,psShow:t=>{try{bleShow(t)}catch(e){}}});
   /* ---- magic square (Napkin look): hold % = on / off, = prints the square for the total ---- */
-  S.ms=Object.assign({on:false,mess:7,font:'Reenie Beanie',cap:false,keep:false,try:''},S.ms||{});
+  S.ms=Object.assign({on:false,mess:7,font:'Kalam',cap:false,keep:false,try:''},S.ms||{});
   const msOpts=()=>({font:S.ms.font,mess:+S.ms.mess,cap:!!S.ms.cap});
   const msSay=t=>{try{bleShow(t)}catch(e){}};
   let msSeed=1;
@@ -1684,7 +1684,7 @@ addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.det
       Cosmos.paint(cv,r);const w=170,h=r.h*w/Cosmos.W;cv.style.width=w+'px';cv.style.height=h+'px';cv.style.background='#f7f6f1';cv.style.borderRadius='2px';cv.style.margin='8px auto';cv.style.display='block'})}
   function msSync(){$('msOn').checked=!!S.ms.on;$('msMess').value=String(S.ms.mess);$('msCap').checked=!!S.ms.cap;$('msKeep').checked=!!S.ms.keep;$('msTry').value=S.ms.try||'';
     const fs=$('msFont');fs.innerHTML='';Cosmos.FONTS.forEach(([f,n,mine])=>{const o=document.createElement('option');o.value=f;o.textContent=mine?n+' (my font)':f+' ('+n+')';fs.appendChild(o)});
-    fs.value=Cosmos.FONTS.some(x=>x[0]===S.ms.font)?S.ms.font:'Reenie Beanie';msPreview()}
+    fs.value=Cosmos.FONTS.some(x=>x[0]===S.ms.font)?S.ms.font:'Kalam';msPreview()}
   window.msSet=function(on,quiet){S.ms.on=!!on;saveS();try{$('msOn').checked=S.ms.on}catch(e){}
     if(!quiet){try{buzz()}catch(e){}toast(on?'Square on':'Square off');msSay(on?'Square on':'Square off')}};
   /* the number to print: the total after =, else the number on the display */

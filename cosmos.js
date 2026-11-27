@@ -16,16 +16,11 @@ const hex = u8 => [...u8].map(b => b.toString(16).padStart(2,'0')).join(' ');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- Fonts: everyday handwriting only ---------- */
-C.FONTS = [
-  ['Caveat','Quick pen'],['Kalam','Neat pen'],['Patrick Hand','Print letters'],['Nanum Pen Script','Ballpoint'],
-  ['Shadows Into Light','Thin pen'],['Indie Flower','Round'],['Reenie Beanie','Fast note'],['Covered By Your Grace','Marker pen'],
-  ['Just Another Hand','Tall'],['Gochi Hand','Felt pen'],['Annie Use Your Telescope','Light pencil'],['Coming Soon','School print'],
-  ['The Girl Next Door','Loose'],['Sue Ellen Francisco','Narrow'],['Gaegu','Pencil'],['Bradley Hand','Apple'],['Noteworthy','Apple'],
-];
+C.FONTS = [['Kalam','Neat pen']];   /* only Kalam: it printed black with no gray in the font test (pen 0) */
 C.loadFonts = () => {
   if (document.getElementById('cosmosFonts')) return;
   const l = document.createElement('link'); l.id = 'cosmosFonts'; l.rel = 'stylesheet';
-  l.href = 'https://fonts.googleapis.com/css2?family=Caveat:wght@400;700&family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Gochi+Hand&family=Shadows+Into+Light&family=Indie+Flower&family=Reenie+Beanie&family=Covered+By+Your+Grace&family=Just+Another+Hand&family=Nanum+Pen+Script&family=Annie+Use+Your+Telescope&family=Coming+Soon&family=The+Girl+Next+Door&family=Sue+Ellen+Francisco&family=Gaegu:wght@400;700&display=swap';
+  l.href = 'https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap';
   document.head.appendChild(l);
   C.myFonts.load();
 };
@@ -107,7 +102,9 @@ C.DEFAULT = {
   dens: 2, feed: -1, flip: false, mirror: false,      // feed -1 = Auto (push the loaded slip out)
   source: 'inject', caseT: 'asis', fallback: '', sample: 'Cosmos System',
 };
-C.tpl = o => Object.assign({}, C.DEFAULT, o || {});
+C.tpl = o => { const t = Object.assign({}, C.DEFAULT, o || {});
+  if (!C.FONTS.some(f => f[0] === t.font)) { t.font = 'Kalam'; t.ink = 0; }   /* a removed font: use Kalam, pen 0 */
+  return t; };
 
 /* ---------- Renderer ---------- */
 function rng(seed){ let s = seed >>> 0 || 1; return () => (s = (s*1664525 + 1013904223) >>> 0) / 4294967296; }
@@ -151,7 +148,7 @@ C.fill = (t, word) => {
 C.render = (t0, word, k = 1) => {
   const t = C.tpl(t0), W = Math.round(C.W * k), BPR = W >> 3, size = +t.size * k, ink = +t.ink * k, jit = (+t.mess)/10, lh = +t.lh, PAD = 6 * k;
   const fam = t.font, weight = t.bold ? '700' : '400';
-  const fontStr = (sz) => `${t.slant ? 'italic ' : ''}${weight} ${sz.toFixed(1)}px "${fam}", "Caveat", "Bradley Hand", cursive`;
+  const fontStr = (sz) => `${t.slant ? 'italic ' : ''}${weight} ${sz.toFixed(1)}px "${fam}", "Kalam", cursive`;
   const m = document.createElement('canvas').getContext('2d'); m.font = fontStr(size);
   const lines = wrapLines(m, C.fill(t, word ?? t.sample), W - PAD*2 - ink*2);
   const R = rng(t.seed), lineH = Math.round(size * lh), top = Math.round(size * 0.25), bot = Math.round(size * 0.35);
@@ -211,7 +208,7 @@ C.paint = (cv, r) => {
   }
   g.putImageData(im, 0, 0);
 };
-C.fontsReady = async t => { try { await C.myFonts.load(); } catch(e){} try { await document.fonts.load(`${t && t.bold ? 700 : 400} 40px "${(t && t.font) || 'Caveat'}"`); } catch(e){} };
+C.fontsReady = async t => { try { await C.myFonts.load(); } catch(e){} try { await document.fonts.load(`${t && t.bold ? 700 : 400} 40px "${(t && t.font) || 'Kalam'}"`); } catch(e){} };
 
 /* ---------- Templates (shared localStorage) ---------- */
 const TK = 'fvtCosmosTpl';
@@ -501,34 +498,6 @@ C.speedTest = async (t0, word) => {
     await waitCredit(); await write(CMD.feed(Math.round(C.edge() * pr.dpm)));
   });
 };
-/* Font test: one slip, the same widest line in 8 font / pen combinations at the template size and
-   darkness, Normal speed. A small label (Patrick Hand) is above each block. Find the one with no gray. */
-C.FONT_TEST = [['Gochi Hand', null], ['Gochi Hand', 0], ['Caveat', 0], ['Kalam', 0], ['Patrick Hand', 0],
-  ['Shadows Into Light', 0], ['Just Another Hand', 0], ['Sue Ellen Francisco', 0]];
-C.fontTestBlocks = async (t0, line) => {
-  const t = C.tpl(t0), k = C.prof().dpm / 8, base = { mode: 'auto', yAuto: 0, flip: false, mirror: false, mess: 0 };
-  for (const [f] of C.FONT_TEST) { try { await document.fonts.load(`400 40px "${f}"`); } catch(e){} }
-  try { await document.fonts.load('400 40px "Patrick Hand"'); } catch(e){}
-  return C.FONT_TEST.map(([font, ink], i) => {
-    const pen = ink == null ? +t.ink : ink;
-    const lab = C.render(Object.assign({}, t, base, { font: 'Patrick Hand', size: 18, ink: 0, lh: 1, bold: false, slant: false,
-      text: `${i + 1}  ${font} · pen ${pen}` }), null, k);
-    const txt = C.render(Object.assign({}, t, base, { font, ink: pen, text: line || 'you will think' }), null, k);
-    return { lab, txt };
-  });
-};
-C.fontTestMM = blocks => Math.round(blocks.reduce((a, b) => a + b.lab.h + b.txt.h, 0) / C.prof().dpm + C.edge());
-C.fontTest = async (t0, line) => {
-  if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
-  const t = C.tpl(t0), pr = C.prof(), blocks = await C.fontTestBlocks(t, line);
-  log(`font test: about ${C.fontTestMM(blocks)} mm`); emit('status', 'Printing…', 'warn');
-  return runJob(t.dens, async () => {
-    for (const b of blocks) {
-      for (const r of [b.lab, b.txt]) for (const ch of rasterChunks(r.rows, r.h, r.bpr)) { await waitCredit(); await write(ch); }
-    }
-    await waitCredit(); await write(CMD.feed(Math.round(C.edge() * pr.dpm)));
-  });
-};
 /* get the prediction word, then print. Returns { ok, word } */
 C.printPrediction = async (t, opts = {}) => {
   t = C.tpl(t);
@@ -583,7 +552,7 @@ C.magicSquare = (n, seed) => {
   if (flip) g = g.map(row => row.slice().reverse());
   return g;
 };
-C.MS_DEFAULT = { font: 'Reenie Beanie', mess: 7, cap: false, len: 61, dens: 2, ink: 3.4 };
+C.MS_DEFAULT = { font: 'Kalam', mess: 7, cap: false, len: 61, dens: 2, ink: 3.4 };
 /* renderSquare(n, o, k) -> same shape as render(): { rows, h, bpr, w, mm, grid } or null.
    o.mess 0–10 = how sloppy (lines and numbers). o.cap = write "= n" under the square. */
 C.renderSquare = (n, o0, k = 1) => {
@@ -627,7 +596,7 @@ C.renderSquare = (n, o0, k = 1) => {
   }
   /* sloppy numbers: each number off-center and tilted, each digit with its own size, tilt and bounce */
   const fam = o.font, fs0 = 50 * k;
-  const font = sz => `400 ${sz.toFixed(1)}px "${fam}", "Reenie Beanie", "Caveat", cursive`;
+  const font = sz => `400 ${sz.toFixed(1)}px "${fam}", "Kalam", cursive`;
   const ink = Math.max(0.6, (+o.ink * 0.45) * k);
   const drawNum = (txt, cx, cy, maxW, base) => {
     const ch = [...String(txt)], sz = ch.map(() => base * (1 + (R() - 0.5) * 0.34 * m));
@@ -718,7 +687,7 @@ C.panel = function(opts){
   const setSel = (el, v, label) => { v = String(v); if (![...el.options].some(o => o.value === v)) { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); } el.value = v; };
   function fillFonts(){ const v = fs.value || (draft || S.ed).font; fs.innerHTML = '';
     C.FONTS.forEach(([f, n, mine]) => { const o = document.createElement('option'); o.value = f; o.textContent = mine ? '✍️ ' + n + ' (my font)' : f + ' (' + n + ')'; fs.appendChild(o); });
-    fs.value = C.FONTS.some(x => x[0] === v) ? v : 'Caveat'; }
+    fs.value = C.FONTS.some(x => x[0] === v) ? v : 'Kalam'; }
   fillFonts();
   function showPrev(){ const t = chosen(); preview($('czPrev'), t, t.sample || 'Cosmos System'); }
   function loadEditor(){
