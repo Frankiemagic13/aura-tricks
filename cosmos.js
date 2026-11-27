@@ -16,11 +16,14 @@ const hex = u8 => [...u8].map(b => b.toString(16).padStart(2,'0')).join(' ');
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 /* ---------- Fonts: everyday handwriting only ---------- */
-C.FONTS = [['Kalam','Neat pen']];   /* only Kalam: it printed black with no gray in the font test (pen 0) */
+/* Fonts that print black on the Cosmos (no gray on wide lines): medium or thin strokes, not too wide.
+   Kalam, Patrick Hand and Caveat printed black in the font test at pen 0. Handlee and Nanum Pen Script
+   have the same stroke weight or thinner (Nanum is narrow, so fewer dots in each row). Use pen 0. */
+C.FONTS = [['Kalam','Neat pen'],['Patrick Hand','Print letters'],['Caveat','Quick pen'],['Handlee','Neat handwriting'],['Nanum Pen Script','Narrow ballpoint']];
 C.loadFonts = () => {
   if (document.getElementById('cosmosFonts')) return;
   const l = document.createElement('link'); l.id = 'cosmosFonts'; l.rel = 'stylesheet';
-  l.href = 'https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&display=swap';
+  l.href = 'https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Caveat:wght@400;700&family=Handlee&family=Nanum+Pen+Script&display=swap';
   document.head.appendChild(l);
   C.myFonts.load();
 };
