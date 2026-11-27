@@ -101,7 +101,7 @@ C.prof = () => C.PROFILES[C.dpi()];
 C.edge = () => { try { const v = +localStorage.getItem('fvtCosmosEdge'); return v >= 2 && v <= 60 ? v : 15; } catch(e){ return 15; } };
 C.setEdge = v => { try { localStorage.setItem('fvtCosmosEdge', String(+v)); } catch(e){} emit('change'); };
 C.DEFAULT = {
-  text: 'You will think of\nthe {prediction}', font: 'Caveat', size: 52, ink: 1.5, mess: 4, lh: 1.1,
+  text: 'You will think of\nthe {prediction}', font: 'Kalam', size: 52, ink: 0, mess: 4, lh: 1.1,
   align: 'center', bold: false, slant: false, seed: 1,
   mode: 'fixed', len: 61, px: 0.5, py: 0.5, yAuto: 24,
   dens: 2, feed: -1, flip: false, mirror: false,      // feed -1 = Auto (push the loaded slip out)
@@ -687,7 +687,7 @@ C.panel = function(opts){
   const psShow = t => { try { opts.psShow && opts.psShow(t); } catch(e){} };
   let S = {}; try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){}
   S = Object.assign({ tpl: '', src: '', waitNew: false, eq: false, acro: false,
-    ed: { name: '', text: 'You will think of\nthe {prediction}', font: 'Caveat', size: 52, len: 61, pos: 'c' } }, S);
+    ed: { name: '', text: 'You will think of\nthe {prediction}', font: 'Kalam', size: 52, len: 61, pos: 'c' } }, S);
   if (!S.srcV) { if (S.src === 'inject') S.src = ''; S.srcV = 1; }   /* '' = use the template's own source */
   const presets = opts.presets || [];
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
