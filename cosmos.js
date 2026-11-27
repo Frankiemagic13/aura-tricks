@@ -127,7 +127,20 @@ function wrapLines(ctx, text, maxW){
 }
 C.applyCase = (w, c) => { w = String(w ?? ''); if (c === 'upper') return w.toUpperCase(); if (c === 'lower') return w.toLowerCase();
   if (c === 'title') return w.toLowerCase().replace(/(^|\s)(\S)/g, (m, a, b) => a + b.toUpperCase()); return w; };
-C.fill = (t, word) => String(t.text || '').split('{prediction}').join(C.applyCase(word, t.caseT));
+/* more placeholders: a page adds one with Cosmos.addTag('notes', 'Notes', () => text). In the template it is {notes}.
+   The value is read at print time. In the live view an empty value shows the placeholder. */
+C.tags = {};
+C.addTag = (id, name, fn) => { C.tags[id] = { name, get: fn }; };
+let printing = false;
+C.fill = (t, word) => {
+  let s = String(t.text || '').split('{prediction}').join(C.applyCase(word, t.caseT));
+  for (const [id, g] of Object.entries(C.tags)) {
+    if (!s.includes('{' + id + '}')) continue;
+    let v = ''; try { v = String(g.get() ?? '').trim(); } catch(e){}
+    s = s.split('{' + id + '}').join(v || (printing ? '' : '{' + id + '}'));
+  }
+  return s;
+};
 
 /* render(t, word, k) -> { rows: Uint8Array(H*bpr), h, bpr, w, box:{x,y,w,h}, over, mm }
    k = 1: design grid (live view). k = C.prof().dpm / 8: printer dots. */
@@ -434,7 +447,7 @@ C.print = async (t, word) => {
   t = C.tpl(t);
   if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
   await C.fontsReady(t);
-  const pr = C.prof(), r = C.render(t, word == null ? t.sample : word, pr.dpm / 8);
+  const pr = C.prof(); printing = true; let r; try { r = C.render(t, word == null ? t.sample : word, pr.dpm / 8); } finally { printing = false; }
   let rows = r.rows, h = r.h, feed = feedDots(t.feed);
   if (+t.feed === -1) {
     /* rest of the slip (Auto length: slip = the Fixed length setting) + the extra to push it out */
@@ -656,7 +669,9 @@ C.panel = function(opts){
   function fillEd(){ const e = S.ed; $('czName').value = e.name || ''; $('czText').value = e.text; fs.value = e.font; $('czSize').value = String(e.size); $('czLen').value = String(e.len); $('czPos').value = e.pos; preview($('czEdPrev'), edTpl(), 'Cosmos System'); }
   const edChange = () => { S.ed = { name: $('czName').value, text: $('czText').value, font: fs.value, size: +$('czSize').value, len: $('czLen').value === 'auto' ? 'auto' : +$('czLen').value, pos: $('czPos').value }; save(); preview($('czEdPrev'), edTpl(), 'Cosmos System'); };
   ['czName','czText'].forEach(id => $(id).oninput = edChange); ['czFont','czSize','czLen','czPos'].forEach(id => $(id).onchange = edChange);
-  $('czIns').onclick = () => { const ta = $('czText'), a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a; ta.value = ta.value.slice(0, a) + '{prediction}' + ta.value.slice(b); edChange(); };
+  const ins = tag => () => { const ta = $('czText'), a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a; ta.value = ta.value.slice(0, a) + tag + ta.value.slice(b); edChange(); };
+  $('czIns').onclick = ins('{prediction}');
+  document.querySelectorAll('[data-czins]').forEach(b => { b.onclick = ins('{' + b.dataset.czins + '}'); });
   $('czSave').onclick = () => { const n = ($('czName').value || '').trim() || ('My template ' + (C.templates.all().filter(x => x.scope === page).length + 1));
     const o = C.templates.add(n, page, edTpl()); S.tpl = o.id; S.ed.name = ''; save(); fillEd(); fillTpl(); psShow('Saved ' + n); };
   /* printing */

@@ -225,7 +225,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="grp">
     <div class="r">Name<input id="czName" autocapitalize="off" autocorrect="off" placeholder="My template"></div>
     <div class="r" style="display:block;padding:8px 18px"><textarea id="czText" rows="3" style="width:100%;box-sizing:border-box;background:#121318;color:#e9eaee;border:0;border-radius:12px;padding:10px;font:16px -apple-system,system-ui;resize:none"></textarea></div>
-    <div class="r"><button class="done" id="czIns" style="width:auto;text-align:left">{ } Prediction</button></div>
+    <div class="r"><button class="done" id="czIns" style="width:auto;text-align:left">{ } Prediction</button><button class="done" data-czins="notes" style="width:auto">{ } Notes</button></div>
     <div class="r">Font<select id="czFont"></select></div>
     <div class="r">Size<select id="czSize"><option value="32">4 mm</option><option value="40">5 mm</option><option value="48">6 mm</option><option value="52">6.5 mm</option><option value="56">7 mm</option><option value="64">8 mm</option><option value="72">9 mm</option><option value="80">10 mm</option><option value="96">12 mm</option></select></div>
     <div class="r">Paper<select id="czLen"><option value="auto">Auto (as long as the text)</option><option value="40">40 mm</option><option value="50">50 mm</option><option value="61">61 mm</option><option value="70">70 mm</option><option value="80">80 mm</option><option value="100">100 mm</option></select></div>
@@ -358,7 +358,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v14</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v15</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -399,7 +399,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
 </div>
 </div>
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
-<script src="../cosmos.js?v=2026112601"></script>
+<script src="../cosmos.js?v=2026112602"></script>
 <script src="../relay.js"></script>
 <script src="../notes-api.js?v=5"></script>
 <script src="pics.js?v=2"></script>
@@ -1375,6 +1375,8 @@ document.querySelectorAll('.hui-help [data-g]').forEach(g=>{const src=document.q
   Cosmos.addSource('noteWord','Notes: last word',()=>{const l=lines();return l.length?l[l.length-1].split(/\s+/).pop():''});
   Cosmos.addSource('noteLine','Notes: last line',()=>{const l=lines();return l.length?l[l.length-1]:''});
   Cosmos.addSource('noteFull','Notes: full note',()=>lines().join(' '));
+  /* {notes} in a template = what is written on the note now (line breaks kept) */
+  if(Cosmos.addTag)Cosmos.addTag('notes','Notes',()=>note.innerText.replace(/\u00a0/g,' ').split('\n').map(s=>s.trimEnd()).join('\n').replace(/\n{3,}/g,'\n\n').trim());
   /* acrostic: the acrostic on screen; if none yet, an acrostic of the last word */
   Cosmos.addSource('noteAcro','Notes: acrostic',()=>{
     try{if(acroRaw){const a=acroText(acroRaw,true);if(a)return a}}catch(e){}
