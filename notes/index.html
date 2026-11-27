@@ -206,8 +206,14 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
   <div class="grp">
     <div class="r">Status<span id="czSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
     <div class="r"><button class="done" id="czCon" style="width:auto;text-align:left">Connect Cosmos</button><button class="done" id="czFeed" style="width:auto">Feed</button></div>
+    <div class="r">Print trigger<select id="czTrig">
+      <option value="off">Off</option>
+      <optgroup label="Volume button"><option value="vol:up">Volume +</option><option value="vol:up2">Volume + twice</option><option value="vol:down">Volume −</option><option value="vol:down2">Volume − twice</option></optgroup>
+      <optgroup label="PeekSmith button"><option value="ps:1.click">Left – tap</option><option value="ps:1.longpress">Left – hold</option><option value="ps:2.click">Right – tap</option><option value="ps:2.longpress">Right – hold</option><option value="ps:0.click">Side – tap</option><option value="ps:0.longpress">Side – hold</option></optgroup>
+      <optgroup label="On screen"><option value="done">Spectator taps ✓ (Done)</option></optgroup>
+    </select></div>
   </div>
-  <div class="note">Tap Connect Cosmos (the Cosmos does not connect by itself). Close the Cosmos app first. Works in Aura Browser.</div>
+  <div class="note">Tap Connect Cosmos (the Cosmos does not connect by itself). Close the Cosmos app first. Works in Aura Browser.<br>Print trigger: prints the template you select under Cosmos template. A volume or PeekSmith trigger replaces what that button did before (you also see it in the Volume and Peeks tabs). Volume buttons do nothing while the settings are open.</div>
   <div class="lbl">Cosmos template</div>
   <div class="grp">
     <div class="r">Template<select id="czTpl"></select></div>
@@ -358,7 +364,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v15</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v16</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -1599,6 +1605,33 @@ FVTVol.setup({page:'notes',
   $o('ocStop').onclick=()=>{stopCam();st('Camera off')};
   let was=document.body.classList.contains('open');
   new MutationObserver(()=>{const n=document.body.classList.contains('open');if(was&&!n)stopCam();was=n}).observe(document.body,{attributes:true,attributeFilter:['class']});
+})();
+</script>
+<script>
+/* ---------- Cosmos print trigger (Print tab). It uses the volume / PeekSmith button settings, so there is one place for each button. ---------- */
+(function(){
+  const sel=$('czTrig');if(!sel)return;
+  const vs=()=>[...document.querySelectorAll('#sheet select[id^="vol_"]')].filter(x=>/^vol_(up|up2|down|down2)$/.test(x.id));
+  const pss=()=>[...document.querySelectorAll('#sheet select[data-k]')];
+  const setSel=(x,v)=>{if(x.value===v)return;x.value=v;x.dispatchEvent(new Event('change',{bubbles:true}))};
+  function read(){
+    for(const x of vs())if(x.value==='ps:cosmos')return 'vol:'+x.id.slice(4);
+    for(const x of pss())if(x.value==='cosmos')return 'ps:'+x.dataset.k;
+    return P.czDone?'done':'off'}
+  function sync(){sel.value=read()}
+  sel.onchange=()=>{
+    const v=sel.value;
+    vs().forEach(x=>{if(x.value==='ps:cosmos')setSel(x,'none')});
+    pss().forEach(x=>{if(x.value==='cosmos')setSel(x,'none')});
+    P.czDone=v==='done';saveP();
+    if(v.startsWith('vol:')){const x=$('vol_'+v.slice(4));if(x)setSel(x,'ps:cosmos');
+      const on=$('volOn');if(on&&!on.checked){on.checked=true;on.dispatchEvent(new Event('change',{bubbles:true}))}}
+    if(v.startsWith('ps:')){const x=pss().find(x=>x.dataset.k===v.slice(3));if(x)setSel(x,'cosmos')}
+    qtoast(v==='off'?'Print trigger off':'Print trigger set')};
+  document.addEventListener('change',e=>{if(e.target!==sel&&e.target.matches&&e.target.matches('#sheet select'))setTimeout(sync,0)});
+  new MutationObserver(()=>{if(document.body.classList.contains('open'))sync()}).observe(document.body,{attributes:true,attributeFilter:['class']});
+  done.addEventListener('click',()=>{if(P.czDone&&window.czPanel&&window.Cosmos&&Cosmos.connected)setTimeout(()=>czPanel.print(),350)});
+  setTimeout(sync,0);
 })();
 </script>
 <script src="../hui.js?v=13"></script>
