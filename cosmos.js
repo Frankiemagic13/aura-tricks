@@ -652,7 +652,7 @@ C.panel = function(opts){
     C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name));
     if (S.tpl && !C.templates.get(S.tpl) && !presets.some(x => x.id === S.tpl)) S.tpl = '';
     sel.value = S.tpl;
-    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o ? '' : 'none'; if (o) $('czDel').textContent = o.scope === page ? 'Delete this template' : 'Delete this template (from all pages)';
+    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o ? '' : 'none'; if ($('czRenRow')) { $('czRenRow').style.display = o ? '' : 'none'; if (o && document.activeElement !== $('czRen')) $('czRen').value = o.name; } if (o) $('czDel').textContent = o.scope === page ? 'Delete this template' : 'Delete this template (from all pages)';
     preview($('czPrev'), chosen(), chosen().sample);
   }
   $('czTpl').onchange = () => { S.tpl = $('czTpl').value; save(); fillTpl(); };
@@ -662,6 +662,14 @@ C.panel = function(opts){
   $('czNew').checked = !!S.waitNew; $('czNew').onchange = () => { S.waitNew = $('czNew').checked; save(); };
   if ($('czEq')) { $('czEq').checked = !!S.eq; $('czEq').onchange = () => { S.eq = $('czEq').checked; save(); }; }
   if ($('czAcro')) { $('czAcro').checked = !!S.acro; $('czAcro').onchange = () => { S.acro = $('czAcro').checked; save(); }; }
+  /* rename the selected template: type the new name, then tap Done on the keyboard (or tap outside) */
+  if ($('czRen')) {
+    const ren = () => { const o = S.tpl && C.templates.get(S.tpl); if (!o) return; const n = $('czRen').value.trim();
+      if (!n) { $('czRen').value = o.name; return; } if (n === o.name) return;
+      C.templates.update(o.id, { name: n }); fillTpl(); psShow('Renamed ' + n); };
+    $('czRen').addEventListener('change', ren);
+    $('czRen').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('czRen').blur(); } });
+  }
   $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o) return; if (!C.tap2($('czDel'))) return; C.templates.remove(o.id); emit('toast', 'Deleted ' + o.name); S.tpl = ''; save(); fillTpl(); };
   /* new template (this page only) */
   const fs = $('czFont');
