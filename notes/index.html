@@ -371,7 +371,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v18</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v19</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -535,7 +535,7 @@ async function bleSearch(){
     if(state==='reconnecting')bleStatus('Reconnecting ('+attempt+')');
     if(state==='disconnected')bleStatus('Not connected');
     bleBtnText()});
-  aps.on('connect',()=>{aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
+  aps.on('connect',()=>{qbuzzN(3);aps.vibrate("''").catch(()=>{});bleBtnText();setTimeout(conShow,250)});
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
@@ -1342,6 +1342,8 @@ peerUI();
 let qtT=null;
 function qtoast(t){const el=$('qtoast');el.textContent=t;el.classList.add('on');clearTimeout(qtT);qtT=setTimeout(()=>el.classList.remove('on'),1300)}
 /* Aura haptic: the same call as the PIN page (impact, with a style: light, medium or heavy) */
+/* n haptics in a row: 2 = Cosmos connected, 3 = PeekSmith connected */
+function qbuzzN(n){for(let i=0;i<n;i++)setTimeout(()=>qbuzz('heavy'),i*220)}
 function qbuzz(st){try{const A=window.Aura;if(A&&typeof A.haptic==='function'){const r=A.haptic('impact',{style:st||'medium'});if(r&&r.catch)r.catch(()=>{})}}catch(e){}}
 function mirrorToggle(){if(predMode){predToggle();setMirr(true);peerOut({cmd:'mirr',on:true});qtoast('Mirror on');qbuzz();return}   // mirror on stops the prediction
   if(acroMode){acroToggle();P.mirr=false}
@@ -1673,7 +1675,7 @@ FVTVol.setup({page:'notes',
     lastTry=Date.now();C.connect({quiet:true})}
   setTimeout(tick,1500);setInterval(tick,4000);
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){lastTry=0;setTimeout(tick,600)}});
-  C.on('change',()=>{if(was&&!C.connected&&!czOff){lastTry=Date.now()-17000}was=C.connected});
+  C.on('change',()=>{if(!was&&C.connected)qbuzzN(2);if(was&&!C.connected&&!czOff){lastTry=Date.now()-17000}was=C.connected});
 })();
 </script>
 <script src="../hui.js?v=13"></script>
