@@ -417,6 +417,13 @@ const CMD = {
   stop:   () => Uint8Array.of(0x10,0xFF,0xF1,0x45),
   feed:   n => { const a = []; while (n > 0){ const k = Math.min(255, n); a.push(0x1B,0x4A,k); n -= k; } return Uint8Array.from(a); },
 };
+/* Slow print (darker): wait after each write, longer when the rows have many black dots, so the print head
+   has more time to heat. Level in localStorage "fvtCosmosSlow": 0 normal, 1 slow, 2 slower. Not measured yet. */
+const PC = new Uint8Array(256); for (let i = 1; i < 256; i++) PC[i] = PC[i >> 1] + (i & 1);
+C.slow = () => { const v = +(localStorage.getItem('fvtCosmosSlow') || 0); return v === 1 || v === 2 ? v : 0; };
+C.setSlow = v => { try { localStorage.setItem('fvtCosmosSlow', String(+v || 0)); } catch(e){} };
+function paceMs(chunk, lvl){ if (!lvl) return 0; let d = 0; for (let i = 8; i < chunk.length; i++) d += PC[chunk[i]];
+  return lvl === 1 ? Math.min(40, d * 0.06) : Math.min(100, d * 0.15); }
 const PKT_DATA = 144;       // rows per write: 8 + 144 = 152 bytes, under the 200-byte packet size
 function rasterChunks(rows, h, bpr = 48){
   const out = [], per = Math.max(1, Math.floor(PKT_DATA / bpr));
@@ -465,12 +472,31 @@ C.print = async (t, word) => {
   const chunks = rasterChunks(rows, h, r.bpr);
   log(`printing ${r.w}×${h} dots (${pr.name}), feed ${feed} in ${chunks.length} writes`);
   emit('status', 'Printing…', 'warn');
+  const lvl = C.slow();
   return runJob(t.dens, async () => {
     for (let i = 0; i < chunks.length; i++) {
       await waitCredit(); await write(chunks[i]);
+      const ms = paceMs(chunks[i], lvl); if (ms >= 1) await sleep(ms);
       if (i % 10 === 0) emit('status', `Printing… ${Math.round(i/chunks.length*100)}%`, 'warn');
     }
     if (feed > 0) { await waitCredit(); await write(CMD.feed(feed)); }
+  });
+};
+/* Speed test: one slip with the same text 3 times — Normal, Slow, Slower — to compare the darkness. */
+C.speedTest = async (t0, word) => {
+  if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
+  const t = C.tpl(t0); await C.fontsReady(t); const pr = C.prof(), k = pr.dpm / 8;
+  const names = ['1 Normal', '2 Slow', '3 Slower'];
+  const blocks = names.map((n, lvl) => { const r = C.render(Object.assign({}, t, { mode: 'auto', flip: false, mirror: false,
+      text: n + '\n' + (word || t.sample || 'the word Spongebob') }), null, k); return { lvl, chunks: rasterChunks(r.rows, r.h, r.bpr) }; });
+  log('speed test: ' + blocks.map(b => b.chunks.length + ' writes').join(', '));
+  emit('status', 'Printing…', 'warn');
+  return runJob(t.dens, async () => {
+    for (const b of blocks) {
+      for (const ch of b.chunks) { await waitCredit(); await write(ch); const ms = paceMs(ch, b.lvl); if (ms >= 1) await sleep(ms); }
+      await waitCredit(); await write(CMD.feed(Math.round(4 * pr.dpm)));
+    }
+    await waitCredit(); await write(CMD.feed(Math.round(C.edge() * pr.dpm)));
   });
 };
 /* get the prediction word, then print. Returns { ok, word } */
@@ -731,7 +757,7 @@ C.panel = function(opts){
   $('czPrint').onclick = printNow;
   $('czTest').onclick = () => { if (!C.connected) { C.connect(); return; } const t = chosen(); C.print(t, t.sample); };
   fillSrc(); fillTpl(); status();
-  return { print: printNow, autoEq: () => !!S.eq, autoAcro: () => !!S.acro, settings: S,
+  return { print: printNow, autoEq: () => !!S.eq, autoAcro: () => !!S.acro, settings: S, current: () => chosen(),
     /* print a preset or template by id, whatever is selected (used by the page's own buttons) */
     printId: async id => { const keep = S.tpl; S.tpl = id; try { return await printNow(); } finally { S.tpl = keep; } } };
 };
