@@ -2,7 +2,7 @@
    - Bluetooth to the Electricks Cosmos (LuckPrinter protocol, see cosmos/cosmos-printer.md), in Aura Browser or Chrome.
    - Handwriting renderer: text block + {prediction}, paper length (Auto / Fixed mm), text position, 1-bit output.
    - Templates: one list in localStorage ("fvtCosmosTpl") for all pages on this site.
-     scope "cosmos" = made on the Cosmos page (shown on every page); scope "notes" / "calculator" = that page only.
+     All templates show on every page (Cosmos, Notes, Calculator). scope = the page where it was made (only for the label).
    - Prediction sources: "inject" is built in; pages add their own with Cosmos.addSource(id, name, fn).
    Events (Cosmos.on): status(text, kind), change(), toast(text), log(text), busy(on), printed(ok). */
 (function(){
@@ -130,6 +130,7 @@ C.applyCase = (w, c) => { w = String(w ?? ''); if (c === 'upper') return w.toUpp
 /* more placeholders: a page adds one with Cosmos.addTag('notes', 'Notes', () => text). In the template it is {notes}.
    The value is read at print time. In the live view an empty value shows the placeholder. */
 C.tags = {};
+const PAGE_TAGS = ['notes'];   /* placeholders of other pages: on a page without them they print nothing */
 C.addTag = (id, name, fn) => { C.tags[id] = { name, get: fn }; };
 let printing = false;
 C.fill = (t, word) => {
@@ -139,6 +140,7 @@ C.fill = (t, word) => {
     let v = ''; try { v = String(g.get() ?? '').trim(); } catch(e){}
     s = s.split('{' + id + '}').join(v || (printing ? '' : '{' + id + '}'));
   }
+  if (printing) for (const id of PAGE_TAGS) if (!C.tags[id]) s = s.split('{' + id + '}').join('');
   return s;
 };
 
@@ -221,7 +223,7 @@ C.templates = {
   all(){ try { return JSON.parse(localStorage.getItem(TK) || '[]'); } catch(e){ return []; } },
   saveAll(a){ try { localStorage.setItem(TK, JSON.stringify(a)); } catch(e){} emit('templates'); },
   /* page "cosmos": only Cosmos templates. Other pages: Cosmos templates + the page's own. */
-  list(page){ return this.all().filter(x => x.scope === 'cosmos' || x.scope === page); },
+  list(page){ return this.all(); },
   get(id){ return this.all().find(x => x.id === id) || null; },
   add(name, scope, tpl){ const a = this.all(); const o = { id: 't' + Date.now().toString(36) + Math.random().toString(36).slice(2,5), name: String(name || 'Template').slice(0, 40), scope, tpl: C.tpl(tpl), ts: Date.now() }; a.push(o); this.saveAll(a); return o; },
   update(id, patch){ const a = this.all(); const o = a.find(x => x.id === id); if (!o) return null; if (patch.name != null) o.name = String(patch.name).slice(0, 40); if (patch.tpl) o.tpl = C.tpl(patch.tpl); o.ts = Date.now(); this.saveAll(a); return o; },
@@ -649,10 +651,10 @@ C.panel = function(opts){
     const add = (v, n) => { const o = document.createElement('option'); o.value = v; o.textContent = n; sel.appendChild(o); };
     add('', '★ Cosmos page (current setup)');
     presets.forEach(x => add(x.id, x.name));
-    C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name));
+    C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name + (x.scope !== 'cosmos' && x.scope !== page ? ' (' + x.scope.charAt(0).toUpperCase() + x.scope.slice(1) + ')' : '')));
     if (S.tpl && !C.templates.get(S.tpl) && !presets.some(x => x.id === S.tpl)) S.tpl = '';
     sel.value = S.tpl;
-    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o ? '' : 'none'; if ($('czRenRow')) { $('czRenRow').style.display = o ? '' : 'none'; if (o && document.activeElement !== $('czRen')) $('czRen').value = o.name; } if (o) $('czDel').textContent = o.scope === page ? 'Delete this template' : 'Delete this template (from all pages)';
+    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o ? '' : 'none'; if ($('czRenRow')) { $('czRenRow').style.display = o ? '' : 'none'; if (o && document.activeElement !== $('czRen')) $('czRen').value = o.name; } if (o) $('czDel').textContent = 'Delete this template (from all pages)';
     preview($('czPrev'), chosen(), chosen().sample);
   }
   $('czTpl').onchange = () => { S.tpl = $('czTpl').value; save(); fillTpl(); };
