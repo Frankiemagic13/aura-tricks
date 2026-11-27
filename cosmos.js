@@ -140,6 +140,8 @@ C.fill = (t, word) => {
     let v = ''; try { v = String(g.get() ?? '').trim(); } catch(e){}
     s = s.split('{' + id + '}').join(v || (printing ? '' : '{' + id + '}'));
   }
+  /* placeholders of other pages (here {notes} on the Cosmos page): the live view shows a sample */
+  if (!printing) for (const id of PAGE_TAGS) if (!C.tags[id]) s = s.split('{' + id + '}').join(id === 'notes' ? 'Your note' : id);
   if (printing) for (const id of PAGE_TAGS) if (!C.tags[id]) s = s.split('{' + id + '}').join('');
   return s;
 };
