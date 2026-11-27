@@ -211,6 +211,12 @@ C.fontsReady = async t => { try { await C.myFonts.load(); } catch(e){} try { awa
 
 /* ---------- Templates (shared localStorage) ---------- */
 const TK = 'fvtCosmosTpl';
+/* tap a button two times to confirm (Aura does not show confirm() boxes) */
+C.tap2 = (el, txt = 'Tap again to delete') => {
+  if (el._t2 && Date.now() - el._t2 < 3000) { clearTimeout(el._t2t); el._t2 = 0; el.textContent = el._t2o; return true; }
+  el._t2o = el.textContent; el._t2 = Date.now(); el.textContent = txt;
+  el._t2t = setTimeout(() => { el._t2 = 0; el.textContent = el._t2o; }, 3000); return false;
+};
 C.templates = {
   all(){ try { return JSON.parse(localStorage.getItem(TK) || '[]'); } catch(e){ return []; } },
   saveAll(a){ try { localStorage.setItem(TK, JSON.stringify(a)); } catch(e){} emit('templates'); },
@@ -646,7 +652,7 @@ C.panel = function(opts){
     C.templates.list(page).forEach(x => add(x.id, (x.scope === 'cosmos' ? '★ ' : '') + x.name));
     if (S.tpl && !C.templates.get(S.tpl) && !presets.some(x => x.id === S.tpl)) S.tpl = '';
     sel.value = S.tpl;
-    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o && o.scope === page ? '' : 'none';
+    const o = S.tpl && C.templates.get(S.tpl); $('czDelRow').style.display = o ? '' : 'none'; if (o) $('czDel').textContent = o.scope === page ? 'Delete this template' : 'Delete this template (from all pages)';
     preview($('czPrev'), chosen(), chosen().sample);
   }
   $('czTpl').onchange = () => { S.tpl = $('czTpl').value; save(); fillTpl(); };
@@ -656,7 +662,7 @@ C.panel = function(opts){
   $('czNew').checked = !!S.waitNew; $('czNew').onchange = () => { S.waitNew = $('czNew').checked; save(); };
   if ($('czEq')) { $('czEq').checked = !!S.eq; $('czEq').onchange = () => { S.eq = $('czEq').checked; save(); }; }
   if ($('czAcro')) { $('czAcro').checked = !!S.acro; $('czAcro').onchange = () => { S.acro = $('czAcro').checked; save(); }; }
-  $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o || o.scope !== page) return; if (!confirm('Delete ' + o.name + '?')) return; C.templates.remove(o.id); S.tpl = ''; save(); fillTpl(); };
+  $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o) return; if (!C.tap2($('czDel'))) return; C.templates.remove(o.id); emit('toast', 'Deleted ' + o.name); S.tpl = ''; save(); fillTpl(); };
   /* new template (this page only) */
   const fs = $('czFont');
   function fillFonts(){ const v = fs.value || S.ed.font; fs.innerHTML = '';

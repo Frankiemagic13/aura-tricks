@@ -113,7 +113,7 @@ select{-webkit-appearance:none;appearance:none}
 <body>
 <div class="wrap">
   <div class="top">
-    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v7</small></h1>
+    <h1>Cosmos<small style="font-size:12px;font-weight:500;opacity:.45;margin-left:6px">v8</small></h1>
     <div class="row" style="gap:2px">
       <button class="ib" id="bRoutines" aria-label="Routines"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="9" rx="1.5"/><rect x="13.5" y="3" width="7.5" height="5" rx="1.5"/><rect x="3" y="15" width="7.5" height="6" rx="1.5"/><rect x="13.5" y="11" width="7.5" height="10" rx="1.5"/></svg></button>
       <button class="ib" id="bSettings" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -256,7 +256,7 @@ select{-webkit-appearance:none;appearance:none}
 <div class="toast" id="toast"></div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
-<script src="../cosmos.js?v=2026112602"></script>
+<script src="../cosmos.js?v=2026112603"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -386,7 +386,7 @@ function buildMyFonts(){
     r.onclick = async ev => { const b = ev.target.closest('button'); if (!b) return;
       if (b.dataset.a === 'use') { T.font = o.fam; syncMain(); redraw(); toast(o.name); }
       if (b.dataset.a === 'ren') { const v = prompt('Font name', o.name); if (v && v.trim()) C.myFonts.rename(o.fam, v); }
-      if (b.dataset.a === 'del') { if (!confirm('Delete ' + o.name + '? Templates that use it print in Caveat.')) return; await C.myFonts.remove(o.fam); if (T.font === o.fam) { T.font = 'Caveat'; } syncMain(); redraw(); } };
+      if (b.dataset.a === 'del') { if (!C.tap2(b)) return; await C.myFonts.remove(o.fam); if (T.font === o.fam) { T.font = 'Caveat'; } syncMain(); redraw(); } };
     box.appendChild(r);
   });
 }
@@ -415,7 +415,7 @@ async function buildRoutines(){
       e.stopPropagation();
       if (a.dataset.a === 'ren') { const n = prompt('New name', r.name); if (n && n.trim()) { C.templates.update(r.id, { name: n.trim() }); buildRoutines(); buildChips(); } }
       if (a.dataset.a === 'upd') { C.templates.update(r.id, { tpl: T }); curId = r.id; saveT(); toast('Updated ' + r.name); buildRoutines(); buildChips(); }
-      if (a.dataset.a === 'del') { if (confirm('Delete ' + r.name + '?')) { C.templates.remove(r.id); if (curId === r.id) { curId = null; saveT(); } buildRoutines(); buildChips(); } }
+      if (a.dataset.a === 'del') { if (C.tap2(a)) { C.templates.remove(r.id); if (curId === r.id) { curId = null; saveT(); } buildRoutines(); buildChips(); } }
     };
     g.appendChild(d);
     await C.fontsReady(t);
