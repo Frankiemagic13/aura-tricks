@@ -285,7 +285,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="lbl">Cosmos printer</div>
   <div class="grp">
     <div class="r">Status<span id="czSt" style="color:rgba(235,235,245,.6)">Not connected</span></div>
-    <div class="r"><button class="done" id="czCon" style="width:auto;text-align:left">Connect Cosmos</button><button class="done" id="czFeed" style="width:auto">Feed</button></div>
+    <div class="r"><button class="sbtn" id="czCon" style="width:auto;text-align:left">Connect Cosmos</button><button class="sbtn" id="czFeed" style="width:auto">Feed</button></div>
   </div>
   <div class="note">Tap Connect Cosmos (the Cosmos does not connect by itself). Close the Cosmos app first. Works in Aura Browser.</div>
   <div class="lbl">Cosmos template</div>
@@ -294,8 +294,8 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">{prediction} from<select id="czSrc"></select></div>
     <div class="r">Wait for a new Inject word<label><input type="checkbox" id="czNew" style="width:auto;transform:scale(1.3)"></label></div>
     <div class="r" style="display:block;padding:4px 18px"><canvas id="czPrev"></canvas></div>
-    <div class="r"><button class="done" id="czPrint" style="width:auto;text-align:left">Print now</button><button class="done" id="czTest" style="width:auto">Test (sample)</button></div>
-    <div class="r" id="czDelRow"><button class="done" id="czDel" style="width:auto;text-align:left;color:#ff453a">Delete this template</button></div>
+    <div class="r"><button class="sbtn" id="czPrint" style="width:auto;text-align:left">Print now</button><button class="sbtn" id="czTest" style="width:auto">Test (sample)</button></div>
+    <div class="r" id="czDelRow"><button class="sbtn" id="czDel" style="width:auto;text-align:left;color:#ff453a">Delete this template</button></div>
   </div>
   <div class="note">★ = from the Cosmos page (edit those there). "Cosmos page (current setup)" is what is on the Cosmos page now. The others were made on this page and stay on this page. A PeekSmith button can print too: choose "Cosmos print" in PeekSmith buttons.</div>
   <div class="lbl">Cosmos auto print</div>
@@ -317,13 +317,13 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
   <div class="grp">
     <div class="r">Name<input id="czName" autocapitalize="off" autocorrect="off" placeholder="My template"></div>
     <div class="r" style="display:block;padding:8px 18px"><textarea id="czText" rows="3" style="width:100%;box-sizing:border-box;background:#121318;color:#e9eaee;border:0;border-radius:12px;padding:10px;font:16px -apple-system,system-ui;resize:none"></textarea></div>
-    <div class="r"><button class="done" id="czIns" style="width:auto;text-align:left">{ } Prediction</button></div>
+    <div class="r"><button class="sbtn" id="czIns" style="width:auto;text-align:left">{ } Prediction</button></div>
     <div class="r">Font<select id="czFont"></select></div>
     <div class="r">Size<select id="czSize"><option value="32">4 mm</option><option value="40">5 mm</option><option value="48">6 mm</option><option value="52">6.5 mm</option><option value="56">7 mm</option><option value="64">8 mm</option><option value="72">9 mm</option><option value="80">10 mm</option><option value="96">12 mm</option></select></div>
     <div class="r">Paper<select id="czLen"><option value="auto">Auto (as long as the text)</option><option value="40">40 mm</option><option value="50">50 mm</option><option value="61">61 mm</option><option value="70">70 mm</option><option value="80">80 mm</option><option value="100">100 mm</option></select></div>
     <div class="r">Position<select id="czPos"><option value="t">Top</option><option value="c">Center</option><option value="b">Bottom</option></select></div>
     <div class="r" style="display:block;padding:4px 18px"><canvas id="czEdPrev"></canvas></div>
-    <div class="r"><button class="done" id="czSave" style="width:auto;text-align:left">Save template</button></div>
+    <div class="r"><button class="sbtn" id="czSave" style="width:auto;text-align:left">Save template</button></div>
   </div>
   <div class="note">Templates you save here show only on this page. For more control (drag the text, messiness, pen thickness), make the template on the Cosmos page: it shows here with ★.</div>
   <div class="lbl">Calculator API</div>
@@ -447,7 +447,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v61</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v62</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -1069,7 +1069,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v61. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v62. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
