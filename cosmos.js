@@ -659,7 +659,7 @@ C.panel = function(opts){
   const psShow = t => { try { opts.psShow && opts.psShow(t); } catch(e){} };
   let S = {}; try { S = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch(e){}
   S = Object.assign({ tpl: '', src: '', waitNew: false, eq: false, acro: false,
-    ed: { name: '', text: 'You will think of\nthe {prediction}', font: 'Kalam', size: 52, len: 61, pos: 'c' } }, S);
+    ed: { name: '', text: 'You will think of\nthe {prediction}', font: 'Kalam', size: 52, ink: 0, len: 61, pos: 'c' } }, S);
   if (!S.srcV) { if (S.src === 'inject') S.src = ''; S.srcV = 1; }   /* '' = use the template's own source */
   const presets = opts.presets || [];
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} };
@@ -683,10 +683,10 @@ C.panel = function(opts){
   const edRows = () => document.querySelectorAll('#sheet .czEd, .czEd');
   const base = () => { const o = S.tpl !== NEW && C.templates.get(S.tpl); return o ? C.tpl(o.tpl) : C.tpl({ px: 0.5, py: 0.5, yAuto: 24 }); };
   const edTpl = () => { const d = draft || S.ed, t = base();
-    Object.assign(t, { text: d.text, font: d.font, size: +d.size, mode: d.len === 'auto' ? 'auto' : 'fixed', len: d.len === 'auto' ? (t.len || 61) : +d.len });
+    Object.assign(t, { text: d.text, font: d.font, size: +d.size, ink: +(d.ink || 0), mode: d.len === 'auto' ? 'auto' : 'fixed', len: d.len === 'auto' ? (t.len || 61) : +d.len });
     if (S.tpl === NEW || posChanged) { t.px = 0.5; t.py = d.pos === 't' ? 0.08 : d.pos === 'b' ? 0.92 : 0.5; }
     return t; };
-  const edFrom = o => { const t = C.tpl(o.tpl); return { name: o.name, text: t.text, font: t.font, size: +t.size, len: t.mode === 'auto' ? 'auto' : +t.len, pos: t.py < 0.3 ? 't' : t.py > 0.7 ? 'b' : 'c' }; };
+  const edFrom = o => { const t = C.tpl(o.tpl); return { name: o.name, text: t.text, font: t.font, size: +t.size, ink: +t.ink || 0, len: t.mode === 'auto' ? 'auto' : +t.len, pos: t.py < 0.3 ? 't' : t.py > 0.7 ? 'b' : 'c' }; };
   const setSel = (el, v, label) => { v = String(v); if (![...el.options].some(o => o.value === v)) { const o = document.createElement('option'); o.value = v; o.textContent = label; el.appendChild(o); } el.value = v; };
   function fillFonts(){ const v = fs.value || (draft || S.ed).font; fs.innerHTML = '';
     C.FONTS.forEach(([f, n, mine]) => { const o = document.createElement('option'); o.value = f; o.textContent = mine ? '✍️ ' + n + ' (my font)' : f + ' (' + n + ')'; fs.appendChild(o); });
@@ -704,6 +704,7 @@ C.panel = function(opts){
       $('czText').value = draft.text; setSel(fs, draft.font, draft.font);
       setSel($('czSize'), draft.size, (draft.size / 8).toFixed(1) + ' mm');
       setSel($('czLen'), draft.len, draft.len + ' mm'); $('czPos').value = draft.pos;
+      if ($('czInk')) setSel($('czInk'), +(draft.ink || 0), String(+(draft.ink || 0)));
       $('czSave').textContent = o ? 'Save changes' : 'Save template';
       $('czDel').style.display = o ? '' : 'none';
     } else draft = null;
@@ -730,10 +731,10 @@ C.panel = function(opts){
   if ($('czEq')) { $('czEq').checked = !!S.eq; $('czEq').onchange = () => { S.eq = $('czEq').checked; save(); }; }
   if ($('czAcro')) { $('czAcro').checked = !!S.acro; $('czAcro').onchange = () => { S.acro = $('czAcro').checked; save(); }; }
   const edChange = () => { if (!draft) return;
-    draft = { name: $('czName').value, text: $('czText').value, font: fs.value, size: +$('czSize').value, len: $('czLen').value === 'auto' ? 'auto' : +$('czLen').value, pos: $('czPos').value };
+    draft = { name: $('czName').value, text: $('czText').value, font: fs.value, size: +$('czSize').value, ink: $('czInk') ? +$('czInk').value : +(draft.ink || 0), len: $('czLen').value === 'auto' ? 'auto' : +$('czLen').value, pos: $('czPos').value };
     if (S.tpl === NEW) { S.ed = Object.assign({}, draft, { name: '' }); save(); }
     showPrev(); };
-  ['czName','czText'].forEach(id => $(id).oninput = edChange); ['czFont','czSize','czLen'].forEach(id => $(id).onchange = edChange);
+  ['czName','czText'].forEach(id => $(id).oninput = edChange); ['czFont','czSize','czLen','czInk'].forEach(id => { if ($(id)) $(id).onchange = edChange; });
   $('czPos').onchange = () => { posChanged = true; edChange(); };
   $('czName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('czName').blur(); } });
   const ins = tag => () => { const ta = $('czText'), a = ta.selectionStart ?? ta.value.length, b = ta.selectionEnd ?? a; ta.value = ta.value.slice(0, a) + tag + ta.value.slice(b); edChange(); };
