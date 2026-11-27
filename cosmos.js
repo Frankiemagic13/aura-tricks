@@ -640,7 +640,8 @@ C.panel = function(opts){
   const cur = () => { try { return C.tpl(JSON.parse(localStorage.getItem('fvtCosmosCur') || 'null')); } catch(e){ return C.tpl(); } };
   const NEW = '_new';
   const chosen = () => { if (S.tpl === NEW || C.templates.get(S.tpl)) return edTpl(); if (!S.tpl) return cur(); const pr = presets.find(x => x.id === S.tpl); return pr ? C.tpl(pr.tpl) : cur(); };
-  const withSrc = t => Object.assign({}, t, { source: C.sources[S.src] ? S.src : (C.sources[t.source] ? t.source : 'inject') });
+  /* '{prediction} from' changes the source of your templates, not of the page presets (the Acrostic preset always uses the acrostic) */
+  const withSrc = t => Object.assign({}, t, { source: (!presets.some(x => x.id === S.tpl) && C.sources[S.src]) ? S.src : (C.sources[t.source] ? t.source : 'inject') });
   function status(){ $('czSt').textContent = C.connected ? ('Connected' + (C.battery != null ? ' · ' + C.battery + '%' : '')) : C.scanning ? 'Searching…' : (C.lastError ? 'Not connected – ' + C.lastError : 'Not connected'); $('czCon').textContent = C.connected ? 'Disconnect' : 'Connect Cosmos'; }
   C.on('change', status); C.on('scan', status); C.on('status', t => { if (!C.connected) return; if (/Print|Wait|Sent/.test(t)) $('czSt').textContent = t; });
   $('czCon').onclick = () => C.connected ? C.disconnect() : C.connect();
