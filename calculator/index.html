@@ -447,7 +447,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v60</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v61</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -487,7 +487,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 </div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
-<script src="../cosmos.js"></script>
+<script src="../cosmos.js?v=2026112601"></script>
 <script src="../relay.js"></script>
 <script src="../notes-api.js?v=5" data-ch="calc" data-title="Calculator"></script>
 <script>
@@ -887,7 +887,7 @@ async function bleConnect(){
   bleManualOff=false;bleManual=true;bleWinStart();return bleSearch()}
 /* one search: used by the button and by the automatic search */
 async function bleSearch(){
-  if(bleBusy||bleConnected())return;bleBusy=true;
+  if(bleBusy||bleConnected()||(window.Cosmos&&Cosmos.scanning))return;bleBusy=true;
   aps=new AuraPeekSmith({lang:'en',timeout:bleScanT()});
   aps.on('status',({state,name,attempt})=>{
     if(state==='scanning')bleStatus('Searching…');
@@ -900,6 +900,10 @@ async function bleSearch(){
   aps.on('button',({button,event})=>bleButton(button,event));
   try{await aps.connect()}catch(e){bleStatus(bleWinOpen()?'Searching again…':BLE_NF);aps=null}
   bleBusy=false;bleBtnText()}
+/* the Cosmos search: stop the PeekSmith search first (Aura can not do the two searches at the same time) */
+if(window.Cosmos&&Cosmos.beforeScan)Cosmos.beforeScan(async()=>{
+  if(!aps||bleConnected())return;const a=aps;aps=null;try{await a.disconnect()}catch(e){}
+  for(let i=0;i<20&&bleBusy;i++)await new Promise(r=>setTimeout(r,100))});
 /* newest text wins: the PeekSmith takes about 200 ms per 19 characters, so a queue of old peeks made it lag.
    Now only one send is on its way; while it goes, a newer text replaces the waiting one. */
 let blePend=null,bleSending=false;
@@ -1065,7 +1069,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v60. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v61. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}

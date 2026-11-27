@@ -293,19 +293,45 @@ function setConnected(on){
   emit('status', on ? 'Connected' : 'Not connected', on ? 'ok' : '');
   emit('change');
 }
+/* Other Bluetooth searches on the page (the PeekSmith search) can stop the Cosmos search in Aura.
+   Pages add a function with Cosmos.beforeScan(fn); fn stops their search. While C.scanning is true,
+   pages must not start a new search. */
+const scanHooks = [];
+C.beforeScan = fn => { scanHooks.push(fn); };
+C.scanning = false;
+C.lastError = '';
+const why = m => /permission/i.test(m) ? 'No Bluetooth permission for Aura' : /off/i.test(m) ? 'Bluetooth is off'
+  : /cancel/i.test(m) ? 'Cancelled' : /time|not found|no device/i.test(m) ? 'Cosmos not found – wake it up' : 'Could not connect';
 C.connect = async (opts = {}) => {
   if (C.connected) return true;
+  if (C.scanning) return false;
   credits = null;
   mode = C.hasAura() ? 'aura' : C.hasWeb() ? 'web' : null;
   if (!mode) { emit('status', 'No Bluetooth here', 'bad'); emit('toast', 'Open this page in Aura Browser or Chrome'); return false; }
   emit('status', 'Searching…', 'warn');
+  C.scanning = true; emit('scan', true);
   try {
-    if (mode === 'aura') await connectAura(); else await connectWeb();
+    if (mode === 'aura') {
+      for (const f of scanHooks) { try { await Promise.race([f(), sleep(2500)]); } catch(e){} }
+      try { await Aura.bluetooth.stopScan(); } catch(e){}
+      await sleep(300);
+      try { await connectAura(); }
+      catch (e) {                                   /* one more try: a different search can stop the first one */
+        if (/cancel|permission|off/i.test(e.message)) throw e;
+        log('connect failed (' + e.message + '), trying again');
+        try { if (auraId) await Aura.bluetooth.disconnect(auraId); } catch(x){}
+        try { await Aura.bluetooth.stopScan(); } catch(x){}
+        await sleep(900); await connectAura();
+      }
+    } else await connectWeb();
+    C.lastError = '';
     setConnected(true); emit('toast', 'Cosmos connected'); return true;
   } catch (e) {
-    log('connect failed: ' + e.message); emit('status', 'Not connected', opts.quiet ? '' : 'bad');
-    if (!opts.quiet) emit('toast', /cancel/i.test(e.message) ? 'Cancelled' : 'Could not connect'); return false;
-  }
+    C.lastError = why(e.message || '');
+    log('connect failed: ' + e.message); emit('status', 'Not connected – ' + C.lastError, opts.quiet ? '' : 'bad');
+    emit('change');
+    if (!opts.quiet) emit('toast', C.lastError); return false;
+  } finally { C.scanning = false; emit('scan', false); }
 };
 async function connectAura(){
   const A = Aura.bluetooth;
@@ -593,8 +619,8 @@ C.panel = function(opts){
   const cur = () => { try { return C.tpl(JSON.parse(localStorage.getItem('fvtCosmosCur') || 'null')); } catch(e){ return C.tpl(); } };
   const chosen = () => { if (!S.tpl) return cur(); const pr = presets.find(x => x.id === S.tpl); if (pr) return C.tpl(pr.tpl); const o = C.templates.get(S.tpl); return o ? C.tpl(o.tpl) : cur(); };
   const withSrc = t => Object.assign({}, t, { source: C.sources[S.src] ? S.src : (C.sources[t.source] ? t.source : 'inject') });
-  function status(){ $('czSt').textContent = C.connected ? ('Connected' + (C.battery != null ? ' · ' + C.battery + '%' : '')) : 'Not connected'; $('czCon').textContent = C.connected ? 'Disconnect' : 'Connect Cosmos'; }
-  C.on('change', status); C.on('status', t => { if (!C.connected) return; if (/Print|Wait|Sent/.test(t)) $('czSt').textContent = t; });
+  function status(){ $('czSt').textContent = C.connected ? ('Connected' + (C.battery != null ? ' · ' + C.battery + '%' : '')) : C.scanning ? 'Searching…' : (C.lastError ? 'Not connected – ' + C.lastError : 'Not connected'); $('czCon').textContent = C.connected ? 'Disconnect' : 'Connect Cosmos'; }
+  C.on('change', status); C.on('scan', status); C.on('status', t => { if (!C.connected) return; if (/Print|Wait|Sent/.test(t)) $('czSt').textContent = t; });
   $('czCon').onclick = () => C.connected ? C.disconnect() : C.connect();
   $('czFeed').onclick = () => C.connected ? C.feed(80) : C.connect();
   function preview(cv, t, word){ C.fontsReady(t).then(() => { const r = C.render(Object.assign({}, t, { flip: false, mirror: false }), word); C.paint(cv, r);
