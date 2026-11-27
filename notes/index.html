@@ -225,6 +225,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r">Auto connect<input type="checkbox" class="sw" id="czAuto"></div>
     <div class="r">Print speed<select id="czSlow"><option value="0">Normal</option><option value="1">Slow (darker)</option><option value="2">Slower (darkest)</option></select></div>
     <div class="r"><button class="sbtn" id="czSpeedTest" style="width:auto;text-align:left">Speed test print</button></div>
+    <div class="r"><button class="sbtn" id="czFontTest" style="width:auto;text-align:left">Font test print</button><span id="czFontLen" style="color:#8d919c;font-size:13px"></span></div>
     <div class="r">Connect glyph (PeekSmith + Cosmos)<input type="checkbox" class="sw" id="czGlyph"></div>
     <div class="r">Cosmos log<button class="sbtn" id="czLogBtn">Show</button></div>
     <pre id="czLog" style="display:none;margin:0 18px 12px;white-space:pre-wrap;font:12px ui-monospace,Menlo,monospace;color:#8d919c;max-height:220px;overflow:auto"></pre>
@@ -376,7 +377,7 @@ html.freeze #scroll,html.freeze #note{overflow:hidden!important;touch-action:non
     <div class="r" style="display:block;padding:10px 18px"><div style="color:#8d919c;font-size:12px;margin-bottom:4px">Best word</div><div id="ocWord" style="font:700 26px -apple-system,system-ui;color:#ffd60a;word-break:break-word">—</div><div style="color:#8d919c;font-size:12px;margin:10px 0 4px">All text</div><div id="ocRaw" style="font:14px -apple-system,system-ui;white-space:pre-wrap;word-break:break-word;color:#e9eaee">—</div></div>
   </div>
   <div class="snote">Experimental. Tap <b>Test</b>: the camera opens (front by default). Hold the word in the yellow box. The page waits 1.5 s, takes one picture and reads it. Tap Test again to read again. The first test loads the text engine from the internet (about 5 MB, one time). Big, dark letters on white paper work best. The front camera reads less well than the back camera. The text stays on this phone (no peek yet).</div>
-<div class="snote" style="text-align:center;margin-top:14px">Notes v31</div>
+<div class="snote" style="text-align:center;margin-top:14px">Notes v32</div>
 <div data-tab="Help" class="hui-help">
   <h4>Fake lock</h4>
   <p>Volume tab: set a volume button to "Fake lock". One press: the lock sound plays (if on) and the screen goes black, like a locked phone. Hold the black screen: what the spectator wrote shows while you hold. Lift your finger: black again. Press the volume button again, or triple tap (if on): the note comes back. If the spectator deletes the note (all or part), the peek still shows what they wrote before they deleted it ("Peek deleted text", on by default). The "Fake lock" card in the Volume tab sets the sound and how the peek looks, with a preview.</p>
@@ -1704,7 +1705,11 @@ FVTVol.setup({page:'notes',
   if(!window.Cosmos)return;
   const C=Cosmos,au=$('czAuto');
   {const sl=$('czSlow');sl.value=String(C.slow());sl.onchange=()=>C.setSlow(sl.value);
-   $('czSpeedTest').onclick=()=>{if(!C.connected){C.connect();return}const t=czPanel&&czPanel.current?czPanel.current():null;C.speedTest(t||{},'the word Spongebob')}}
+   $('czSpeedTest').onclick=()=>{if(!C.connected){C.connect();return}const t=czPanel&&czPanel.current?czPanel.current():null;C.speedTest(t||{},'the word Spongebob')};
+   const ftT=()=>(czPanel&&czPanel.current?czPanel.current():null)||{};
+   const ftLen=()=>C.fontTestBlocks(ftT(),'you will think').then(b=>{$('czFontLen').textContent='Paper: about '+Math.ceil(C.fontTestMM(b)/10)+' cm'}).catch(()=>{});
+   ftLen();setTimeout(ftLen,2500);
+   $('czFontTest').onclick=()=>{if(!C.connected){C.connect();return}ftLen();C.fontTest(ftT(),'you will think')}}
   /* log in the Print tab (last 40 lines), to see why the Cosmos does not connect */
   const LOG=[],logEl=$('czLog');let lastClog='';
   function clog(t){if(t===lastClog)return;lastClog=t;LOG.push(new Date().toTimeString().slice(0,8)+'  '+t);if(LOG.length>40)LOG.shift();if(logEl.style.display!=='none')logEl.textContent=LOG.join('\n')}

@@ -501,6 +501,34 @@ C.speedTest = async (t0, word) => {
     await waitCredit(); await write(CMD.feed(Math.round(C.edge() * pr.dpm)));
   });
 };
+/* Font test: one slip, the same widest line in 8 font / pen combinations at the template size and
+   darkness, Normal speed. A small label (Patrick Hand) is above each block. Find the one with no gray. */
+C.FONT_TEST = [['Gochi Hand', null], ['Gochi Hand', 0], ['Caveat', 0], ['Kalam', 0], ['Patrick Hand', 0],
+  ['Shadows Into Light', 0], ['Just Another Hand', 0], ['Sue Ellen Francisco', 0]];
+C.fontTestBlocks = async (t0, line) => {
+  const t = C.tpl(t0), k = C.prof().dpm / 8, base = { mode: 'auto', yAuto: 0, flip: false, mirror: false, mess: 0 };
+  for (const [f] of C.FONT_TEST) { try { await document.fonts.load(`400 40px "${f}"`); } catch(e){} }
+  try { await document.fonts.load('400 40px "Patrick Hand"'); } catch(e){}
+  return C.FONT_TEST.map(([font, ink], i) => {
+    const pen = ink == null ? +t.ink : ink;
+    const lab = C.render(Object.assign({}, t, base, { font: 'Patrick Hand', size: 18, ink: 0, lh: 1, bold: false, slant: false,
+      text: `${i + 1}  ${font} · pen ${pen}` }), null, k);
+    const txt = C.render(Object.assign({}, t, base, { font, ink: pen, text: line || 'you will think' }), null, k);
+    return { lab, txt };
+  });
+};
+C.fontTestMM = blocks => Math.round(blocks.reduce((a, b) => a + b.lab.h + b.txt.h, 0) / C.prof().dpm + C.edge());
+C.fontTest = async (t0, line) => {
+  if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
+  const t = C.tpl(t0), pr = C.prof(), blocks = await C.fontTestBlocks(t, line);
+  log(`font test: about ${C.fontTestMM(blocks)} mm`); emit('status', 'Printing…', 'warn');
+  return runJob(t.dens, async () => {
+    for (const b of blocks) {
+      for (const r of [b.lab, b.txt]) for (const ch of rasterChunks(r.rows, r.h, r.bpr)) { await waitCredit(); await write(ch); }
+    }
+    await waitCredit(); await write(CMD.feed(Math.round(C.edge() * pr.dpm)));
+  });
+};
 /* get the prediction word, then print. Returns { ok, word } */
 C.printPrediction = async (t, opts = {}) => {
   t = C.tpl(t);
