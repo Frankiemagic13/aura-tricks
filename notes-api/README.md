@@ -38,3 +38,8 @@ One notification comes when the spectator stops typing.
 ## Calculator
 The Calculator page (v58+) uses the same Worker with `ch=calc`: its own saved text, its own URL
 (`/api?ch=calc&key=KEY`), notification title "Calculator". The key is shared with Notes.
+
+## No notifications while the Cosmos is connected (Notes v23, Calculator v66)
+When the Cosmos connects on your phone, the page tells the Worker (POST /admin/mute) to send no notifications.
+The mute ends when the Cosmos disconnects, or by itself 5 min after the last message from your phone.
+Your phone needs the admin password in the API settings. Update the Worker: paste the new `worker.js` in Edit code, tap Deploy.

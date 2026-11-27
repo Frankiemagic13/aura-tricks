@@ -59,6 +59,7 @@ function mount(){
   $('naWorker').value=ls.get('naWorker','');
   $('naWorker').placeholder=DEFAULT_WORKER||'https://notes-api….workers.dev';
   $('naWorker').onchange=e=>{ls.set('naWorker',e.target.value.trim());load()};
+  if($('naMuteCos')){$('naMuteCos').checked=muteOn();$('naMuteCos').onchange=e=>{ls.set('naMuteCos',e.target.checked?'1':'0');if(NotesAPI._muteUpd)NotesAPI._muteUpd()}}
   $('naApiPw').value=ls.get('naPw','');
   $('naApiPw').onchange=e=>{ls.set('naPw',e.target.value.trim());load()};
   function meUrl(k){const e=$('naUrlMe');if(e)e.textContent='Magician: '+base()+'/api?ch='+chOf(true)+'&key='+k}
@@ -74,5 +75,21 @@ function mount(){
   $('naClear').onclick=async()=>{try{await admin('/admin/clear','POST');last=null;told=null;st('Saved note cleared')}catch(e){st(e.message)}};
   load();
 }
-window.NotesAPI={push,inbox,mount};
+/* No notifications while the Cosmos is connected (this phone needs the admin password).
+   Setting: localStorage "naMuteCos" ('1' = on, the default). The Worker ends the mute by itself after 5 min,
+   so this phone sends it again every 4 min while the Cosmos stays connected. */
+const muteOn=()=>ls.get('naMuteCos','1')!=='0';
+let muted=false,muteT=null;
+function mute(on){
+  const pw=ls.get('naPw','');if(!pw||!base())return;
+  fetch(base()+'/admin/mute',{method:'POST',headers:{'Content-Type':'application/json','X-Admin-Password':pw},body:JSON.stringify({on:!!on,ttl:300}),keepalive:true}).catch(()=>{});
+}
+function cosmosMute(C){
+  if(!C||!C.on)return;
+  const upd=()=>{const want=muteOn()&&C.connected;
+    if(want&&!muted){muted=true;mute(true);clearInterval(muteT);muteT=setInterval(()=>mute(true),240000)}
+    else if(!want&&muted){muted=false;clearInterval(muteT);muteT=null;mute(false)}};
+  C.on('change',upd);NotesAPI._muteUpd=upd;upd();
+}
+window.NotesAPI={push,inbox,mount,mute,cosmosMute};
 })();

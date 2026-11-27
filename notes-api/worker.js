@@ -11,6 +11,7 @@
 // Your phone (admin)      -> GET  /admin           -> {url, key}      (header X-Admin-Password)
 //                            POST /admin/reset     -> new key, old URL stops at once
 //                            POST /admin/clear     -> clears saved note + inbox
+//                            POST /admin/mute      {on, ttl} -> no notifications while on (ends by itself after ttl s)
 
 export default {
   async fetch(req, env, ctx) {
@@ -68,7 +69,10 @@ export default {
       const text = String((body && body.text) || "").slice(0, 5000);
       await env.STORE.put(NOTE, JSON.stringify({ text, at: Date.now() }));
       let ntfy;
-      if (env.NTFY_TOPIC && body && body.done && text.trim()) ntfy = await notify(env, text, String(body.title || "Notes").slice(0, 40));
+      if (env.NTFY_TOPIC && body && body.done && text.trim()) {
+        if (await env.STORE.get("mute")) ntfy = "muted";
+        else ntfy = await notify(env, text, String(body.title || "Notes").slice(0, 40));
+      }
       return json({ ok: true, ntfy }, 200, cors);
     }
 
@@ -98,6 +102,14 @@ export default {
         await env.STORE.delete(NOTE);
         await env.STORE.delete(INBOX);
         return json({ ok: true }, 200, cors);
+      }
+      if (p === "/admin/mute" && req.method === "POST") {
+        const body = await readBody(req);
+        if (body && body.on) {
+          const ttl = Math.min(Math.max(Number(body.ttl) || 300, 60), 3600);
+          await env.STORE.put("mute", "1", { expirationTtl: ttl });
+        } else await env.STORE.delete("mute");
+        return json({ ok: true, mute: !!(body && body.on) }, 200, cors);
       }
       return json({ error: "not found" }, 404, cors);
     }

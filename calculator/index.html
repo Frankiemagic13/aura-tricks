@@ -332,6 +332,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="r">Send to my API<input type="checkbox" id="naOn"></div>
     <div class="r">Also send from my phone (Magician)<input type="checkbox" id="naMe"></div>
     <div class="r">Notify after<select id="naWait"><option value="">2 s (default)</option><option value="0.5">0.5 s</option><option value="1">1 s</option><option value="3">3 s</option><option value="4">4 s</option><option value="6">6 s</option></select></div>
+    <div class="r">No notifications while the Cosmos is connected<input type="checkbox" id="naMuteCos"></div>
     <div class="r">Worker<input class="tx" id="naWorker" autocapitalize="off" autocorrect="off" spellcheck="false"></div>
     <div class="r">Admin password<input class="tx" id="naApiPw" type="password" autocapitalize="off" autocorrect="off"></div>
     <div class="r" style="display:block;padding:10px 18px"><div id="naUrl" style="font:12px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#8d919c">—</div><div id="naUrlMe" style="font:11px ui-monospace,Menlo,monospace;word-break:break-all;-webkit-user-select:all;user-select:all;color:#6c707a;margin-top:6px"></div></div>
@@ -448,7 +449,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
     <div class="note">1. Type the numbers with + between them. 2. While the last number is typed, peek at the clock button (top left): the hand points right = tap +, the hand points down = tap −. 3. The force starts on that + or −. Turn the phone face down and tap the screen. Each tap enters the next digit. Before you turn the phone, look at the time in the top left corner: its LAST DIGIT is the number of taps needed (for 10 taps it shows 0). 4. Turn the phone face up and tap = (or let it tap = for you). "Start after numbers" sets how many numbers come first.</div>
     <div class="note">Enable the motion sensor here before the show. iOS shows a permission message one time.</div>
   </div>
-  <div class="note" style="text-align:center;margin-top:14px">Calculator v65</div>
+  <div class="note" style="text-align:center;margin-top:14px">Calculator v66</div>
 <div data-tab="Help" class="hui-help">
   <h4>Open and close</h4>
   <p>Hold <b>0</b> for 1 second to open these settings. Tap <b>Done</b> to close.</p>
@@ -490,7 +491,7 @@ html,body{height:100%;overflow:hidden;background:#000;color:#fff;overscroll-beha
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
 <script src="../cosmos.js?v=2026112605"></script>
 <script src="../relay.js"></script>
-<script src="../notes-api.js?v=5" data-ch="calc" data-title="Calculator"></script>
+<script src="../notes-api.js?v=6" data-ch="calc" data-title="Calculator"></script>
 <script>
 const Q=new URLSearchParams(location.search);
 const S={mode:Q.get('mode')||'date',custom:Q.get('r')||'',fmt:Q.get('f')||'odhm',
@@ -1070,7 +1071,7 @@ function pxInit(){
       setInterval(()=>{for(const k of ['near','isNear','covered','isCovered','state']){
         try{if(k in P&&typeof P[k]!=='function'){const v=pxRead(P[k]);if(v!==null)pxChange(v)}}catch(e){}}},250)}
     let caps='';try{caps=pxShort(typeof A.capabilities==='function'?A.capabilities():A.capabilities)}catch(e){}
-    pxBase='Calculator v65. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
+    pxBase='Calculator v66. Aura '+pxShort(A.version)+'. Modules: '+Object.keys(A).join(', ')+'. Proximity has: '+
       (A.proximity?pxKeys(A.proximity).map(k=>{let t;try{t=typeof A.proximity[k]}catch(e){t='?'}return k+(t==='function'?'()':'='+pxShort(A.proximity[k]))}).join(', '):'—')+
       '. Capabilities: '+caps+'.';
     pxShowDbg();if(S.px)pxStart()}
@@ -1677,6 +1678,7 @@ addEventListener('fvtperm',e=>{if(e.detail.name!=='motion')return;const ok=e.det
     {id:'_daysShort',name:'Days old (short)',tpl:{text:'{prediction} days\nold',source:'calcDays',mode:'fixed',len:61,size:56}},
     {id:'_sign',name:'Star sign',tpl:{text:'You are\na {prediction}',source:'calcSign',mode:'fixed',len:61,size:56}},
     {id:'_total',name:'Calculator result',tpl:{text:'The total\nwill be\n{prediction}',source:'calcResult',mode:'fixed',len:61,size:52}}];
+  if(window.NotesAPI&&NotesAPI.cosmosMute)NotesAPI.cosmosMute(Cosmos);
   window.czPanel=Cosmos.panel({page:'calculator',presets,psShow:t=>{try{bleShow(t)}catch(e){}}});
   /* ---- magic square (Napkin look): hold % = on / off, = prints the square for the total ---- */
   S.ms=Object.assign({on:false,mess:7,font:'Reenie Beanie',cap:false,keep:false,try:''},S.ms||{});
