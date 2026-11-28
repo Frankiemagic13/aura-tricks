@@ -20,11 +20,13 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
    Kalam, Patrick Hand and Caveat printed black in the font test at pen 0. Handlee and Nanum Pen Script
    have the same stroke weight or thinner (Nanum is narrow, so fewer dots in each row). Use pen 0. */
 C.FONTS = [['Kalam','Neat pen'],['Patrick Hand','Print letters'],['Caveat','Quick pen'],['Handlee','Neat handwriting'],['Nanum Pen Script','Narrow ballpoint'],
-  ['Permanent Marker','Sharpie']];   /* thick marker: can print gray on wide lines — use a smaller size or short lines */
+  ['Permanent Marker','Sharpie'],
+  /* messy handwriting, thin strokes (fewer black dots in each row, so they print black) */
+  ['Reenie Beanie','Messy fast note'],['Nothing You Could Do','Messy scrawl'],['Zeyada','Messy script'],['Waiting for the Sunrise','Messy pen']];   /* thick marker: can print gray on wide lines — use a smaller size or short lines */
 C.loadFonts = () => {
   if (document.getElementById('cosmosFonts')) return;
   const l = document.createElement('link'); l.id = 'cosmosFonts'; l.rel = 'stylesheet';
-  l.href = 'https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Caveat:wght@400;700&family=Handlee&family=Nanum+Pen+Script&family=Permanent+Marker&display=swap';
+  l.href = 'https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=Patrick+Hand&family=Caveat:wght@400;700&family=Handlee&family=Nanum+Pen+Script&family=Permanent+Marker&family=Reenie+Beanie&family=Nothing+You+Could+Do&family=Zeyada&family=Waiting+for+the+Sunrise&display=swap';
   document.head.appendChild(l);
   C.myFonts.load();
 };
