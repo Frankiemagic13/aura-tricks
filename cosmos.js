@@ -137,8 +137,10 @@ C.tags = {};
 const PAGE_TAGS = ['notes'];   /* placeholders of other pages: on a page without them they print nothing */
 C.addTag = (id, name, fn) => { C.tags[id] = { name, get: fn }; };
 let printing = false;
+C.injWord = '';   /* the Inject word for {inject}: read at print time (C.print), shown as a sample in the live view */
 C.fill = (t, word) => {
   let s = String(t.text || '').split('{prediction}').join(C.applyCase(word, t.caseT));
+  s = s.split('{inject}').join(printing ? C.applyCase(C.injWord, t.caseT) : (C.injWord || 'Inject word'));
   for (const [id, g] of Object.entries(C.tags)) {
     if (!s.includes('{' + id + '}')) continue;
     let v = ''; try { v = String(g.get() ?? '').trim(); } catch(e){}
@@ -468,6 +470,9 @@ C.print = async (t, word) => {
   t = C.tpl(t);
   if (!C.connected) { emit('toast', 'Connect the Cosmos first'); return false; }
   await C.fontsReady(t);
+  if (String(t.text || '').includes('{inject}')) {   /* {inject}: always the latest Inject word, whatever {prediction} uses */
+    try { C.injWord = (await C.injectRead()).value; } catch(e){ log('inject: ' + e.message); emit('toast', 'Inject failed'); C.injWord = ''; }
+  }
   const pr = C.prof(); printing = true; let r; try { r = C.render(t, word == null ? t.sample : word, pr.dpm / 8); } finally { printing = false; }
   let rows = r.rows, h = r.h, feed = feedDots(t.feed);
   if (+t.feed === -1) {
@@ -752,21 +757,40 @@ C.panel = function(opts){
     fillTpl(); };
   $('czDel').onclick = () => { const o = C.templates.get(S.tpl); if (!o) return; if (!C.tap2($('czDel'))) return; C.templates.remove(o.id); emit('toast', 'Deleted ' + o.name); S.tpl = ''; save(); fillTpl(); };
   /* printing */
-  async function printNow(){
+  async function printNow(o){
+    const auto = !!(o && o.auto);   /* auto = started by a new Inject word: do not wait for another one */
     if (!C.connected) { psShow('Cosmos not connected'); return false; }
     if (C.busy) { psShow('Busy'); return false; }
     const t = withSrc(chosen());
-    if (t.text.includes('{prediction}')) psShow(S.waitNew && t.source === 'inject' ? 'Waiting for Inject' : 'Getting ' + C.sources[t.source].name);
-    const r = await C.printPrediction(t, { waitNew: !!S.waitNew });
+    if (t.text.includes('{prediction}') && !auto) psShow(S.waitNew && t.source === 'inject' ? 'Waiting for Inject' : 'Getting ' + C.sources[t.source].name);
+    const r = await C.printPrediction(t, { waitNew: !auto && !!S.waitNew });
     if (r.word === null) psShow('No word'); else psShow((r.ok ? 'Printed' : 'Sent') + (r.word ? ': ' + r.word : ''));
     return r.ok;
   }
-  $('czPrint').onclick = printNow;
+  $('czPrint').onclick = () => printNow();
+  /* Print on a new Inject word: check Inject each 1.5 s; when a new word comes in, print the selected template */
+  let api = null, injBase = null, injT = null;
+  async function injTick(){
+    injT = null;
+    if (!S.injAuto) { injBase = null; return; }
+    if (document.visibilityState === 'visible') try {
+      const r = await C.injectRead();
+      if (injBase === null) injBase = r.count;
+      else if (r.count !== injBase) { injBase = r.count;
+        if (r.value && C.connected && !C.busy) { psShow('Inject: ' + r.value); await (api && api.print ? api.print({ auto: true }) : printNow({ auto: true })); } }
+    } catch(e){}
+    if (S.injAuto && !injT) injT = setTimeout(injTick, 1500);
+  }
+  const injStart = () => { clearTimeout(injT); injT = null; injBase = null; if (S.injAuto) injTick(); };
+  if ($('czInjAuto')) { $('czInjAuto').checked = !!S.injAuto;
+    $('czInjAuto').onchange = () => { S.injAuto = $('czInjAuto').checked; save(); injStart(); emit('toast', S.injAuto ? 'Prints on each new Inject word' : 'Inject auto print off'); }; }
+  injStart();
   $('czTest').onclick = () => { if (!C.connected) { C.connect(); return; } const t = chosen(); C.print(t, t.sample); };
   fillSrc(); fillTpl(); status();
-  return { print: printNow, autoEq: () => !!S.eq, autoAcro: () => !!S.acro, settings: S, current: () => chosen(),
+  api = { print: printNow, autoEq: () => !!S.eq, autoAcro: () => !!S.acro, settings: S, current: () => chosen(),
     /* print a preset or template by id, whatever is selected (used by the page's own buttons) */
-    printId: async id => { const keep = S.tpl; S.tpl = id; try { return await printNow(); } finally { S.tpl = keep; } } };
+    printId: async (id, o) => { const keep = S.tpl; S.tpl = id; try { return await printNow(o); } finally { S.tpl = keep; } } };
+  return api;
 };
 
 addEventListener('pagehide', () => { try { if (C.connected) C.disconnect(); } catch(e){} });

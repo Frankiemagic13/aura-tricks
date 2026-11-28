@@ -60,7 +60,7 @@ input[type=range]{width:100%;accent-color:var(--ac)}
 textarea,input[type=text],select{width:100%;font:inherit;color:var(--tx);background:var(--card);border:.5px solid var(--line2);border-radius:12px;padding:11px;outline:none;-webkit-user-select:text;user-select:text}
 textarea{min-height:76px;resize:none;font-size:16px;line-height:1.45}
 select{-webkit-appearance:none;appearance:none}
-.btns{display:grid;grid-template-columns:1.35fr 1.1fr .8fr .8fr;gap:7px;margin-top:10px}
+.btns{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:7px;margin-top:10px}
 .btns .pred{color:var(--ac2);border-color:#0a3a6a}
 .print{width:100%;margin-top:8px;background:#fff;color:#000;border:0;border-radius:15px;padding:15px;font-size:16px;font-weight:600}
 .print:disabled{opacity:.6}
@@ -150,7 +150,7 @@ select{-webkit-appearance:none;appearance:none}
   <textarea id="text" style="margin-top:12px" placeholder="Type what to print…"></textarea>
   <div class="row" style="justify-content:space-between;margin-top:6px"><span class="k" id="sampleV"></span><span class="k" id="srcV"></span></div>
 
-  <div class="btns"><button class="pred" id="bPred">{ } Prediction</button><button class="pred" id="bNotes">{ } Notes</button><button id="bFeed">Feed</button><button id="bTest">Test</button></div>
+  <div class="btns"><button class="pred" id="bPred">{ } Prediction</button><button class="pred" id="bNotes">{ } Notes</button><button class="pred" id="bInj">{ } Inject</button><button id="bFeed">Feed</button><button id="bTest">Test</button></div>
   <button class="print" id="bPrint">Print</button>
 </div>
 
@@ -256,7 +256,7 @@ select{-webkit-appearance:none;appearance:none}
 <div class="toast" id="toast"></div>
 
 <script src="https://magicsplitter.fr/aura_peeksmith/aura-peeksmith.js"></script>
-<script src="../cosmos.js?v=2026112738"></script>
+<script src="../cosmos.js?v=2026112839"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -355,7 +355,8 @@ const insTag = tag => () => {
   T.text = ta.value; ta.focus(); ta.setSelectionRange(s + tag.length, s + tag.length); redraw();
 };
 $('bPred').onclick = insTag('{prediction}');
-$('bNotes').onclick = insTag('{notes}');   /* what is written on the Notes page; prints only from the Notes page */
+$('bNotes').onclick = insTag('{notes}');
+$('bInj').onclick = insTag('{inject}');   /* the latest Inject word, read at print time */   /* what is written on the Notes page; prints only from the Notes page */
 
 function buildFonts(){
   const box = $('fonts'), sl = box.scrollLeft; box.innerHTML = '';
